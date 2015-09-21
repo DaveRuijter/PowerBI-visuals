@@ -307,4 +307,10 @@ module powerbi.visuals.plugins {
         capabilities: samples.StreamGraph.capabilities,
         create: () => new samples.StreamGraph()
     };
+
+    export var aquarium: IVisualPlugin = {
+        name: 'aquarium',
+        capabilities: Aquarium.capabilities,
+        create: () => new Aquarium()
+    };
 }
