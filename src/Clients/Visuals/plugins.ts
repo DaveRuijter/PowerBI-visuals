@@ -310,7 +310,7 @@ module powerbi.visuals.plugins {
 
     export var aquarium: IVisualPlugin = {
         name: 'aquarium',
-        capabilities: Aquarium.capabilities,
+        capabilities: powerbi.visuals.Aquarium.capabilities,
         create: () => new Aquarium()
     };
 }

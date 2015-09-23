@@ -113,6 +113,7 @@
 /// <reference path="capabilities/columnChart.capabilities.ts"/>
 /// <reference path="visuals/samples/helloIVisual.ts"/>
 /// <reference path="visuals/samples/asterPlot.ts"/>
+/// <reference path="visuals/aquarium.ts"/>
 
 /// <reference path="capabilities/comboChart.capabilities.ts"/>
 /// <reference path="cartesian/comboChart.ts"/>
