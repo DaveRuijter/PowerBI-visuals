@@ -80,6 +80,7 @@ module powerbi.visuals {
         private selectedFish: FishModel = null;
         private tooltipcontainer;
         private selectionManager: SelectionManager;
+        private stopTimer: boolean = false;
 
         private aquariumWidth: number = 1000;
         private aquariumHeight: number = 1000;
@@ -164,12 +165,23 @@ module powerbi.visuals {
             };
             this.decorations.push(this.reed2);
 
-            this.timer = setInterval( () => {            
+            d3.timer(() => {            
                 this.draw(this.viewPort);
-            }, 10);
+                console.log('timer');
+                return this.stopTimer;
+            });
+
+            window.onkeydown = () => {
+                this.stopTimer = true;
+            }
         }
 
         public onResizing(viewport: IViewport) { /* This API will be depricated */ }
+
+        /** Notifies the visual that it is being destroyed, and to do any cleanup necessary (such as unsubscribing event handlers). */
+        public destroy() {
+            this.stopTimer = true;
+        }
 
         public updateModel(dataView: DataView, colors: IDataColorPalette) {            
             var table = dataView.table;
