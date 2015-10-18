@@ -1,4 +1,4 @@
-/// <reference path="../_references.ts"/>
+//-/// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
     import SelectionManager = utility.SelectionManager;
@@ -28,9 +28,6 @@ module powerbi.visuals {
     export class Aquarium implements IVisual {
 
         public static capabilities: VisualCapabilities = {
-            conditions: [
-                { 'Category': { max: 1 }, 'Series': { min: 1 } },
-            ],
             dataRoles: [
                 {
                     name: 'Category',
@@ -50,6 +47,9 @@ module powerbi.visuals {
                 values: {
                     select: [{ bind: { to: 'Series' } }]
                 },
+                conditions: [
+                { 'Category': { max: 1 }, 'Series': { max: 2 } },
+                ],
             }],
             objects: {
                 general: {
@@ -167,13 +167,21 @@ module powerbi.visuals {
 
             d3.timer(() => {            
                 this.draw(this.viewPort);
-                console.log('timer');
+                //console.log('timer');
                 return this.stopTimer;
             });
 
-            window.onkeydown = () => {
-                this.stopTimer = true;
-            }
+            // window.onkeydown = () => {
+            //     this.stopTimer = true;
+            // }
+            // window.onkeyup = () => {
+            //     this.stopTimer = false;
+            //    d3.timer(() => {            
+            //     this.draw(this.viewPort);
+            //     //console.log('timer');
+            //     return this.stopTimer;
+            //    });
+            // }
         }
 
         public onResizing(viewport: IViewport) { /* This API will be depricated */ }
@@ -183,10 +191,18 @@ module powerbi.visuals {
             this.stopTimer = true;
         }
 
-        public updateModel(dataView: DataView, colors: IDataColorPalette) {            
+        public updateModel(dataView: DataView, colors: IDataColorPalette) {         
+            if(!dataView) return;
+               
             var table = dataView.table;
             var catDv: DataViewCategorical = dataView.categorical;
-            if (!table || !catDv) return;
+            if (!table || !catDv || !catDv.values || !catDv.categories){
+                this.reed1.size = this.reed2.size = 0;
+                for (var key in this.fish) {
+                    this.removeFish(key);
+                }
+                return;  
+            }
             var cat = catDv.categories[0];
 
             if (dataView.metadata && dataView.metadata.objects) {
@@ -199,11 +215,15 @@ module powerbi.visuals {
             //work out the max of each series and the max of all series
             var tableMax = 1;
             var seriesMax: { [id: number]: number; } = {};
-            for (var series = 1; series <= 2 && series < table.columns.length; series++) {
+            //for (var series = 1; series <= 2 && series < table.columns.length; series++) {
+            for (var series = 0, lenC = catDv.values.length; series <= 2 && series < lenC; series++){
                 //max of this series
                 seriesMax[series] = 0;
-                for (var row = 0, len = table.rows.length; row < len; row++) {
-                    var value = table.rows[row][series];
+                //for (var row = 0, len = table.rows.length; row < len; row++) {
+                //catDv.values[series].length
+                for (var row = 0, len = catDv.values[series].values.length; row < len; row++) {
+                    //var value = table.rows[row][series];
+                    var value = catDv.values[series].values[row];
                     if (value) {
                         seriesMax[series] = Math.max(seriesMax[series], value);
                     }
@@ -213,22 +233,37 @@ module powerbi.visuals {
                 tableMax = Math.max(tableMax, seriesMax[series]);
             }                        
 
-            this.reed1.size = (seriesMax[1] / tableMax) * 0.8;
-            this.reed2.size = (seriesMax[2] / tableMax) * 0.8;
+            if(seriesMax[0] && !isNaN(seriesMax[0])){
+                this.reed1.size = (seriesMax[0] / tableMax) * 0.8;
+            }
+            else
+                this.reed1.size = 0;
+                
+            if(seriesMax[1] && !isNaN(seriesMax[1])){
+                this.reed2.size = (seriesMax[1] / tableMax) * 0.8;
+            }
+            else
+                this.reed2.size = 0;
+            //this.reed2.size = (seriesMax[2] / tableMax) * 0.8;
 
             //update our dataset with the new dataset
             var updatedFishIds: { [id: string]: string; } = {};
-            for (var row = 0, len = table.rows.length; row < len; row++) {
-                for (var series = 1; series <= table.columns.length; series++) {
-                    var value = table.rows[row][series];
+            //for (var row = 0, len = table.rows.length; row < len; row++) {
+            //    for (var series = 1; series <= table.columns.length; series++) {
+            for (var series = 0, countSeries = catDv.values.length; series < countSeries; series++) {
+                for (var row = 0, lenRows = catDv.values[0].values.length; row < lenRows; row++) {
+                    //var value = table.rows[row][series];
+                    var value = catDv.values[series].values[row];
                     //there might be null values which need to be ignored
                     if (!isNaN(value)) {
                         //create a unique identifier per series
-                        var label = table.rows[row][0];
-                        var fishId = label + ", series " + series;
+                        //var label = table.rows[row][0];
+                        var label = catDv.categories[0].values[series];
+                        var fishId = label + ", series " + series + "_" + row;
                         var valueFormated = "$" + value.toFixed(2).replace(/\B(?=(\d{3})+\b)/g, ",");                    
                         var labelColour = colors.getColorByIndex(row).value;
-                        var seriesLabel = dataView.metadata.columns[series].displayName;
+                        //var seriesLabel = dataView.metadata.columns[series].displayName;
+                        var seriesLabel = catDv.values[series].source.displayName;
                         var tooltip = [
                             seriesLabel,
                             label,
@@ -237,7 +272,7 @@ module powerbi.visuals {
                         var selector = SelectionId.createWithId(cat.identity[row]);
 
                         updatedFishIds[fishId] = fishId;
-                        this.addOrUpdateFish(fishId, value / tableMax, labelColour, tooltip, selector, this.fishTypes[(series-1)%2]);
+                        this.addOrUpdateFish(fishId, value / tableMax, labelColour, tooltip, selector, this.fishTypes[(series)%2]);
                     }
                 }          
             }
@@ -397,7 +432,7 @@ module powerbi.visuals {
             var size = decoration.size * scaleX;
 
             //bail out if anything is wrong
-            if (!x || !y || !size) {
+            if (!x || !y/* || !size*/) {
                 return;
             }
 
