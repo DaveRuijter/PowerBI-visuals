@@ -40,7 +40,7 @@ module powerbi.visuals.sampleDataViews {
             'lineStackedColumnComboChart',
             'lineClusteredColumnComboChart',
             'asterPlot',
-            'aquarium'
+            'aquarium',
             'asterPlot',
             'radarChart'
         ];

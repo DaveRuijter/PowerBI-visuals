@@ -289,6 +289,8 @@ module powerbi.visuals {
             createPlugin(plugins, powerbi.visuals.plugins.histogram, () => new Histogram({
                 animator: new BaseAnimator()
             }));
+            // aquarium
+            createPlugin(plugins, powerbi.visuals.plugins.aquarium, () => new Aquarium());
         }
 
         export class MinervaVisualPluginService extends VisualPluginService {

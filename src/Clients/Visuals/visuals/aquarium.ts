@@ -73,7 +73,6 @@ module powerbi.visuals {
         private viewPort: IViewport;        
         private svg: D3.Selection;
         private mainGroupElement: D3.Selection;
-        private timer;
         private decorations: DecorationModel[] = [];
         private reed1: DecorationModel;
         private reed2: DecorationModel;
@@ -167,21 +166,8 @@ module powerbi.visuals {
 
             d3.timer(() => {            
                 this.draw(this.viewPort);
-                //console.log('timer');
                 return this.stopTimer;
             });
-
-            // window.onkeydown = () => {
-            //     this.stopTimer = true;
-            // }
-            // window.onkeyup = () => {
-            //     this.stopTimer = false;
-            //    d3.timer(() => {            
-            //     this.draw(this.viewPort);
-            //     //console.log('timer');
-            //     return this.stopTimer;
-            //    });
-            // }
         }
 
         public onResizing(viewport: IViewport) { /* This API will be depricated */ }
@@ -205,12 +191,12 @@ module powerbi.visuals {
             }
             var cat = catDv.categories[0];
 
+            /*
             if (dataView.metadata && dataView.metadata.objects) {
                 var objects = dataView.metadata.objects;
-
                 var maxSize = DataViewObjects.getValue<number>(objects, { objectName: 'general', propertyName: 'maxSize' });
                 var triangleFish = DataViewObjects.getValue<boolean>(objects, { objectName: 'general', propertyName: 'triangleFish' });
-            }
+            }*/
 
             //work out the max of each series and the max of all series
             var tableMax = 1;
