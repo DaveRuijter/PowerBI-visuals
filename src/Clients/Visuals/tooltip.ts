@@ -279,7 +279,7 @@ module powerbi.visuals {
         export var ShowTooltips: boolean = true;
         export var ToolTipInstance: ToolTipComponent = new ToolTipComponent();
         var GlobalTooltipEventsAttached: boolean = false;
-        var tooltipMouseOverDelay: number = 500;
+        var tooltipMouseOverDelay: number = 5;
         var tooltipTouchDelay: number = 500;
         var tooltipTimeoutId: number;
         var handleTouchDelay: number = 1000;

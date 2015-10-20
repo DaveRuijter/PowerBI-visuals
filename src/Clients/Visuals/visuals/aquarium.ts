@@ -8,7 +8,7 @@ module powerbi.visuals {
         y: number;
         color: string;
         size: number;
-        tooltip: string[];
+        tooltip: TooltipDataItem[];
         paused: boolean;
         speed: number;
         body: D3.Selection;
@@ -52,9 +52,13 @@ module powerbi.visuals {
                 ],
             }],
             objects: {
+
                 general: {
-                    displayName: 'Options',
+                    displayName: data.createDisplayNameGetter('Visual_General'),
                     properties: {
+                        formatString: {
+                            type: { formatting: { formatString: true } },
+                        },
                         maxSize: {
                             type: { numeric: true },
                             displayName: 'Max Size'
@@ -77,7 +81,6 @@ module powerbi.visuals {
         private reed1: DecorationModel;
         private reed2: DecorationModel;
         private selectedFish: FishModel = null;
-        private tooltipcontainer;
         private selectionManager: SelectionManager;
         private stopTimer: boolean = false;
 
@@ -97,9 +100,6 @@ module powerbi.visuals {
                 .append('svg')
                 .attr('style', 'background-color:#abcdef;')
                 .classed(Aquarium.VisualClassName, true);
-
-            this.tooltipcontainer = $('<div class="tooltip-container" style="display: none;"><div class="arrow top left"></div><div class="tooltip-content-container"><div class="tooltip-row"><div class="tooltip-title-cell" id="series"></div></div><div class="tooltip-row"><div class="tooltip-title-cell" id="label"></div><div class="tooltip-value-cell" id="value"></div></div></div></div>');
-            element.append(this.tooltipcontainer);            
 
             var defs = svg.append('defs');
             var roundFishy = defs.append('g').attr('id', 'round-fishy');
@@ -191,13 +191,6 @@ module powerbi.visuals {
             }
             var cat = catDv.categories[0];
 
-            /*
-            if (dataView.metadata && dataView.metadata.objects) {
-                var objects = dataView.metadata.objects;
-                var maxSize = DataViewObjects.getValue<number>(objects, { objectName: 'general', propertyName: 'maxSize' });
-                var triangleFish = DataViewObjects.getValue<boolean>(objects, { objectName: 'general', propertyName: 'triangleFish' });
-            }*/
-
             //work out the max of each series and the max of all series
             var tableMax = 1;
             var seriesMax: { [id: number]: number; } = {};
@@ -243,22 +236,14 @@ module powerbi.visuals {
                     //there might be null values which need to be ignored
                     if (!isNaN(value)) {
                         //create a unique identifier per series
-                        //var label = table.rows[row][0];
                         var label = catDv.categories[0].values[series];
                         var fishId = label + ", series " + series + "_" + row;
-                        var valueFormated = "$" + value.toFixed(2).replace(/\B(?=(\d{3})+\b)/g, ",");                    
-                        var labelColour = colors.getColorByIndex(row).value;
-                        //var seriesLabel = dataView.metadata.columns[series].displayName;
-                        var seriesLabel = catDv.values[series].source.displayName;
-                        var tooltip = [
-                            seriesLabel,
-                            label,
-                            valueFormated
-                        ];
+                        var labelColour = colors.getColorByIndex(row).value;                                                
+                        var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(aquariumProps.general.formatString, catDv, label, value, null, null, series, row);
                         var selector = SelectionId.createWithId(cat.identity[row]);
 
                         updatedFishIds[fishId] = fishId;
-                        this.addOrUpdateFish(fishId, value / tableMax, labelColour, tooltip, selector, this.fishTypes[(series)%2]);
+                        this.addOrUpdateFish(fishId, value / tableMax, labelColour, tooltipInfo, selector, this.fishTypes[(series)%2]);
                     }
                 }          
             }
@@ -272,14 +257,14 @@ module powerbi.visuals {
 
         }
 
-        private addOrUpdateFish(fishId: string, value: number, colour: string, tooltip: string[], selector: SelectionId, fishType: string) {
+        private addOrUpdateFish(fishId: string, value: number, colour: string, tooltipInfo: TooltipDataItem[], selector: SelectionId, fishType: string) {
             var fishy = this.fish[fishId];
             if (fishy == null) {
                 fishy = this.fish[fishId] = {
                     x: 80 + Math.random() * 840,
                     y: 80 + Math.random() * 760,
                     color: colour,
-                    tooltip: tooltip,
+                    tooltip: tooltipInfo,
                     size: 0,
                     speed: 0,
                     paused: false,
@@ -288,12 +273,12 @@ module powerbi.visuals {
                     selector: selector
                 };
             }
-            fishy.tooltip = tooltip;
+            fishy.tooltip = tooltipInfo;
             fishy.size = value * 0.3;                          
             fishy.speed = value * (fishy.speed < 0 ? -1 : 1); //don't change their direction            
             if (fishy.size < 0) fishy.speed /= 2; // #ded
         }
-
+         
         private removeFish(fishId: string) {
             this.fish[fishId].body.remove();
             delete this.fish[fishId];
@@ -335,19 +320,6 @@ module powerbi.visuals {
             }
         }
 
-        private setTooltip(fishy: FishModel) {
-            if (fishy == null) {
-                this.tooltipcontainer.hide(20);
-                return;
-            }
-            this.tooltipcontainer.find('#series').text(fishy.tooltip[0]);
-            this.tooltipcontainer.find('#label').text(fishy.tooltip[1]);
-            this.tooltipcontainer.find('#value').text(fishy.tooltip[2]);
-            var mouse = d3.mouse(this.svg.node());
-            this.tooltipcontainer.css({ top: mouse[1] - 15, left: mouse[0] + 15 });
-            this.tooltipcontainer.show();
-        }
-
         private selectFish(fishy: FishModel) {
             this.selectedFish = fishy;
             this.selectionManager.select(fishy.selector);
@@ -378,17 +350,13 @@ module powerbi.visuals {
                         }
 
                         d3.event.stopPropagation();                        
-                    })
-                    .on('mousemove', () =>
-                    {
-                        fishy.paused = true;
-                        this.setTooltip(fishy);
-                    })
-                    .on('mouseout', () =>
-                    {
-                        fishy.paused = false;
-                        this.setTooltip(null);
                     });
+                TooltipManager.addTooltip(fishy.body, (tooltipEvent: TooltipEvent) => {
+                    //pause the fish so it's easier to hover - this would be better as an event on tooltip destroy, but there is not one at this stage                   
+                    fishy.paused = true;
+                    setTimeout(() => { fishy.paused = false; }, 5000); 
+                    return fishy.tooltip;
+                });
             }
             
             //otherwise just update positions
@@ -460,4 +428,11 @@ module powerbi.visuals {
             
         }
     }
+    export var aquariumProps = {
+        general: {
+            formatString: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'formatString' },
+            maxSize: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'maxSize' },
+        }
+    };
+
 }
