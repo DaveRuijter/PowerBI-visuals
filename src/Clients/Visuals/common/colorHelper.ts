@@ -58,7 +58,7 @@ module powerbi.visuals {
          */
         public getColorForMeasure(objects: DataViewObjects, measureKey: any): string {
             // Note, this allocates the color from the scale regardless of if we use it or not which helps keep colors stable.
-            var scaleColor = this.defaultColorScale.getColor(measureKey).value;
+            let scaleColor = this.defaultColorScale.getColor(measureKey).value;
 
             return (this.fillProp && DataViewObjects.getFillColor(objects, this.fillProp))
                 || this.defaultDataPointColor

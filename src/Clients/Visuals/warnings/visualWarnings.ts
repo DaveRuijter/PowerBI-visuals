@@ -35,11 +35,11 @@ module powerbi.visuals {
         }
 
         public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
-            var messageKey: string = 'NoMapLocationMessage';
-            var titleKey: string = 'NoMapLocationKey';
-            var detailKey: string = 'NoMapLocationValue';
+            let messageKey: string = 'NoMapLocationMessage';
+            let titleKey: string = 'NoMapLocationKey';
+            let detailKey: string = 'NoMapLocationValue';
 
-            var visualMessage: IVisualErrorMessage = {
+            let visualMessage: IVisualErrorMessage = {
                 message: resourceProvider.get(messageKey),
                 title: resourceProvider.get(titleKey),
                 detail: resourceProvider.get(detailKey),
@@ -55,11 +55,11 @@ module powerbi.visuals {
         }
 
         public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
-            var messageKey: string = 'NoValidGeotaggedCategoryMessage';
-            var titleKey: string = 'NoValidGeotaggedCategoryKey';
-            var detailKey: string = 'NoValidGeotaggedCategoryValue';
+            let messageKey: string = 'NoValidGeotaggedCategoryMessage';
+            let titleKey: string = 'NoValidGeotaggedCategoryKey';
+            let detailKey: string = 'NoValidGeotaggedCategoryValue';
 
-            var visualMessage: IVisualErrorMessage = {
+            let visualMessage: IVisualErrorMessage = {
                 message: resourceProvider.get(messageKey),
                 title: resourceProvider.get(titleKey),
                 detail: resourceProvider.get(detailKey),
@@ -75,14 +75,50 @@ module powerbi.visuals {
         }
 
         public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
-            var messageKey: string = 'DsrLimitWarning_TooMuchDataMessage';
-            var titleKey: string = '';
-            var detailKey: string = '';
+            let messageKey: string = 'DsrLimitWarning_TooMuchDataMessage';
+            let titleKey: string = '';
+            let detailKey: string = '';
 
-            var visualMessage: IVisualErrorMessage = {
+            let visualMessage: IVisualErrorMessage = {
                 message: resourceProvider.get(messageKey),
                 title: resourceProvider.get(titleKey),
                 detail: resourceProvider.get(detailKey),
+            };
+
+            return visualMessage;
+        }
+    }
+
+    export class NegativeValuesNotSupportedWarning implements IVisualWarning {
+        public get code(): string {
+            return 'NegativeValuesNotSupported';
+        }
+
+        public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
+            var messageKey: string = 'VisualWarning_NegativeValues';
+
+            var visualMessage: IVisualErrorMessage = {
+                message: resourceProvider.get(messageKey),
+                title: '',
+                detail: '',
+            };
+
+            return visualMessage;
+        }
+    }
+
+    export class AllNegativeValuesWarning implements IVisualWarning {
+        public get code(): string {
+            return 'AllNegativeValuesNotSupported';
+        }
+
+        public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
+            var messageKey: string = 'VisualWarning_AllNegativeValues';
+
+            var visualMessage: IVisualErrorMessage = {
+                message: resourceProvider.get(messageKey),
+                title: '',
+                detail: '',
             };
 
             return visualMessage;
@@ -95,9 +131,9 @@ module powerbi.visuals {
         }
 
         public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
-            var messageKey: string = 'VisualWarning_InfinityValues';
+            let messageKey: string = 'VisualWarning_InfinityValues';
 
-            var visualMessage: IVisualErrorMessage = {
+            let visualMessage: IVisualErrorMessage = {
                 message: resourceProvider.get(messageKey),
                 title: '',
                 detail: '',
@@ -113,9 +149,9 @@ module powerbi.visuals {
         }
 
         public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
-            var messageKey: string = 'VisualWarning_InfinityValues';
+            let messageKey: string = 'VisualWarning_InfinityValues';
 
-            var visualMessage: IVisualErrorMessage = {
+            let visualMessage: IVisualErrorMessage = {
                 message: resourceProvider.get(messageKey),
                 title: '',
                 detail: '',
@@ -131,9 +167,9 @@ module powerbi.visuals {
         }
 
         public getMessages(resourceProvider: IStringResourceProvider): IVisualErrorMessage {
-            var messageKey: string = 'VisualWarning_VisualizationOutOfRange';
+            let messageKey: string = 'VisualWarning_VisualizationOutOfRange';
 
-            var visualMessage: IVisualErrorMessage = {
+            let visualMessage: IVisualErrorMessage = {
                 message: resourceProvider.get(messageKey),
                 title: '',
                 detail: '',

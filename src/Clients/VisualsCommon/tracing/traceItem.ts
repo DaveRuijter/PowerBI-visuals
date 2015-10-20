@@ -58,7 +58,7 @@ module jsCommon {
         }
 
         public toString(): string {
-            var resultString: string = '';
+            let resultString: string = '';
 
             resultString += (StringExtensions.format(
                 '{0} ({1}): {2}',

@@ -53,11 +53,5 @@ module powerbitests {
             expect(parsedTransform.x).toBe("110.6");
             expect(parsedTransform.y).toBe("0");
         });
-    
-        it("validate convertToPixelString", () => {
-            var pixelString = SVGUtil.convertToPixelString(34);
-    
-            expect(pixelString).toBe("34px");
-        });
     });
 }

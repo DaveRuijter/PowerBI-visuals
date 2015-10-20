@@ -41,11 +41,13 @@ module powerbi.visuals.sampleDataViews {
             'lineClusteredColumnComboChart',
             'asterPlot',
             'aquarium'
+            'asterPlot',
+            'radarChart'
         ];
         
         private sampleData1 = [
-            [742731.43, 162066.43, 283085.78, 300263.49, 376074.57, 814724.34],
-            [123455.43, 40566.43, 200457.78, 5000.49, 320000.57, 450000.34]
+            [742731.43, 162066.43, 283085.78, 300263.49, 376074.57, 814724.34, 570921.34],
+            [123455.43, 40566.43, 200457.78, 5000.49, 320000.57, 450000.34, 140832.67]
         ];
 
         private sampleMin1: number = 30000;
@@ -61,7 +63,7 @@ module powerbi.visuals.sampleDataViews {
 
         public getDataViews(): DataView[] {
             //first dataView - Sales by day of week
-            var fieldExpr = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: "table1", column: "day of week" });
+            var fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "table1", name: "day of week" } });
 
             var categoryValues = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             var categoryIdentities = categoryValues.map(function (value) {
@@ -116,7 +118,7 @@ module powerbi.visuals.sampleDataViews {
             //first dataView - Sales by day of week END
 
             //second dataView - Temperature by day of week
-            var fieldExprTemp = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: "table2", column: "day of week" });
+            var fieldExprTemp = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "table2", name: "day of week" } });
 
             var categoryValuesTemp = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             var categoryIdentitiesTemp = categoryValuesTemp.map(function (value) {

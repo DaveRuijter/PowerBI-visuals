@@ -200,4 +200,271 @@ module powerbitests.helpers {
     export function isInRange(val: number, min: number, max: number): Boolean {
         return min <= val && val <= max;
     }
+    
+    export class DataViewBuilder {
+        private dataView: powerbi.DataView = { metadata: null };
+
+        public setMetadata(metadata: powerbi.DataViewMetadata): DataViewBuilder {
+            this.dataView.metadata = metadata;
+            return this;
+        }
+
+        public getMetadata(): powerbi.DataViewMetadata {
+            return this.dataView.metadata;
+        }
+
+        public setCategorical(categorical: powerbi.DataViewCategorical) {
+            this.dataView.categorical = categorical;
+            return this;
+        }
+
+        public setCategories(categories: powerbi.DataViewCategoryColumn[]) {
+            this.initCategorical();
+            this.dataView.categorical.categories = categories;
+
+            return this;
+        }
+
+        public addCategory(category: powerbi.DataViewCategoryColumn) {
+            this.initCategories();
+            this.dataView.categorical.categories.push(category);
+            return this;
+        }
+
+        public categoryBuilder(category: powerbi.DataViewCategoryColumn = { source: null, values: null }) {
+            var self = this;
+
+            return {
+                setIdentity(identity: powerbi.DataViewScopeIdentity[]) {
+                    category.identity = identity;
+                    return this;
+                },
+                setIdentityFields(identityFields: powerbi.data.SQExpr[]) {
+                    category.identityFields = identityFields;
+                    return this;
+                },
+                setSource(source: powerbi.DataViewMetadataColumn) {
+                    category.source = source;
+                    return this;
+                },
+                setValues(values: any[]) {
+                    category.values = values;
+                    return this;
+                },
+                setObjects(objects: powerbi.DataViewObjects[]) {
+                    category.objects = objects;
+                    return this;
+                },
+                buildCategory() {
+                    return self.addCategory(category);
+                }
+            };
+        }
+
+        public valueColumnsBuilder() {
+            var self = this;
+
+            this.initCategorical();
+
+            var tempValues: powerbi.DataViewValueColumn[] = [];
+            var valueIdentityFields: powerbi.data.SQExpr[];
+            var source: powerbi.DataViewMetadataColumn;
+            return {
+                newValueBuilder(value: powerbi.DataViewValueColumn = <powerbi.DataViewValueColumn>{}) {
+                    var self = this;
+                    return {
+                        setSubtotal(subtotal: any) {
+                            value.subtotal = subtotal;
+                            return this;
+                        },
+                        setMax(max: any) {
+                            value.max = max;
+                            return this;
+                        },
+                        setMin(min: any) {
+                            value.min = min;
+                            return this;
+                        },
+                        setHighlights(highlights: any[]) {
+                            value.highlights = highlights;
+                            return this;
+                        },
+                        setIdentity(identity: powerbi.DataViewScopeIdentity) {
+                            value.identity = identity;
+                            return this;
+                        },
+                        setMaxLocal(maxLocal: any) {
+                            value.maxLocal = maxLocal;
+                            return this;
+                        },
+                        setMinLocal(minLocal: any) {
+                            value.minLocal = minLocal;
+                            return this;
+                        },
+                        setSource(source: powerbi.DataViewMetadataColumn) {
+                            value.source = source;
+                            return this;
+                        },
+                        setValues(values: any[]) {
+                            value.values = values;
+                            return this;
+                        },
+                        setObjects(objects: powerbi.DataViewObjects[]) {
+                            value.objects = objects;
+                            return this;
+                        },
+                        buildNewValue() {
+                            tempValues.push(value);
+                            return self;
+                        }
+                    };
+                },
+                setValueIdentityFields(identityFields: powerbi.data.SQExpr[]) {
+                    valueIdentityFields = identityFields;
+                    return self;
+                },
+                setSource(src: powerbi.DataViewMetadataColumn) {
+                    source = src;
+                    return self;
+                },
+                buildValueColumns() {
+                    self.setValues(powerbi.data.DataViewTransform.createValueColumns(tempValues, valueIdentityFields, source));
+                    return self;
+                }
+            };
+        }
+
+        public setValues(values: powerbi.DataViewValueColumns) {
+            this.initCategorical();
+            this.dataView.categorical.values = values;
+
+            return this;
+        }
+
+        public build(): powerbi.DataView {
+            return this.dataView;
+        }
+
+        private initCategorical() {
+            if (!this.dataView.categorical) {
+                this.setCategorical({});
+            }
+        }
+
+        private initCategories() {
+            this.initCategorical();
+            if (!this.dataView.categorical.categories) {
+                this.setCategories([]);
+            }
+        }
+    }
+    
+    export class VisualBuilder {
+        private height: number;
+        
+        private width: number;
+        
+        private pluginType: string;
+        
+        private visualPluginService: powerbi.visuals.IVisualPluginService;
+        
+        private visualHostService: powerbi.IVisualHostServices;
+        
+        public get host(): powerbi.IVisualHostServices {
+            return this.visualHostService;
+        }
+        
+        private visualStyle: powerbi.IVisualStyle;
+        
+        private jQueryElement: JQuery;
+        
+        public get element(): JQuery {
+            return this.jQueryElement;
+        }
+        
+        private visualPlugin: powerbi.IVisual;
+        
+        public get visual(): powerbi.IVisual {
+            return this.visualPlugin;
+        }
+        
+        public transitionImmediate: boolean = true;
+        
+        public interactivitySelection: boolean = false;
+        
+        constructor(
+            visualPluginService: powerbi.visuals.IVisualPluginService,
+            pluginType: string,
+            height: number = 500,
+            width: number = 500
+        ) {
+            this.visualPluginService = visualPluginService;
+            this.pluginType = pluginType;
+            this.height = height;
+            this.width = width;
+        }
+        
+        private init(): void {
+            this.createElement();
+            this.createHost();
+            this.createStyle();
+            this.createVisual();
+            
+            this.initVisual();
+        }
+        
+        private createElement(): void {
+            this.jQueryElement = powerbitests.helpers.testDom(
+                this.height.toString(),
+                this.width.toString());
+        }
+        
+        private createHost(): void {
+            this.visualHostService = powerbitests.mocks.createVisualHostServices();
+        }
+        
+        private createStyle(): void {
+            this.visualStyle = powerbi.visuals.visualStyles.create();
+        }
+        
+        private createVisual(): void {
+            if (this.visualPluginService)
+                this.visualPlugin = 
+                    this.visualPluginService.getPlugin(this.pluginType).create();
+        }
+        
+        private initVisual(): void {
+            if(!this.visualPlugin)
+                return;
+            
+            this.visualPlugin.init({
+                element: this.jQueryElement,
+                host: this.visualHostService,
+                style: this.visualStyle,
+                viewport: {
+                    height: this.height,
+                    width: this.width
+                },
+                animation: {
+                    transitionImmediate: this.transitionImmediate
+                },
+                interactivity: {
+                    selection: this.interactivitySelection
+                }
+            });
+        }
+        
+        public setSize(height: number, width: number): void {
+            this.height = height;
+            this.width = width;
+            
+            this.init();
+        }
+        
+        public build(): powerbi.IVisual {
+            this.init();
+            
+            return this.visualPlugin;
+        }
+    }
 }

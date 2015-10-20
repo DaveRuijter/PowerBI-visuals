@@ -33,6 +33,7 @@ module powerbi.visuals {
     export interface TreemapConstructorOptions {
         animator: ITreemapAnimator;
         isScrollable: boolean;
+        behavior?: TreemapWebBehavior;
     }
 
     export interface TreemapData {
@@ -43,7 +44,7 @@ module powerbi.visuals {
         legendObjectProperties?: DataViewObject;
         dataWasCulled: boolean;
     }
-    
+
     /**
      * Treemap node (we extend D3 node (GraphNode) because treemap layout methods rely on the type).
      */
@@ -82,24 +83,31 @@ module powerbi.visuals {
             width: (d: TreemapNode) => number;
             height: (d: TreemapNode) => number;
         };
-        labelClass: (d: TreemapNode) => string;
-        labelLayout: {
+        majorLabelClass: (d: TreemapNode) => string;
+        majorLabelLayout: {
             x: (d: TreemapNode) => number;
             y: (d: TreemapNode) => number;
         };
-        labelText: (d: TreemapNode) => string;
-        areDataLabelsEnabled: () => boolean;
+        majorLabelText: (d: TreemapNode) => string;
+        minorLabelClass: (d: TreemapNode) => string;
+        minorLabelLayout: {
+            x: (d: TreemapNode) => number;
+            y: (d: TreemapNode) => number;
+        };
+        minorLabelText: (d: TreemapNode) => string;
+        areMajorLabelsEnabled: () => boolean;
+        areMinorLabelsEnabled: () => boolean;
     }
 
     // Todo: move to shared location
     interface DataPointObject extends DataViewObject {
         fill: Fill;
     }
-    
+
     /**
      * Renders an interactive treemap visual from categorical data.
      */
-    export class Treemap implements IVisual, IInteractiveVisual {
+    export class Treemap implements IVisual {
         public static DimmedShapeOpacity = 0.4;
 
         private static ClassName = 'treemap';
@@ -121,7 +129,7 @@ module powerbi.visuals {
             fontFamily: 'wf_segoe-ui_normal',
             fontSize: Treemap.MajorLabelTextSize + 'px'
         };
-        
+
         /**
          * A rect with an area of 9 is a treemap rectangle of only
          * a single pixel in the middle with a 1 pixel stroke on each edge.
@@ -131,6 +139,7 @@ module powerbi.visuals {
         private svg: D3.Selection;
         private treemap: D3.Layout.TreeMapLayout;
         private shapeGraphicsContext: D3.Selection;
+        private labelGraphicsContext: D3.Selection;
         // TODO: Remove this once all visuals have implemented update.
         private currentViewport: IViewport;
         private legend: ILegend;
@@ -142,51 +151,57 @@ module powerbi.visuals {
         private options: VisualInitOptions;
         private isScrollable: boolean;
         private hostService: IVisualHostServices;
-        
+
         /**
          * Note: Public for testing.
          */
         public animator: ITreemapAnimator;
         private interactivityService: IInteractivityService;
+        private behavior: TreemapWebBehavior;
 
         // TODO: Remove this once all visuals have implemented update.
         private dataViews: DataView[];
 
         public static getLayout(labelsSettings: VisualDataLabelsSettings, alternativeScale: number): ITreemapLayout {
-            var formattersCache = dataLabelUtils.createColumnFormatterCacheManager();
-            var dataLabelsEnabled = labelsSettings.show || labelsSettings.showCategory;
+            let formattersCache = dataLabelUtils.createColumnFormatterCacheManager();
+            let majorLabelsEnabled = labelsSettings.showCategory;
+            let minorLabelsEnabled = labelsSettings.show || labelsSettings.showCategory;
 
             return {
-            shapeClass: (d) => Treemap.getNodeClass(d, false),
-            shapeLayout: Treemap.createTreemapShapeLayout(false),
-            highlightShapeClass: (d) => Treemap.getNodeClass(d, true),
-            highlightShapeLayout: Treemap.createTreemapShapeLayout(true),
-            zeroShapeLayout: Treemap.createTreemapZeroShapeLayout(),
-            labelClass: (d) => Treemap.isMajorLabel(d) ? Treemap.MajorLabelClassName : Treemap.MinorLabelClassName,
-            labelLayout: {
-                x: (d) => d.x + Treemap.TextMargin,
-                y: (d) => {
-                    if (Treemap.isMajorLabel(d))
-                        return d.y + Treemap.TextMargin + Treemap.MajorLabelTextSize;
-
-                    return d.y + d.dy - Treemap.TextMargin;
+                shapeClass: (d) => Treemap.getNodeClass(d, false),
+                shapeLayout: Treemap.createTreemapShapeLayout(false),
+                highlightShapeClass: (d) => Treemap.getNodeClass(d, true),
+                highlightShapeLayout: Treemap.createTreemapShapeLayout(true),
+                zeroShapeLayout: Treemap.createTreemapZeroShapeLayout(),
+                majorLabelClass: (d) => Treemap.MajorLabelClassName,
+                majorLabelLayout: {
+                    x: (d) => d.x + Treemap.TextMargin,
+                    y: (d) => d.y + Treemap.TextMargin + Treemap.MajorLabelTextSize,
                 },
-            },
-                labelText: (d) => Treemap.createLabelForShape(d, labelsSettings, alternativeScale, formattersCache),
-                areDataLabelsEnabled: () => dataLabelsEnabled,
-        };
+                majorLabelText: (d) => Treemap.createMajorLabelText(d, labelsSettings, alternativeScale, formattersCache),
+
+                minorLabelClass: (d) => Treemap.MinorLabelClassName,
+                minorLabelLayout: {
+                    x: (d) => d.x + Treemap.TextMargin,
+                    y: (d) => d.y + d.dy - Treemap.TextMargin,
+                },
+                minorLabelText: (d) => Treemap.createMinorLabelText(d, labelsSettings, alternativeScale, formattersCache),
+                areMajorLabelsEnabled: () => majorLabelsEnabled,
+                areMinorLabelsEnabled: () => minorLabelsEnabled,
+            };
         }
 
         constructor(options?: TreemapConstructorOptions) {
             if (options && options.animator) {
                 this.animator = options.animator;
                 this.isScrollable = options.isScrollable ? options.isScrollable : false;
+                this.behavior = options.behavior;
             }
         }
 
         public init(options: VisualInitOptions): void {
             this.options = options;
-            var element = options.element;
+            let element = options.element;
 
             // Ensure viewport is empty on init
             element.empty();
@@ -198,6 +213,9 @@ module powerbi.visuals {
             this.shapeGraphicsContext = this.svg
                 .append('g')
                 .classed(Treemap.ShapesClassName, true);
+            this.labelGraphicsContext = this.svg
+                .append('g')
+                .classed(Treemap.LabelsGroupClassName, true);
 
             this.element = element;
 
@@ -215,18 +233,20 @@ module powerbi.visuals {
                 .value((d) => d.size)
                 .round(false);
 
-            this.interactivityService = VisualInteractivityFactory.buildInteractivityService(options);
+            if (this.behavior) {
+                this.interactivityService = createInteractivityService(options.host);
+            }
             this.legend = createLegend(element, options.interactivity && options.interactivity.isInteractiveLegend, this.interactivityService, this.isScrollable);
             this.colors = this.style.colorPalette.dataColors;
 
             this.hostService = options.host;
         }
-        
+
         /**
          * Note: Public for testing purposes.
          */
         public static converter(dataView: DataView, colors: IDataColorPalette, labelSettings: VisualDataLabelsSettings, interactivityService: IInteractivityService, viewport: IViewport, legendObjectProperties?: DataViewObject): TreemapData {
-            var rootNode: TreemapNode = {
+            let rootNode: TreemapNode = {
                 key: "root",
                 name: "root",
                 children: [],
@@ -235,49 +255,50 @@ module powerbi.visuals {
                 identity: SelectionId.createNull(),
                 color: undefined,
             };
-            var allNodes: TreemapNode[] = [];
-            var hasHighlights: boolean;
-            var legendDataPoints: LegendDataPoint[] = [];
-            var legendTitle = "";
-            var legendData: LegendData = { title: legendTitle, dataPoints: legendDataPoints };
-            var colorHelper = new ColorHelper(colors, treemapProps.dataPoint.fill);
-
+            let allNodes: TreemapNode[] = [];
+            let hasHighlights: boolean;
+            let legendDataPoints: LegendDataPoint[] = [];
+            let legendTitle = "";
+            let legendData: LegendData = { title: legendTitle, dataPoints: legendDataPoints };
+            let colorHelper = new ColorHelper(colors, treemapProps.dataPoint.fill);
+            let dataWasCulled = undefined;
             if (dataView && dataView.metadata && dataView.metadata.objects) {
-                var objects = dataView.metadata.objects;
+                let objects = dataView.metadata.objects;
 
                 labelSettings.show = DataViewObjects.getValue(objects, treemapProps.labels.show, labelSettings.show);
                 labelSettings.labelColor = DataViewObjects.getFillColor(objects, treemapProps.labels.color, labelSettings.labelColor);
                 labelSettings.displayUnits = DataViewObjects.getValue(objects, treemapProps.labels.labelDisplayUnits, labelSettings.displayUnits);
                 labelSettings.precision = DataViewObjects.getValue(objects, treemapProps.labels.labelPrecision, labelSettings.precision);
                 labelSettings.showCategory = DataViewObjects.getValue(objects, treemapProps.categoryLabels.show, labelSettings.showCategory);
-                }
+            }
 
             if (dataView && dataView.categorical && dataView.categorical.values) {
-                var data = dataView.categorical;
-                var valueColumns = data.values;
+                let data = dataView.categorical;
+                let valueColumns = data.values;
                 hasHighlights = !!(valueColumns.length > 0 && valueColumns[0].highlights);
 
-                var formatStringProp = treemapProps.general.formatString;
-                var result = Treemap.getValuesFromCategoricalDataView(data, hasHighlights);
-                var values = result.values;
-                var highlights = result.highlights;
-                var totalValue = result.totalValue;
+                let formatStringProp = treemapProps.general.formatString;
+                let result = Treemap.getValuesFromCategoricalDataView(data, hasHighlights);
+                let values = result.values;
+                let highlights = result.highlights;
+                let totalValue = result.totalValue;
                 if (result.highlightsOverflow) {
                     hasHighlights = false;
                     values = highlights;
                 }
 
-                var cullableValue = Treemap.getCullableValue(totalValue, viewport);
+                let cullableValue = Treemap.getCullableValue(totalValue, viewport);
 
-                var grouped = valueColumns.grouped();
-                var isMultiSeries = grouped && grouped.length > 0 && grouped[0].values && grouped[0].values.length > 1;
-                var hasDynamicSeries = !!valueColumns.source;
-                var dataWasCulled = false;
-
+                let grouped = valueColumns.grouped();
+                let isMultiSeries = grouped && grouped.length > 0 && grouped[0].values && grouped[0].values.length > 1;
+                let hasDynamicSeries = !!valueColumns.source;
+                dataWasCulled = false;
+                let shouldCullValue = undefined;
+                let highlight = undefined;
                 if ((data.categories == null) && values) {
                     // No categories, sliced by series and measures
-                    for (var i = 0, ilen = values[0].length; i < ilen; i++) {
-                        var value = values[0][i];
+                    for (let i = 0, ilen = values[0].length; i < ilen; i++) {
+                        let value = values[0][i];
                         if (!Treemap.checkValueForShape(value)) {
                             continue;
                         }
@@ -285,30 +306,30 @@ module powerbi.visuals {
                             dataWasCulled = dataWasCulled || shouldCullValue;
                             continue;
                         }
-                        var valueColumn = valueColumns[i];
-                        var nodeName = converterHelper.getFormattedLegendLabel(valueColumn.source, valueColumns, formatStringProp);
+                        let valueColumn = valueColumns[i];
+                        let nodeName = converterHelper.getFormattedLegendLabel(valueColumn.source, valueColumns, formatStringProp);
 
-                        var identity = hasDynamicSeries
+                        let identity = hasDynamicSeries
                             ? SelectionId.createWithId(valueColumns[i].identity)
                             : SelectionId.createWithMeasure(valueColumns[i].source.queryName);
 
-                        var key = identity.getKey();
+                        let key = identity.getKey();
 
-                        var color = hasDynamicSeries
+                        let color = hasDynamicSeries
                             ? colorHelper.getColorForSeriesValue(valueColumn.objects && valueColumn.objects[0], data.values.identityFields, converterHelper.getSeriesName(valueColumn.source))
                             : colorHelper.getColorForMeasure(valueColumn.source.objects, valueColumn.source.queryName);
 
-                        var highlightedValue = hasHighlights && highlight !== 0 ? highlight : undefined;
-                        var categorical = dataView.categorical;
-                        var valueIndex: number = i;
-                        var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, nodeName, value, null, null, valueIndex , i);
-                        var highlightedTooltipInfo: TooltipDataItem[];
+                        let highlightedValue = hasHighlights && highlight !== 0 ? highlight : undefined;
+                        let categorical = dataView.categorical;
+                        let valueIndex: number = i;
+                        let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, nodeName, value, null, null, valueIndex , i);
+                        let highlightedTooltipInfo: TooltipDataItem[];
 
                         if (highlightedValue !== undefined) {
                             highlightedTooltipInfo = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, nodeName, value, null, null, valueIndex, i, highlightedValue);
                         }
 
-                        var node: TreemapNode = {
+                        let node: TreemapNode = {
                             key: key,
                             name: nodeName,
                             size: value,
@@ -335,35 +356,35 @@ module powerbi.visuals {
                 }
                 else if (data.categories && data.categories.length > 0) {
                     // Create the first level from categories
-                    var categoryColumn = data.categories[0];
-                    var valueColumnCount = valueColumns.length;
+                    let categoryColumn = data.categories[0];
+                    let valueColumnCount = valueColumns.length;
 
                     legendTitle = categoryColumn.source ? categoryColumn.source.displayName : "";
-
-                    for (var i = 0, ilen = values.length; i < ilen; i++) {
+                    let categorical = undefined;
+                    for (let i = 0, ilen = values.length; i < ilen; i++) {
                         let identity: SelectionId = SelectionIdBuilder.builder()
                             .withCategory(categoryColumn, i)
                             .createSelectionId();
 
-                        var key = identity.getKey();
+                        let key = identity.getKey();
 
-                        var objects = categoryColumn.objects && categoryColumn.objects[i];
+                        let objects = categoryColumn.objects && categoryColumn.objects[i];
 
-                        var color = colorHelper.getColorForSeriesValue(objects, categoryColumn.identityFields, categoryColumn.values[i]);
+                        let color = colorHelper.getColorForSeriesValue(objects, categoryColumn.identityFields, categoryColumn.values[i]);
 
-                        var labelFormat = valueFormatter.getFormatString(categoryColumn.values[i], formatStringProp);
-                        var categoryValue = valueFormatter.format(categoryColumn.values[i], labelFormat);
-                        var value = values[i][0];
-                        var highlightedValue = hasHighlights && highlights ? highlights[i][0] : undefined;
-                        var categorical = dataView.categorical;
-                        var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value);
-                        var highlightedTooltipInfo: TooltipDataItem[];
+                        let labelFormat = valueFormatter.getFormatString(categoryColumn.values[i], formatStringProp);
+                        let categoryValue = valueFormatter.format(categoryColumn.values[i], labelFormat);
+                        let value = values[i][0];
+                        let highlightedValue = hasHighlights && highlights ? highlights[i][0] : undefined;
+                        categorical = dataView.categorical;
+                        let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value);
+                        let highlightedTooltipInfo: TooltipDataItem[];
 
                         if (highlightedValue !== undefined) {
                             highlightedTooltipInfo = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, 0, i, highlightedValue);
                         }
 
-                        var node: TreemapNode = {
+                        let node: TreemapNode = {
                             key: key,
                             name: categoryValue,
                             color: color,
@@ -382,20 +403,20 @@ module powerbi.visuals {
                             selected: false
                         });
 
-                        var total = 0;
-                        var highlightTotal = 0; // Used if omitting second level
+                        let total = 0;
+                        let highlightTotal = 0; // Used if omitting second level
 
                         // Do not add second level if it's one and only one data point per shape and it's not a group value
                         // e.g. Category/Series group plus only one Value field
-                        var omitSecondLevel = valueColumnCount === 1 && (valueColumns[0].source.groupName == null);
-                        var currentValues = values[i];
+                        let omitSecondLevel = valueColumnCount === 1 && (valueColumns[0].source.groupName == null);
+                        let currentValues = values[i];
 
-                        for (var j = 0, jlen = currentValues.length; j < jlen; j++) {
-                            var valueColumn = valueColumns[j];
-                            var value = currentValues[j];
-                            var highlight: number;
+                        for (let j = 0, jlen = currentValues.length; j < jlen; j++) {
+                            let valueColumn = valueColumns[j];
+                            let value = currentValues[j];
+                            let highlight: number;
 
-                            var shouldCullValue = value < cullableValue;
+                            shouldCullValue = value < cullableValue;
                             if (!Treemap.checkValueForShape(value) || shouldCullValue) {
                                 dataWasCulled = dataWasCulled || shouldCullValue;
                                 continue;
@@ -409,10 +430,10 @@ module powerbi.visuals {
                             }
 
                             if (!omitSecondLevel) {
-                                var childName: string = null;
+                                let childName: string = null;
 
                                 // Create key to ensure shape uniqueness
-                                var childKey = {
+                                let childKey = {
                                     parentId: node.key,
                                     nodeId: undefined
                                 };
@@ -435,16 +456,16 @@ module powerbi.visuals {
                                     .withMeasure(measureId)
                                     .createSelectionId();
 
-                                var highlightedValue = hasHighlights && highlight !== 0 ? highlight : undefined;
-                                var categorical = dataView.categorical;
-                                var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, j, i);
-                                var highlightedTooltipInfo: TooltipDataItem[];
+                                let highlightedValue = hasHighlights && highlight !== 0 ? highlight : undefined;
+                                categorical = dataView.categorical;
+                                let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, j, i);
+                                let highlightedTooltipInfo: TooltipDataItem[];
 
                                 if (highlightedValue !== undefined) {
                                     highlightedTooltipInfo = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, j, i, highlightedValue);
                                 }
 
-                                var childNode: TreemapNode = {
+                                let childNode: TreemapNode = {
                                     key: childIdentity.getKey(),
                                     name: childName,
                                     size: value,
@@ -486,8 +507,8 @@ module powerbi.visuals {
         }
 
         private static getValuesFromCategoricalDataView(data: DataViewCategorical, hasHighlights: boolean): TreemapRawData {
-            var valueColumns = data.values;
-            var categoryValueCount: number;
+            let valueColumns = data.values;
+            let categoryValueCount: number;
             if (valueColumns && (data.categories == null)) {
                 categoryValueCount = 1; // We only get the first value out of each valueColumn since we don't have a category
             }
@@ -495,24 +516,24 @@ module powerbi.visuals {
                 categoryValueCount = data.categories[0].values.length;
             }
 
-            var values: number[][] = [];
-            var highlights: number[][] = [];
-            var totalValue = 0;
-            for (var i = 0; i < categoryValueCount; i++) {
+            let values: number[][] = [];
+            let highlights: number[][] = [];
+            let totalValue = 0;
+            for (let i = 0; i < categoryValueCount; i++) {
                 values.push([]);
                 if (hasHighlights)
                     highlights.push([]);
             }
 
-            var highlightsOverflow: boolean;
-            for (var j = 0; j < valueColumns.length; j++) {
-                var valueColumn = valueColumns[j];
-                for (var i = 0; i < categoryValueCount; i++) {
-                    var value = valueColumn.values[i];
+            let highlightsOverflow: boolean;
+            for (let j = 0; j < valueColumns.length; j++) {
+                let valueColumn = valueColumns[j];
+                for (let i = 0; i < categoryValueCount; i++) {
+                    let value = valueColumn.values[i];
                     values[i].push(value);
                     totalValue += isNaN(value) ? 0 : value;
                     if (hasHighlights) {
-                        var highlight = valueColumn.highlights[i];
+                        let highlight = valueColumn.highlights[i];
                         if (!highlight)
                             highlight = 0;
                         highlights[i].push(highlight);
@@ -531,20 +552,22 @@ module powerbi.visuals {
         }
 
         private static getCullableValue(totalValue: number, viewport: IViewport): number {
-            var totalArea = viewport.width * viewport.height;
-            var culledPercent = Treemap.CullableArea / totalArea;
+            let totalArea = viewport.width * viewport.height;
+            let culledPercent = Treemap.CullableArea / totalArea;
             return culledPercent * totalValue;
         }
 
         public update(options: VisualUpdateOptions) {
             debug.assertValue(options, 'options');
 
-            var dataViews = this.dataViews = options.dataViews;
+            let dataViews = this.dataViews = options.dataViews;
             this.currentViewport = options.viewport;
-            var labelSettings = dataLabelUtils.getDefaultTreemapLabelSettings();
+            var dataViewCategorical = dataViews && dataViews.length > 0 && dataViews[0].categorical ? dataViews[0].categorical : undefined;
+            var labelFormatString = (dataViewCategorical && dataViewCategorical.values) ? valueFormatter.getFormatString(dataViewCategorical.values[0].source, treemapProps.general.formatString) : undefined;
+            var labelSettings = dataLabelUtils.getDefaultTreemapLabelSettings(labelFormatString);
             var legendObjectProperties = null;
 
-            if (dataViews && dataViews.length > 0 && dataViews[0].categorical) {
+            if (dataViewCategorical) {
                 var dataView = dataViews[0];
                 var dataViewMetadata = dataView.metadata;
                 var objects: DataViewObjects;
@@ -559,7 +582,7 @@ module powerbi.visuals {
 
             }
             else {
-                var rootNode: TreemapNode = {
+                let rootNode: TreemapNode = {
                     key: "root",
                     name: "root",
                     children: [],
@@ -568,8 +591,8 @@ module powerbi.visuals {
                     identity: SelectionId.createNull(),
                     color: undefined,
                 };
-                var legendData: LegendData = { title: "", dataPoints: [] };
-                var treeMapData: TreemapData = {
+                let legendData: LegendData = { title: "", dataPoints: [] };
+                let treeMapData: TreemapData = {
                     root: rootNode,
                     hasHighlights: false,
                     legendData: legendData,
@@ -582,18 +605,14 @@ module powerbi.visuals {
             this.updateInternal(options.suppressAnimations);
 
             if (dataViews) {
-                var warnings = getInvalidValueWarnings(
+                let warnings = getInvalidValueWarnings(
                     dataViews,
                     false /*supportsNaN*/,
                     false /*supportsNegativeInfinity*/,
                     false /*supportsPositiveInfinity*/);
 
                 if (this.data.dataWasCulled) {
-                    var cullWarning = new GeometryCulledWarning();
-                    if (!warnings)
-                        warnings = [cullWarning];
-                    else
-                        warnings.unshift(cullWarning);
+                    warnings.unshift(new GeometryCulledWarning());
                 }
 
                 if (warnings && warnings.length > 0)
@@ -624,40 +643,50 @@ module powerbi.visuals {
                 this.interactivityService.clearSelection();
         }
 
-        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
-            var data = this.data;
+        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
+            let data = this.data;
             if (!data)
                 return;
 
-            var objectName = options.objectName;
+            let objectName = options.objectName,
+                enumeration = new ObjectEnumerationBuilder();
             switch (objectName) {
                 case 'dataPoint':
-                    var dataViewCat: DataViewCategorical = this.dataViews && this.dataViews.length > 0 && this.dataViews[0] && this.dataViews[0].categorical;
-                    var hasGradientRole = GradientUtils.hasGradientRole(dataViewCat);
+                    let dataViewCat: DataViewCategorical = this.dataViews && this.dataViews.length > 0 && this.dataViews[0] && this.dataViews[0].categorical;
+                    let hasGradientRole = GradientUtils.hasGradientRole(dataViewCat);
                     if (!hasGradientRole)
-                        return this.enumerateDataPoints(data);
+                        this.enumerateDataPoints(enumeration, data);
                     break;
                 case 'legend':
                     return this.enumerateLegend(data);
                 case 'labels':
-                    return dataLabelUtils.enumerateDataLabels(this.data.dataLabelsSettings, false /*withPosition*/, true /*withPrecision*/, true /*withDisplayUnit*/);
+                    let labelSettingOptions: VisualDataLabelsSettingsOptions = {
+                        enumeration: enumeration,
+                        dataLabelsSettings: this.data.dataLabelsSettings,
+                        show: true,
+                        displayUnits: true,
+                        precision: true,
+                    };
+                    dataLabelUtils.enumerateDataLabels(labelSettingOptions);
+                    break;
                 case 'categoryLabels':
-                    return (this.data)
-                        ? dataLabelUtils.enumerateCategoryLabels(this.data.dataLabelsSettings, false /*withFill*/, false /*isDonutChart*/, true /*isTreeMap*/)
-                        : dataLabelUtils.enumerateCategoryLabels(null, false /*withFill*/, false /*isDonutChart*/, true /*isTreeMap*/);
+                    if (this.data)
+                        dataLabelUtils.enumerateCategoryLabels(enumeration, this.data.dataLabelsSettings, false /*withFill*/, false /*isDonutChart*/, true /*isTreeMap*/);
+                    else
+                        dataLabelUtils.enumerateCategoryLabels(enumeration, null, false /*withFill*/, false /*isDonutChart*/, true /*isTreeMap*/);
             }
+
+            return enumeration.complete();
         }
 
-        private enumerateDataPoints(data: TreemapData): VisualObjectInstance[] {
-            var rootChildren = data.root.children;
+        private enumerateDataPoints(enumeration: ObjectEnumerationBuilder, data: TreemapData): void {
+            let rootChildren = data.root.children;
             if (_.isEmpty(rootChildren))
                 return;
 
-            var instances: VisualObjectInstance[] = [];
-
-            for (var y = 0; y < rootChildren.length; y++) {
-                var treemapNode = <TreemapNode>rootChildren[y];
-                instances.push({
+            for (let y = 0; y < rootChildren.length; y++) {
+                let treemapNode = <TreemapNode>rootChildren[y];
+                enumeration.pushInstance({
                     displayName: treemapNode.name,
                     selector: treemapNode.identity.getSelector(),
                     properties: {
@@ -666,16 +695,14 @@ module powerbi.visuals {
                     objectName: 'dataPoint'
                 });
             }
-
-            return instances;
         }
 
         private enumerateLegend(data: TreemapData): VisualObjectInstance[] {
-            var legendObjectProperties: DataViewObjects = { legend: data.legendObjectProperties };
+            let legendObjectProperties: DataViewObjects = { legend: data.legendObjectProperties };
 
-            var show = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.show, this.legend.isVisible());
-            var showTitle = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.showTitle, true);
-            var titleText = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.titleText, this.data.legendData.title);
+            let show = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.show, this.legend.isVisible());
+            let showTitle = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.showTitle, true);
+            let titleText = DataViewObjects.getValue(legendObjectProperties, treemapProps.legend.titleText, this.data.legendData.title);
 
             return [{
                 selector: null,
@@ -697,7 +724,7 @@ module powerbi.visuals {
         }
 
         private calculateTreemapSize(): IViewport {
-            var legendMargins = this.legend.getMargins();
+            let legendMargins = this.legend.getMargins();
             return {
                 height: this.currentViewport.height - legendMargins.height,
                 width: this.currentViewport.width - legendMargins.width
@@ -706,7 +733,7 @@ module powerbi.visuals {
 
         private initViewportDependantProperties(duration: number = 0): void {
 
-            var viewport = this.calculateTreemapSize();
+            let viewport = this.calculateTreemapSize();
 
             this.svg.attr({
                 width: viewport.width,
@@ -716,20 +743,16 @@ module powerbi.visuals {
             SVGUtil.flushAllD3TransitionsIfNeeded(this.options);
         }
 
-        private static isMajorLabel(node: D3.Layout.GraphNode): boolean {
-            return node.depth === 1;
-        }
-
         private static hasChildrenWithIdentity(node: D3.Layout.GraphNode): boolean {
-            var children = node.children;
+            let children = node.children;
             if (!children)
                 return false;
 
-            var count = children.length;
+            let count = children.length;
             if (count === 0)
                 return false;
 
-            for (var i = count - 1; i >= 0; i--) {
+            for (let i = count - 1; i >= 0; i--) {
                 if ((<TreemapNode>children[i]).identity.hasIdentity())
                     return true;
             }
@@ -737,32 +760,53 @@ module powerbi.visuals {
             return false;
         }
 
-        private static canDisplayLabel(node: TreemapNode): boolean {
-            // Only display labels for level 1 and 2
-            if (node.depth < 1 || node.depth > 2)
+        private static canDisplayMajorLabel(node: TreemapNode): boolean {
+            // Only display major labels for level 1
+            if (node.depth !== 1)
                 return false;
 
             if (StringExtensions.isNullOrEmpty(node.name))
                 return false;
 
-            var availableWidth = node.dx - Treemap.TextMargin * 2;
-            var isMajorLabel = Treemap.isMajorLabel(node);
-            var minTextWidth = isMajorLabel ? Treemap.MinTextWidthForMajorLabel : Treemap.MinTextWidthForMinorLabel;
-
             // Check if the room is enough for text with or without ellipse
-            if (availableWidth < minTextWidth)
+            let availableWidth = node.dx - Treemap.TextMargin * 2;
+            if (availableWidth < Treemap.MinTextWidthForMajorLabel)
+                return false;
+            
+            // Check if the shape is high enough for label
+            let textHeightWithMargin = Treemap.MajorLabelTextSize + Treemap.TextMargin * 2;
+            if (node.dy < textHeightWithMargin)
                 return false;
 
-            var textHeight = isMajorLabel ? Treemap.MajorLabelTextSize : Treemap.MinorLabelTextSize;
-            var textHeightWithMargin = textHeight + Treemap.TextMargin * 2;
+            return true;
+        }
 
+        private static canDisplayMinorLabel(node: TreemapNode, labelSettings: VisualDataLabelsSettings): boolean {
+            // Only display minor labels for level 1 and 2
+            if (node.depth < 1 || node.depth > 2)
+                return false;
+
+            // If a depth 1 node has children or is not showing data labels, do not show minor labels
+            if (node.depth === 1 && (node.children || !labelSettings.show)) {
+                return false;
+            }
+
+            if (StringExtensions.isNullOrEmpty(node.name))
+                return false;
+            
+            // Check if the room is enough for text with or without ellipse
+            let availableWidth = node.dx - Treemap.TextMargin * 2;
+            if (availableWidth < Treemap.MinTextWidthForMinorLabel)
+                return false;
+            
             // Check if the shape is high enough for label
+            let textHeightWithMargin = Treemap.MinorLabelTextSize + Treemap.TextMargin * 2;
             if (node.dy < textHeightWithMargin)
                 return false;
 
             if (node.depth === 2) {
-                var parent = node.parent;
-                var roomTop = Math.max(parent.y + Treemap.MajorLabelTextSize + Treemap.TextMargin * 2, node.y);
+                let parent = node.parent;
+                let roomTop = Math.max(parent.y + Treemap.MajorLabelTextSize + Treemap.TextMargin * 2, node.y);
 
                 // Parent's label needs the room
                 if (node.y + node.dy - roomTop < textHeightWithMargin)
@@ -772,32 +816,30 @@ module powerbi.visuals {
             return true;
         }
 
-        private static createLabelForShape(node: TreemapNode, labelsSettings: VisualDataLabelsSettings, alternativeScale: number, formattersCache: IColumnFormatterCacheManager): string {
-            var isMajorLabel = Treemap.isMajorLabel(node);
-            var spaceAvaliableForLabels = node.dx - Treemap.TextMargin * 2;
-            var label = node.name;
-
-            if (!isMajorLabel) {
-
-                if (labelsSettings.show) {
-                    var measureFormatter = formattersCache.getOrCreate(node.labelFormatString, labelsSettings, alternativeScale);
-                    // Create measure label
-                    label = dataLabelUtils.getLabelFormattedText(node.value, spaceAvaliableForLabels, null /*format*/, measureFormatter);
-                    // Add category if needed
-                    label = labelsSettings.showCategory ? dataLabelUtils.getLabelFormattedText(node.name, spaceAvaliableForLabels) + " " + label : label;
-                }
-                
-                return dataLabelUtils.getLabelFormattedText(label, spaceAvaliableForLabels);
-            }
-
-            var baseTextProperties = Treemap.MajorLabelTextProperties;
-            var textProperties: powerbi.TextProperties = {
-                text: label,
+        private static createMajorLabelText(node: TreemapNode, labelsSettings: VisualDataLabelsSettings, alternativeScale: number, formattersCache: IColumnFormatterCacheManager): string {
+            let spaceAvaliableForLabels = node.dx - Treemap.TextMargin * 2;
+            let baseTextProperties = Treemap.MajorLabelTextProperties;
+            let textProperties: powerbi.TextProperties = {
+                text: node.name,
                 fontFamily: baseTextProperties.fontFamily,
                 fontSize: baseTextProperties.fontSize
             };
 
             return TextMeasurementService.getTailoredTextOrDefault(textProperties, spaceAvaliableForLabels);
+        }
+
+        private static createMinorLabelText(node: TreemapNode, labelsSettings: VisualDataLabelsSettings, alternativeScale: number, formattersCache: IColumnFormatterCacheManager): string {
+            let spaceAvaliableForLabels = node.dx - Treemap.TextMargin * 2;
+            let label = node.name;
+            if (labelsSettings.show) {
+                let measureFormatter = formattersCache.getOrCreate(node.labelFormatString, labelsSettings, alternativeScale);
+                // Create measure label
+                label = dataLabelUtils.getLabelFormattedText(node.value, spaceAvaliableForLabels, null /*format*/, measureFormatter);
+                // Add category if needed (we're showing category and the node depth is 2)
+                label = labelsSettings.showCategory && node.depth === 2 ? dataLabelUtils.getLabelFormattedText(node.name, spaceAvaliableForLabels) + " " + label : label;
+            }
+
+            return dataLabelUtils.getLabelFormattedText(label, spaceAvaliableForLabels);
         }
 
         public static getFill(d: TreemapNode, isHighlightRect: boolean): string {
@@ -836,78 +878,88 @@ module powerbi.visuals {
         }
 
         private updateInternal(suppressAnimations: boolean): void {
-            var data = this.data;
-            var hasHighlights = data && data.hasHighlights;
-            var labelSettings = data ? data.dataLabelsSettings : null;
-            var duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
+            let data = this.data;
+            let hasHighlights = data && data.hasHighlights;
+            let labelSettings = data ? data.dataLabelsSettings : null;
+            let duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
 
             if (!(this.options.interactivity && this.options.interactivity.isInteractiveLegend) && this.data) {
                 this.renderLegend();
             }
 
             this.initViewportDependantProperties(duration);
-            var viewport = this.calculateTreemapSize();
+            let viewport = this.calculateTreemapSize();
 
             this.treemap.size([viewport.width, viewport.height]);
 
             // Shapes are drawn for all nodes
-            var nodes = (data && data.root) ? this.treemap.nodes(data.root) : [];
+            let nodes = (data && data.root) ? this.treemap.nodes(data.root) : [];
             // Highlight shapes are drawn only for nodes with non-null/undefed highlightMultipliers that have no children
-            var highlightNodes = nodes.filter((value: TreemapNode) => value.highlightMultiplier != null && (!value.children || value.children.length === 0));
-            var labeledNodes = [];
-            var alternativeScale: number = null;
-            
+            let highlightNodes = nodes.filter((value: TreemapNode) => value.highlightMultiplier != null && (!value.children || value.children.length === 0));
+            let majorLabeledNodes = [];
+            let minorLabeledNodes = [];
+            let alternativeScale: number = null;
+
+            // Only populate major labels if category labels are turned on
+            if (labelSettings.showCategory) {
+                majorLabeledNodes = nodes.filter((d: TreemapNode) => Treemap.canDisplayMajorLabel(d));
+            }
+
+            // Only populate minor labels if category or data labels are turned on
             if (labelSettings.show || labelSettings.showCategory) {
-            // Labels are drawn only for nodes that can display labels
-                labeledNodes = nodes.filter((d: TreemapNode) => Treemap.canDisplayLabel(d));
+                minorLabeledNodes = nodes.filter((d: TreemapNode) => Treemap.canDisplayMinorLabel(d, labelSettings));
 
                 // If the display unit is 0 we calculate the format scale using the maximum value available
                 if (labelSettings.displayUnits === 0)
-                    alternativeScale = <number>d3.max(labeledNodes, (d: TreemapNode) => Math.abs(d.value));
+                    alternativeScale = <number>d3.max(minorLabeledNodes, (d: TreemapNode) => Math.abs(d.value));
             }
-            else
-                Treemap.cleanDataLabels(this.svg);
 
-            var treemapLayout = Treemap.getLayout(labelSettings, alternativeScale);
-            var shapes: D3.UpdateSelection;
-            var highlightShapes: D3.UpdateSelection;
-            var labels: D3.UpdateSelection;
-            var result: TreemapAnimationResult;
+            let treemapLayout = Treemap.getLayout(labelSettings, alternativeScale);
+            let shapes: D3.UpdateSelection;
+            let highlightShapes: D3.UpdateSelection;
+            let majorLabels: D3.UpdateSelection;
+            let minorLabels: D3.UpdateSelection;
+            let result: TreemapAnimationResult;
             if (this.animator && !suppressAnimations) {
-                var options: TreemapAnimationOptions = {
+                let options: TreemapAnimationOptions = {
                     viewModel: data,
                     nodes: nodes,
                     highlightNodes: highlightNodes,
-                    labeledNodes: labeledNodes,
+                    majorLabeledNodes: majorLabeledNodes,
+                    minorLabeledNodes: minorLabeledNodes,
                     shapeGraphicsContext: this.shapeGraphicsContext,
-                    mainGraphicsContext: this.svg,
+                    labelGraphicsContext: this.labelGraphicsContext,
                     interactivityService: this.interactivityService,
                     layout: treemapLayout,
+                    labelSettings: labelSettings,
                 };
                 result = this.animator.animate(options);
                 shapes = result.shapes;
                 highlightShapes = result.highlightShapes;
-                labels = result.labels;
+                majorLabels = result.majorLabels;
+                minorLabels = result.minorLabels;
             }
             if (!this.animator || suppressAnimations || result.failed) {
-                var hasSelection = nodes.some((value: TreemapNode) => value.selected);
-                var shapeGraphicsContext = this.shapeGraphicsContext;
+                let hasSelection = this.interactivityService && this.interactivityService.hasSelection();
+                let shapeGraphicsContext = this.shapeGraphicsContext;
                 shapes = Treemap.drawDefaultShapes(shapeGraphicsContext, nodes, hasSelection, hasHighlights, treemapLayout);
                 highlightShapes = Treemap.drawDefaultHighlightShapes(shapeGraphicsContext, highlightNodes, hasSelection, hasHighlights, treemapLayout);
-                if (treemapLayout.areDataLabelsEnabled())
-                    labels = Treemap.drawDefaultLabels(this.svg, labeledNodes, labelSettings, treemapLayout);
+                let labelGraphicsContext = this.labelGraphicsContext;
+                majorLabels = Treemap.drawDefaultMajorLabels(labelGraphicsContext, majorLabeledNodes, labelSettings, treemapLayout);
+                minorLabels = Treemap.drawDefaultMinorLabels(labelGraphicsContext, minorLabeledNodes, labelSettings, treemapLayout);
             }
 
             if (this.interactivityService) {
-                var behaviorOptions: TreemapBehaviorOptions = {
-                    labels: labels,
+                let behaviorOptions: TreemapBehaviorOptions = {
                     shapes: shapes,
                     highlightShapes: highlightShapes,
+                    majorLabels: majorLabels,
+                    minorLabels: minorLabels,
                     nodes: <TreemapNode[]>nodes,
                     hasHighlights: data.hasHighlights,
                 };
 
-                this.interactivityService.apply(this, behaviorOptions);
+                this.interactivityService.bind(<TreemapNode[]>nodes, this.behavior, behaviorOptions);
             }
 
             TooltipManager.addTooltip(shapes, (tooltipEvent: TooltipEvent) => tooltipEvent.data.tooltipInfo);
@@ -917,11 +969,11 @@ module powerbi.visuals {
         }
 
         private renderLegend(): void {
-            var legendObjectProperties = this.data.legendObjectProperties;
+            let legendObjectProperties = this.data.legendObjectProperties;
             if (legendObjectProperties) {
-                var legendData = this.data.legendData;
+                let legendData = this.data.legendData;
                 LegendData.update(legendData, legendObjectProperties);
-                var position = <string>legendObjectProperties[legendProps.position];
+                let position = <string>legendObjectProperties[legendProps.position];
                 if (position)
                     this.legend.changeOrientation(LegendPosition[position]);
 
@@ -934,12 +986,8 @@ module powerbi.visuals {
             }
         }
 
-        public accept(visitor: InteractivityVisitor, options: any): void {
-            visitor.visitTreemap(options);
-        }
-
         private static getNodeClass(d: TreemapNode, highlight?: boolean): string {
-            var nodeClass: string;
+            let nodeClass: string;
             switch (d.depth) {
                 case 1:
                     nodeClass = Treemap.ParentGroupClassName;
@@ -976,8 +1024,8 @@ module powerbi.visuals {
         }
 
         public static drawDefaultShapes(context: D3.Selection, nodes: D3.Layout.GraphNode[], hasSelection: boolean, hasHighlights: boolean, layout: ITreemapLayout): D3.UpdateSelection {
-            var isHighlightShape = false;
-            var shapes = context.selectAll('.' + Treemap.TreemapNodeClassName)
+            let isHighlightShape = false;
+            let shapes = context.selectAll('.' + Treemap.TreemapNodeClassName)
                 .data(nodes, (d: TreemapNode) => d.key);
 
             shapes.enter().append('rect')
@@ -994,8 +1042,8 @@ module powerbi.visuals {
         }
 
         public static drawDefaultHighlightShapes(context: D3.Selection, nodes: D3.Layout.GraphNode[], hasSelection: boolean, hasHighlights: boolean, layout: ITreemapLayout): D3.UpdateSelection {
-            var isHighlightShape = true;
-            var highlightShapes = context.selectAll('.' + Treemap.HighlightNodeClassName)
+            let isHighlightShape = true;
+            let highlightShapes = context.selectAll('.' + Treemap.HighlightNodeClassName)
                 .data(nodes, (d) => d.key + "highlight");
 
             highlightShapes.enter().append('rect')
@@ -1010,22 +1058,17 @@ module powerbi.visuals {
             return highlightShapes;
         }
 
-        public static drawDefaultLabels(context: D3.Selection, nodes: D3.Layout.GraphNode[], labelSettings: VisualDataLabelsSettings, layout: ITreemapLayout): D3.UpdateSelection {
-
-            // Check if label context already exists
-            if (layout.areDataLabelsEnabled() && context.select('.' + Treemap.LabelsGroupClassName).empty())
-                context.append('g').classed(Treemap.LabelsGroupClassName, true);
-
-            var labels = context
-                .select('.' + Treemap.LabelsGroupClassName)
-                .selectAll('text')
+        public static drawDefaultMajorLabels(context: D3.Selection, nodes: D3.Layout.GraphNode[], labelSettings: VisualDataLabelsSettings, layout: ITreemapLayout): D3.UpdateSelection {
+            let labels = context
+                .selectAll('.' + Treemap.MajorLabelClassName)
                 .data(nodes, (d: TreemapNode) => d.key);
 
             labels.enter().append('text')
-                .attr('class', layout.labelClass);
+                .attr('class', layout.majorLabelClass);
 
-            labels.attr(layout.labelLayout)
-                .text(layout.labelText)
+            labels
+                .attr(layout.majorLabelLayout)
+                .text(layout.majorLabelText)
                 .style('fill', () => labelSettings.labelColor);
 
             labels.exit().remove();
@@ -1033,14 +1076,31 @@ module powerbi.visuals {
             return labels;
         }
 
-        public static cleanDataLabels(context: D3.Selection) {
-            var empty = [];
-            var labels = context
+        public static drawDefaultMinorLabels(context: D3.Selection, nodes: D3.Layout.GraphNode[], labelSettings: VisualDataLabelsSettings, layout: ITreemapLayout): D3.UpdateSelection {
+            let labels = context
+                .selectAll('.' + Treemap.MinorLabelClassName)
+                .data(nodes, (d: TreemapNode) => d.key);
+
+            labels.enter().append('text')
+                .attr('class', layout.minorLabelClass);
+
+            labels
+                .attr(layout.minorLabelLayout)
+                .text(layout.minorLabelText)
+                .style('fill', () => labelSettings.labelColor);
+
+            labels.exit().remove();
+
+            return labels;
+        }
+
+        public static cleanMinorLabels(context: D3.Selection) {
+            let empty = [];
+            let labels = context
                 .selectAll('.' + Treemap.LabelsGroupClassName)
-                .selectAll('text')
+                .selectAll('.' + Treemap.MinorLabelClassName)
                 .data(empty);
             labels.exit().remove();
-            context.selectAll('.' + Treemap.LabelsGroupClassName).remove();
         }
     }
 }

@@ -28,69 +28,83 @@
 
 module powerbi.visuals {
     export interface SlicerBehaviorOptions {
-        datapoints: SlicerDataPoint[];
         slicerItemContainers: D3.Selection;
         slicerItemLabels: D3.Selection;
         slicerItemInputs: D3.Selection;
         slicerClear: D3.Selection;
-        isInvertedSelectionMode: boolean;
+        dataPoints: SlicerDataPoint[];
+        interactivityService: IInteractivityService;
+        slicerSettings: SlicerSettings;
     }
 
-    export class SlicerWebBehavior {
-        public updateLabels(selectionLabels: D3.Selection, slicerSettings:SlicerSettings) {
-            selectionLabels.style({
-                'color': (d: SlicerDataPoint) => {
-                    if (d.selected)
-                        return slicerSettings.slicerText.selectionColor;
-                    else
-                        return slicerSettings.slicerText.color;
-                }
-            });
-        }
+    export class SlicerWebBehavior implements IInteractiveBehavior {
+        private slicerItemLabels: D3.Selection;
+        private slicerItemInputs: D3.Selection;
+        private dataPoints: SlicerDataPoint[];
+        private interactivityService: IInteractivityService;
+        private slicerSettings: SlicerSettings;
 
-        public updateItemsInputOnSelectAll(slicerItemInputs: D3.Selection, dataPoint: SlicerDataPoint): void {
-            if (dataPoint == null)
-                return;
+        public bindEvents(options: SlicerBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            let filterPropertyId = slicerProps.filterPropertyIdentifier;
+            let slicers = options.slicerItemContainers;
 
-            slicerItemInputs.selectAll('input').each(function (d: SlicerDataPoint) {
-                if (d.value === dataPoint.value) {
-                    return;
+            this.slicerItemLabels = options.slicerItemLabels;
+            this.slicerItemInputs = options.slicerItemInputs;
+            this.dataPoints = options.dataPoints;
+            this.interactivityService = options.interactivityService;
+            this.slicerSettings = options.slicerSettings;
+
+            slicers.on("click", (d: SlicerDataPoint) => {
+                d3.event.preventDefault();
+                if (d.isSelectAllDataPoint) {
+                    selectionHandler.toggleSelectionModeInversion();
                 }
                 else {
-                    var input = d3.select(this);
-                    input.property({ 'checked': (d: SlicerDataPoint) => d.selected });
+                    selectionHandler.handleSelection(d, true /* isMultiSelect */);
                 }
+                selectionHandler.persistSelectionFilter(filterPropertyId);
+            });
+
+            let slicerClear = options.slicerClear;
+            if (slicerClear) {
+            slicerClear.on("click", (d: SelectableDataPoint) => {
+                selectionHandler.handleClearSelection();
+                selectionHandler.persistSelectionFilter(filterPropertyId);
             });
         }
-
-        public updateSelectAll(slicerItemInputs: D3.Selection, isInvertedSelectionMode: boolean): void {
-            slicerItemInputs.select('input').each(function (d: SlicerDataPoint) {
-                if (d.isSelectAllDataPoint) {
-                    var input = d3.select(this);
-                    input.classed('partiallySelected', isInvertedSelectionMode);
-                }
-            });
         }
 
-        public mouseInteractions(selectionLabels: D3.Selection, slicerSettings: SlicerSettings) {
-            selectionLabels.style({
-                'color': (d: SlicerDataPoint) => {
-                    if (d.mouseOver)
-                        return slicerSettings.slicerText.hoverColor;
-
-                    if (d.mouseOut) {
-                        if (d.selected)
-                            return slicerSettings.slicerText.selectionColor;
-                        else
-                            return slicerSettings.slicerText.color;
-                    }
-                }
-            });
+        public renderSelection(hasSelection: boolean): void {
+            if (!hasSelection && !this.interactivityService.isSelectionModeInverted()) {
+                this.slicerItemInputs.filter('.selected').classed('selected', false);
+                this.slicerItemInputs.filter('.partiallySelected').classed('partiallySelected', false);
+                this.slicerItemInputs.selectAll('input').property('checked', false);
+                this.slicerItemLabels.style('color', this.slicerSettings.slicerText.color);
+            }
+            else {
+                SlicerWebBehavior.styleSlicerInputs(this.slicerItemInputs, hasSelection);
+            }
         }
 
-        public clearSlicers(selectionLabels: D3.Selection, slicerItemInputs: D3.Selection): void {
-            slicerItemInputs.selectAll('input').property('checked', false);
-            selectionLabels.style('color', Slicer.DefaultStyleProperties().slicerText.color);
+        public static styleSlicerInputs(slicerItemInputs: D3.Selection, hasSelection: boolean) {
+            slicerItemInputs.each(function (d: SlicerDataPoint) {
+                let checkbox: HTMLElement = this;
+                let input = checkbox.getElementsByTagName('input')[0];
+
+                if (d.isSelectAllDataPoint && hasSelection)
+                    checkbox.classList.add('partiallySelected');
+                else
+                    checkbox.classList.remove('partiallySelected');
+                
+                if (d.selected)
+                    checkbox.classList.add('selected');
+                else
+                    checkbox.classList.remove('selected');
+                 
+                // Set input selected state to match selection
+                if (input)
+                    input.checked = d.selected;
+            });
         }
     }
 }  

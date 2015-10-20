@@ -62,7 +62,7 @@ module powerbi.data {
 
     export interface QuerySortClause {
         Expression: QueryExpressionContainer;
-        Direction: QuerySortDirection;
+        Direction: SortDirection;
     }
 
     export interface QueryExpressionContainer {
@@ -72,6 +72,9 @@ module powerbi.data {
         Column?: QueryColumnExpression;
         Measure?: QueryMeasureExpression;
         Aggregation?: QueryAggregationExpression;
+        Hierarchy?: QueryHierarchyExpression;
+        HierarchyLevel?: QueryHierarchyLevelExpression;
+        PropertyVariationSource?: QueryPropertyVariationSourceExpression;
 
         // Logical
         And?: QueryBinaryExpression;
@@ -99,6 +102,11 @@ module powerbi.data {
         DateSpan?: QueryDateSpanExpression;
         DateAdd?: QueryDateAddExpression;
         Now?: QueryNowExpression;
+
+        // Default Values
+        DefaultValue?: QueryDefaultValueExpression;
+        AnyValue?: QueryAnyValueExpression;
+
         // TODO: Still need to add the rest of the QueryExpression types.
     }
 
@@ -120,6 +128,22 @@ module powerbi.data {
     export interface QueryAggregationExpression {
         Function: QueryAggregateFunction;
         Expression: QueryExpressionContainer;
+    }
+
+    export interface QueryHierarchyExpression {
+        Expression: QueryExpressionContainer;
+        Hierarchy: string;
+    }
+
+    export interface QueryHierarchyLevelExpression {
+        Expression: QueryExpressionContainer;
+        Level: string;
+    }
+
+    export interface QueryPropertyVariationSourceExpression {
+        Expression: QueryExpressionContainer;
+        Name: string;
+        Property: string;
     }
 
     export interface QueryBinaryExpression {
@@ -184,6 +208,10 @@ module powerbi.data {
 
     export interface QueryNowExpression { }
 
+    export interface QueryDefaultValueExpression { }
+
+    export interface QueryAnyValueExpression { }
+
     export enum TimeUnit {
         Day = 0,
         Week = 1,
@@ -205,11 +233,6 @@ module powerbi.data {
         Median = 6,
         StandardDeviation = 7,
         Variance = 8,
-    }
-
-    export enum QuerySortDirection {
-        Ascending = 1,
-        Descending = 2,
     }
 
     export enum QueryComparisonKind {
@@ -272,6 +295,9 @@ module powerbi.data {
 
         /** The select projection name. */
         Name?: string;
+
+        /* If defined, this indicates the KPI class*/
+        kpiStatusGraphic?: string;
     }
 
     export interface FilterMetadata {

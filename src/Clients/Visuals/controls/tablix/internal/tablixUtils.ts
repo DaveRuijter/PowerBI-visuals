@@ -27,7 +27,6 @@
 /// <reference path="../../../_references.ts"/>
 
 module powerbi.visuals.controls {
-
     export module HTMLElementUtils {
         export function clearChildren(element: HTMLElement): void {
             if (!element) {
@@ -74,7 +73,7 @@ module powerbi.visuals.controls {
         }
 
         export function getAccumulatedScale(element: HTMLElement): number {
-            var scale: number = 1;
+            let scale: number = 1;
             while (element) {
                 scale *= HTMLElementUtils.getScale(element);
                 element = element.parentElement;
@@ -89,7 +88,7 @@ module powerbi.visuals.controls {
         export function getScale(element: any): number {
             element = $(element);
 
-            var str = element.css('-webkit-transform') ||
+            let str = element.css('-webkit-transform') ||
                 element.css('-moz-transform') ||
                 element.css('-ms-transform') ||
                 element.css('-o-transform') ||
@@ -104,6 +103,7 @@ module powerbi.visuals.controls {
 }
 
 module powerbi.visuals.controls.internal {
+    import DomFactory = InJs.DomFactory;
 
     export module TablixUtils {
 
@@ -112,10 +112,10 @@ module powerbi.visuals.controls.internal {
         }
 
         export function createDiv(): HTMLDivElement {
-            var div: HTMLDivElement = <HTMLDivElement>document.createElement("div");
+            let div: HTMLDivElement = <HTMLDivElement>document.createElement("div");
 
             // TODO: Fold these into CSS as well combined with the styling done for the different scenarios where div are used.
-            var divStyle = div.style;
+            let divStyle = div.style;
             divStyle.whiteSpace = "nowrap";
             divStyle.overflow = "hidden";
             divStyle.lineHeight = "normal";
@@ -124,8 +124,8 @@ module powerbi.visuals.controls.internal {
         }
 
         export function appendATagToBodyCell(value: string, cell: controls.ITablixCell): void {
-            var element = <HTMLElement>cell.extension.contentHost;
-            var atag: HTMLAnchorElement = null;
+            let element = <HTMLElement>cell.extension.contentHost;
+            let atag: HTMLAnchorElement = null;
             if(element.childElementCount === 0) {
                 atag = document.createElement('a');
                 element.appendChild(atag);
@@ -137,6 +137,45 @@ module powerbi.visuals.controls.internal {
             atag.target = '_blank';
             atag.title = value;
             atag.innerText = value;
+        }
+
+        export function appendImgTagToBodyCell(value: string, cell: controls.ITablixCell): void {
+            var element = <HTMLElement>cell.extension.contentHost;
+            var contentElement = element.parentElement;
+            var imgTag: HTMLImageElement;
+            if (element.childElementCount === 0) {
+                imgTag = document.createElement('img');
+                element.appendChild(imgTag);
+            } else {
+                imgTag = <HTMLImageElement>element.children[0];
+            }
+            // set padding for contentElement
+            contentElement.style.paddingBottom = '3px';
+            contentElement.style.paddingTop = '3px';
+            imgTag.src = value;
+            imgTag.style.maxHeight = '75px';
+            imgTag.style.maxWidth = '100px';
+            imgTag.style.height = '100%';
+        }
+
+        export function createKpiDom(kpiStatusGraphic: string, kpiValue: string): JQuery {
+            debug.assertValue(kpiStatusGraphic, 'kpiStatusGraphic');
+            debug.assertValue(kpiValue, 'kpiValue');
+            let className: string = KpiUtil.getClassForKpi(kpiStatusGraphic, kpiValue) || '';
+            return DomFactory.div()
+                .addClass(className)
+                .css({
+                    'display': 'inline-block',
+                    'vertical-align': 'sub'
+                });
+        }
+
+        export function isValidStatusGraphic(kpiStatusGraphic: string, kpiValue: string): boolean {
+            if (!kpiStatusGraphic || kpiValue === undefined) {
+                return false;
+            }
+
+            return !!KpiUtil.getClassForKpi(kpiStatusGraphic, kpiValue);
         }
     }
 }

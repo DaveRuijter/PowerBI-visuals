@@ -33,10 +33,10 @@ module jsCommon {
             if (rotateFactor === 0)
                 return rgbString;
 
-            var originalRgb = parseRgb(rgbString);
-            var originalHsv = rgbToHsv(originalRgb);
-            var rotatedHsv = rotateHsv(originalHsv, rotateFactor);
-            var rotatedRgb = hsvToRgb(rotatedHsv);
+            let originalRgb = parseRgb(rgbString);
+            let originalHsv = rgbToHsv(originalRgb);
+            let rotatedHsv = rotateHsv(originalHsv, rotateFactor);
+            let rotatedRgb = hsvToRgb(rotatedHsv);
             return rgbToHexString(rotatedRgb);
         }
 
@@ -44,7 +44,7 @@ module jsCommon {
             Utility.throwIfNullOrEmpty(rgbString, 'RgbColor', 'parse', 'rgbString');
             Utility.throwIfNotTrue(rgbString.length === 7, 'RgbColor', 'parse', 'rgbString');
 
-            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(rgbString);
+            let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(rgbString);
             Utility.throwIfNullOrUndefined(result, 'RgbColor', 'parse', 'rgbString');
 
             return {
@@ -55,16 +55,16 @@ module jsCommon {
         }
 
         function rgbToHsv(rgbColor: RgbColor): HsvColor {
-            var s, h;
-            var r = rgbColor.R / 255,
+            let s, h;
+            let r = rgbColor.R / 255,
                 g = rgbColor.G / 255,
                 b = rgbColor.B / 255;
 
-            var min = Math.min(r, Math.min(g, b));
-            var max = Math.max(r, Math.max(g, b));
+            let min = Math.min(r, Math.min(g, b));
+            let max = Math.max(r, Math.max(g, b));
 
-            var v = max;
-            var delta = max - min;
+            let v = max;
+            let delta = max - min;
             if (max === 0 || delta === 0) {
                 // R, G, and B must be 0.0, or all the same.
                 // In this case, S is 0.0, and H is undefined.
@@ -108,13 +108,13 @@ module jsCommon {
         }
 
         function componentToHex(hexComponent: number): string {
-            var hex = hexComponent.toString(16).toUpperCase();
+            let hex = hexComponent.toString(16).toUpperCase();
             return hex.length === 1 ? "0" + hex : hex;
         }
 
         function hsvToRgb(hsvColor: HsvColor): RgbColor {
-            var r, g, b;
-            var h = hsvColor.H,
+            let r, g, b;
+            let h = hsvColor.H,
                 s = hsvColor.S,
                 v = hsvColor.V;
 
@@ -126,7 +126,7 @@ module jsCommon {
                 b = v;
             }
             else {
-                var p, q, t, fractionalSector, sectorNumber, sectorPos;
+                let p, q, t, fractionalSector, sectorNumber, sectorPos;
 
                 // The color wheel consists of 6 sectors.
                 // Figure out which sector you//re in.
@@ -193,7 +193,7 @@ module jsCommon {
         }
 
         function rotateHsv(hsvColor: HsvColor, rotateFactor: number): HsvColor {
-            var newH = hsvColor.H + rotateFactor;
+            let newH = hsvColor.H + rotateFactor;
 
             return {
                 H: newH > 1 ? newH - 1 : newH,
@@ -203,7 +203,7 @@ module jsCommon {
         }
 
         export function darken(color: RgbColor, diff: number): RgbColor {
-            var flooredNumber = Math.floor(diff);
+            let flooredNumber = Math.floor(diff);
             return {
                 R: Math.max(0, color.R - flooredNumber),
                 G: Math.max(0, color.G - flooredNumber),
@@ -225,8 +225,8 @@ module jsCommon {
 
         export function rgbStringToHexString(rgb: string): string {
             debug.assert(rgb.indexOf('rgb(') !== -1, "input string does not starts with('rgb(')");
-            var rgbColors = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/;
-            var rgbArr = rgbColors.exec(rgb);
+            let rgbColors = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/;
+            let rgbArr = rgbColors.exec(rgb);
             if (rgbArr) {
                 return rgbNumbersToHexString(rgbArr[1], rgbArr[2], rgbArr[3]);
             }
@@ -235,8 +235,8 @@ module jsCommon {
 
         export function rgbaStringToHexString(rgba: string): string {
             debug.assert(rgba.indexOf('rgba(') !== -1, "input string does not starts with('rgba(')");
-            var rgbColors = /^rgba\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3}),\s*(\d*(?:\.\d+)?)\)$/;
-            var rgbArr = rgbColors.exec(rgba);
+            let rgbColors = /^rgba\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3}),\s*(\d*(?:\.\d+)?)\)$/;
+            let rgbArr = rgbColors.exec(rgba);
             if (rgbArr) {
                 return rgbNumbersToHexString(rgbArr[1], rgbArr[2], rgbArr[3]);
             }
@@ -245,9 +245,9 @@ module jsCommon {
 
         function rgbNumbersToHexString(Red: string, Green: string, Blue: string)
         {
-            var rHex = parseInt(Red, 10).toString(16);
-            var gHex = parseInt(Green, 10).toString(16);
-            var bHex = parseInt(Blue, 10).toString(16);
+            let rHex = parseInt(Red, 10).toString(16);
+            let gHex = parseInt(Green, 10).toString(16);
+            let bHex = parseInt(Blue, 10).toString(16);
             return "#" + (rHex.length === 1 ? "0" + rHex : rHex) + (gHex.length === 1 ? "0" + gHex : gHex) + (bHex.length === 1 ? "0" + bHex : bHex);
         }
 

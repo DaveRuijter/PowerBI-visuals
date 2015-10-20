@@ -41,8 +41,8 @@ module powerbi.visuals {
 
         export function applyUserMinMax(isScalar: boolean, dataView: DataViewCategorical, xAxisCardProperties: DataViewObject): DataViewCategorical {
             if (isScalar) {
-                var min = xAxisCardProperties['start'];
-                var max = xAxisCardProperties['end'];
+                let min = xAxisCardProperties['start'];
+                let max = xAxisCardProperties['end'];
 
                 return ColumnUtil.transformDomain(dataView, min, max);
             }       
@@ -51,19 +51,21 @@ module powerbi.visuals {
         }       
 
         export function transformDomain(dataView: DataViewCategorical, min: DataViewPropertyValue, max: DataViewPropertyValue): DataViewCategorical {
-            if (!dataView.categories || dataView.categories.length === 0)
+            if (!dataView.categories || !dataView.values || dataView.categories.length === 0 || dataView.values.length === 0)
                 return dataView;// no need to do something when there are no categories  
             
             if (typeof min !== "number" && typeof max !== "number")
                 return dataView;//user did not set min max, nothing to do here        
             
-            var category = dataView.categories[0];//at the moment we only support one category
-            var categoryValues = category.values;
-            var categoryObjects = category.objects;
+            let category = dataView.categories[0];//at the moment we only support one category
+            let categoryValues = category.values;
+            let categoryObjects = category.objects;
 
-            var newcategoryValues = [];
-            var newValues = [];
-            var newObjects = [];
+            if (!categoryValues || !categoryObjects)
+                return dataView;
+            let newcategoryValues = [];
+            let newValues = [];
+            let newObjects = [];
 
             //get new min max
             if (typeof min !== "number") {
@@ -79,11 +81,11 @@ module powerbi.visuals {
             
 
             //build measure array
-            for (var j = 0, len = dataView.values.length; j < len; j++) {
+            for (let j = 0, len = dataView.values.length; j < len; j++) {
                 newValues.push([]);
             }                        
 
-            for (var t = 0, len = categoryValues.length; t < len; t++) {
+            for (let t = 0, len = categoryValues.length; t < len; t++) {
                 if (categoryValues[t] >= min && categoryValues[t] <= max) {
                     newcategoryValues.push(categoryValues[t]);
                     if (categoryObjects) {
@@ -92,7 +94,7 @@ module powerbi.visuals {
                           
                     //on each measure set the new range
                     if (dataView.values) {
-                        for (var k = 0; k < dataView.values.length; k++) {
+                        for (let k = 0; k < dataView.values.length; k++) {
                             newValues[k].push(dataView.values[k].values[t]);
                         }
                     }
@@ -100,10 +102,10 @@ module powerbi.visuals {
             }            
 
             //don't write directly to dataview
-            var resultDataView = Prototype.inherit(dataView);
-            var resultDataViewValues = resultDataView.values = Prototype.inherit(resultDataView.values);
-            var resultDataViewCategories = resultDataView.categories = Prototype.inherit(dataView.categories);
-            var resultDataViewCategories0 = resultDataView.categories[0] = Prototype.inherit(resultDataViewCategories[0]);
+            let resultDataView = Prototype.inherit(dataView);
+            let resultDataViewValues = resultDataView.values = Prototype.inherit(resultDataView.values);
+            let resultDataViewCategories = resultDataView.categories = Prototype.inherit(dataView.categories);
+            let resultDataViewCategories0 = resultDataView.categories[0] = Prototype.inherit(resultDataViewCategories[0]);
 
             resultDataViewCategories0.values = newcategoryValues;
             //only if we had objects, then you set the new objects
@@ -112,8 +114,8 @@ module powerbi.visuals {
             }
 
             //update measure array
-            for (var t = 0, len = dataView.values.length; t < len; t++) {
-                var measureArray = resultDataViewValues[t] = Prototype.inherit(resultDataViewValues[t]);
+            for (let t = 0, len = dataView.values.length; t < len; t++) {
+                let measureArray = resultDataViewValues[t] = Prototype.inherit(resultDataViewValues[t]);
                 measureArray.values = newValues[t];
             }
 
@@ -129,13 +131,13 @@ module powerbi.visuals {
             forcedXMax?: DataViewPropertyValue,
             axisScaleType?: string): IAxisProperties {
 
-            var categoryThickness = layout.categoryThickness;
-            var isScalar = layout.isScalar;
-            var outerPaddingRatio = layout.outerPaddingRatio;
-            var dw = new DataWrapper(data, isScalar);
-            var domain = AxisHelper.createDomain(data.series, data.categoryMetadata ? data.categoryMetadata.type : ValueType.fromDescriptor({ text: true }), isScalar, [forcedXMin, forcedXMax]);
+            let categoryThickness = layout.categoryThickness;
+            let isScalar = layout.isScalar;
+            let outerPaddingRatio = layout.outerPaddingRatio;
+            let dw = new DataWrapper(data, isScalar);
+            let domain = AxisHelper.createDomain(data.series, data.categoryMetadata ? data.categoryMetadata.type : ValueType.fromDescriptor({ text: true }), isScalar, [forcedXMin, forcedXMax]);
 
-            var axisProperties = AxisHelper.createAxis({
+            let axisProperties = AxisHelper.createAxis({
                 pixelSpan: size,
                 dataDomain: domain,
                 metaDataColumn: data.categoryMetadata,
@@ -173,10 +175,10 @@ module powerbi.visuals {
         }
 
         export function getClosestColumnIndex(coordinate: number, columnsCenters: number[]): number {
-            var currentIndex = 0;
-            var distance: number = Number.MAX_VALUE;
-            for (var i = 0, ilen = columnsCenters.length; i < ilen; i++) {
-                var currentDistance = Math.abs(coordinate - columnsCenters[i]);
+            let currentIndex = 0;
+            let distance: number = Number.MAX_VALUE;
+            for (let i = 0, ilen = columnsCenters.length; i < ilen; i++) {
+                let currentDistance = Math.abs(coordinate - columnsCenters[i]);
                 if (currentDistance < distance) {
                     distance = currentDistance;
                     currentIndex = i;
@@ -187,8 +189,8 @@ module powerbi.visuals {
         }
 
         export function setChosenColumnOpacity(mainGraphicsContext: D3.Selection, columnGroupSelector: string, selectedColumnIndex: number, lastColumnIndex: number): void {
-            var series = mainGraphicsContext.selectAll(ColumnChart.SeriesClasses.selector);
-            var lastColumnUndefined = typeof lastColumnIndex === 'undefined';
+            let series = mainGraphicsContext.selectAll(ColumnChart.SeriesClasses.selector);
+            let lastColumnUndefined = typeof lastColumnIndex === 'undefined';
             // find all columns that do not belong to the selected column and set a dimmed opacity with a smooth animation to those columns
             series.selectAll(rectName + columnGroupSelector).filter((d: ColumnChartDataPoint) => {
                 return (d.categoryIndex !== selectedColumnIndex) && (lastColumnUndefined || d.categoryIndex === lastColumnIndex);
@@ -201,8 +203,8 @@ module powerbi.visuals {
         }
 
         export function drawSeries(data: ColumnChartData, graphicsContext: D3.Selection, axisOptions: ColumnAxisOptions): D3.UpdateSelection {
-            var colGroupSelection = graphicsContext.selectAll(ColumnChart.SeriesClasses.selector);
-            var series = colGroupSelection.data(data.series,(d: ColumnChartSeries) => d.key);
+            let colGroupSelection = graphicsContext.selectAll(ColumnChart.SeriesClasses.selector);
+            let series = colGroupSelection.data(data.series,(d: ColumnChartSeries) => d.key);
 
             series
                 .enter()
@@ -214,14 +216,14 @@ module powerbi.visuals {
             return series;
         }
 
-        export function drawDefaultShapes(data: ColumnChartData, series: D3.UpdateSelection, layout: IColumnLayout, itemCS: ClassAndSelector, filterZeros: boolean): D3.UpdateSelection {
+        export function drawDefaultShapes(data: ColumnChartData, series: D3.UpdateSelection, layout: IColumnLayout, itemCS: ClassAndSelector, filterZeros: boolean, hasSelection: boolean): D3.UpdateSelection {
             // We filter out invisible (0, null, etc.) values from the dataset
             // based on whether animations are enabled or not, Dashboard and
             // Exploration mode, respectively.
-            var dataSelector: (d: ColumnChartSeries) => any[];
+            let dataSelector: (d: ColumnChartSeries) => any[];
             if (filterZeros) {
                 dataSelector = (d: ColumnChartSeries) => {
-                    var filteredData = _.filter(d.data,(datapoint: ColumnChartDataPoint) => !!datapoint.value);
+                    let filteredData = _.filter(d.data,(datapoint: ColumnChartDataPoint) => !!datapoint.value);
                     return filteredData;
                 };
             }
@@ -229,9 +231,8 @@ module powerbi.visuals {
                 dataSelector = (d: ColumnChartSeries) => d.data;
             }
 
-            var shapeSelection = series.selectAll(itemCS.selector);
-            var shapes = shapeSelection.data(dataSelector, (d: ColumnChartDataPoint) => d.key);
-            var hasSelection = data.hasSelection;
+            let shapeSelection = series.selectAll(itemCS.selector);
+            let shapes = shapeSelection.data(dataSelector, (d: ColumnChartDataPoint) => d.key);
 
             shapes.enter()
                 .append(rectName)
@@ -252,10 +253,10 @@ module powerbi.visuals {
 
         export function drawDefaultLabels(series: D3.UpdateSelection, context: D3.Selection, layout: ILabelLayout, viewPort: IViewport, isAnimator: boolean = false, animationDuration?: number): D3.UpdateSelection {
             if (series) {
-                var seriesData = series.data();
-                var dataPoints: ColumnChartDataPoint[] = [];
+                let seriesData = series.data();
+                let dataPoints: ColumnChartDataPoint[] = [];
 
-                for (var i = 0, len = seriesData.length; i < len; i++) {
+                for (let i = 0, len = seriesData.length; i < len; i++) {
                     Array.prototype.push.apply(dataPoints, seriesData[i].data);
                 }
 
@@ -270,8 +271,8 @@ module powerbi.visuals {
             // When large values (eg Number.MAX_VALUE) are involved, a call to scale.nice occasionally
             // results in infinite values being included in the domain. To correct for that, we need to
             // re-normalize the domain now to not include infinities.
-            var scaledDomain = scale.domain();
-            for (var i = 0, len = scaledDomain.length; i < len; ++i) {
+            let scaledDomain = scale.domain();
+            for (let i = 0, len = scaledDomain.length; i < len; ++i) {
                 if (scaledDomain[i] === Number.POSITIVE_INFINITY)
                     scaledDomain[i] = Number.MAX_VALUE;
                 else if (scaledDomain[i] === Number.NEGATIVE_INFINITY)
@@ -282,10 +283,10 @@ module powerbi.visuals {
         }
 
         export function calculatePosition(d: ColumnChartDataPoint, axisOptions: ColumnAxisOptions): number {
-            var xScale = axisOptions.xScale;
-            var yScale = axisOptions.yScale;
-            var scaledY0 = yScale(0);
-            var scaledX0 = xScale(0);
+            let xScale = axisOptions.xScale;
+            let yScale = axisOptions.yScale;
+            let scaledY0 = yScale(0);
+            let scaledX0 = xScale(0);
             switch (d.chartType) {
                 case ColumnChartType.stackedBar:
                 case ColumnChartType.hundredPercentStackedBar:
@@ -316,7 +317,7 @@ module powerbi.visuals {
             debug.assertValue(mainGraphicsContext, 'mainGraphicsContext');
             debug.assertValue(itemCS, 'itemCS');
 
-            var cols = mainGraphicsContext.selectAll(itemCS.selector)
+            let cols = mainGraphicsContext.selectAll(itemCS.selector)
                 .data([]);
 
             cols.exit().remove();
@@ -329,7 +330,7 @@ module powerbi.visuals {
     }
 
     export module StackedUtil {
-        var constants = {
+        let constants = {
             percentFormat: '0%',
             roundingError: 0.0001,
         };
@@ -339,7 +340,7 @@ module powerbi.visuals {
         }
 
         export function calcValueDomain(data: ColumnChartSeries[], is100pct: boolean): NumberRange {
-            var defaultNumberRange = {
+            let defaultNumberRange = {
                 min: 0,
                 max: 10
             };
@@ -348,8 +349,8 @@ module powerbi.visuals {
                 return defaultNumberRange;
 
             // Can't use AxisHelper because Stacked layout has a slightly different calc, (position - valueAbs)
-            var min = d3.min<ColumnChartSeries, number>(data, d => d3.min<ColumnChartDataPoint, number>(d.data, e => e.position - e.valueAbsolute));
-            var max = d3.max<ColumnChartSeries, number>(data, d => d3.max<ColumnChartDataPoint, number>(d.data, e => e.position));
+            let min = d3.min<ColumnChartSeries, number>(data, d => d3.min<ColumnChartDataPoint, number>(d.data, e => e.position - e.valueAbsolute));
+            let max = d3.max<ColumnChartSeries, number>(data, d => d3.max<ColumnChartDataPoint, number>(d.data, e => e.position));
 
             if (is100pct) {
                 min = Double.roundToPrecision(min, constants.roundingError);
@@ -370,21 +371,21 @@ module powerbi.visuals {
             forcedTickCount?: number,
             forcedYDomain?: any[],
             axisScaleType?: string): IAxisProperties {
-            var valueDomain = calcValueDomain(data.series, is100Pct),
+            let valueDomain = calcValueDomain(data.series, is100Pct),
                 min = valueDomain.min,
                 max = valueDomain.max;
 
-            var maxTickCount = AxisHelper.getRecommendedNumberOfTicksForYAxis(size);
-            var bestTickCount = ColumnUtil.getTickCount(min, max, data.valuesMetadata, maxTickCount, is100Pct, forcedTickCount);
-            var normalizedRange = AxisHelper.normalizeLinearDomain({ min: min, max: max });
-            var valueDomainNorm = [normalizedRange.min, normalizedRange.max];
-            var axisType = ValueType.fromDescriptor({ numeric: true });
+            let maxTickCount = AxisHelper.getRecommendedNumberOfTicksForYAxis(size);
+            let bestTickCount = ColumnUtil.getTickCount(min, max, data.valuesMetadata, maxTickCount, is100Pct, forcedTickCount);
+            let normalizedRange = AxisHelper.normalizeLinearDomain({ min: min, max: max });
+            let valueDomainNorm = [normalizedRange.min, normalizedRange.max];
+            let axisType = ValueType.fromDescriptor({ numeric: true });
 
-            var combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomainNorm);  
-            var isLogScaleAllowed = AxisHelper.isLogScalePossible(combinedDomain, axisType);                                  
-            var useLogScale = axisScaleType && axisScaleType === axisScale.log && isLogScaleAllowed;
+            let combinedDomain = AxisHelper.combineDomain(forcedYDomain, valueDomainNorm);  
+            let isLogScaleAllowed = AxisHelper.isLogScalePossible(combinedDomain, axisType);                                  
+            let useLogScale = axisScaleType && axisScaleType === axisScale.log && isLogScaleAllowed;
 
-            var scale = useLogScale ? d3.scale.log() : d3.scale.linear();
+            let scale = useLogScale ? d3.scale.log() : d3.scale.linear();
 
             scale.range(scaleRange)
                 .domain(combinedDomain)
@@ -393,27 +394,27 @@ module powerbi.visuals {
 
             ColumnUtil.normalizeInfinityInScale(scale);
 
-            var dataType: ValueType = AxisHelper.getCategoryValueType(data.valuesMetadata[0], true);
-            var formatString = valueFormatter.getFormatString(data.valuesMetadata[0], columnChartProps.general.formatString);
-            var minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType);
-            var yTickValues: any[] = AxisHelper.getRecommendedTickValuesForAQuantitativeRange(bestTickCount, scale, minTickInterval);
+            let dataType: ValueType = AxisHelper.getCategoryValueType(data.valuesMetadata[0], true);
+            let formatString = valueFormatter.getFormatString(data.valuesMetadata[0], columnChartProps.general.formatString);
+            let minTickInterval = AxisHelper.getMinTickValueInterval(formatString, dataType);
+            let yTickValues: any[] = AxisHelper.getRecommendedTickValuesForAQuantitativeRange(bestTickCount, scale, minTickInterval);
 
             if (useLogScale) {
                 yTickValues = yTickValues.filter((d) => { return AxisHelper.powerOfTen(d); });
             }
 
-            var d3Axis = d3.svg.axis()
+            let d3Axis = d3.svg.axis()
                 .scale(scale)
                 .tickValues(yTickValues);
 
-            var yInterval = ColumnChart.getTickInterval(yTickValues);
-            var yFormatter = StackedUtil.createValueFormatter(
+            let yInterval = ColumnChart.getTickInterval(yTickValues);
+            let yFormatter = StackedUtil.createValueFormatter(
                 data.valuesMetadata,
                 is100Pct,
                 yInterval);
             d3Axis.tickFormat(yFormatter.format);
 
-            var values = yTickValues.map((d: ColumnChartDataPoint) => yFormatter.format(d));            
+            let values = yTickValues.map((d: ColumnChartDataPoint) => yFormatter.format(d));            
 
             return {
                 axis: d3Axis,
@@ -451,11 +452,11 @@ module powerbi.visuals {
             debug.assertValue(dataView, 'dataView');
             debug.assertValue(rowIdx, 'rowIdx');
 
-            var pos: number = 0,
+            let pos: number = 0,
                 neg: number = 0;
             
-            for (var i = 0; i < seriesCount; i++) {
-                var value: number = converterStrategy.getValueBySeriesAndCategory(i, rowIdx);
+            for (let i = 0; i < seriesCount; i++) {
+                let value: number = converterStrategy.getValueBySeriesAndCategory(i, rowIdx);
                 value = AxisHelper.normalizeNonFiniteNumber(value);
 
                 if (value > 0)
@@ -464,7 +465,7 @@ module powerbi.visuals {
                     neg -= value;
             }
 
-            var absTotal = pos + neg;
+            let absTotal = pos + neg;
             return {
                 pos: pos ? (pos / absTotal) / pos : 1,
                 neg: neg ? (neg / absTotal) / neg : 1,
@@ -478,7 +479,7 @@ module powerbi.visuals {
             debug.assertValue(mainGraphicsContext, 'mainGraphicsContext');
             debug.assertValue(itemCS, 'itemCS');
 
-            var bars = mainGraphicsContext.selectAll(itemCS.selector)
+            let bars = mainGraphicsContext.selectAll(itemCS.selector)
                 .data([]);
 
             bars.exit().remove();
@@ -497,23 +498,23 @@ module powerbi.visuals {
         public lookupXValue(index: number, type: ValueType): any {
             debug.assertValue(this.data, 'this.data');
 
-            var isDateTime = AxisHelper.isDateTime(type);
+            let isDateTime = AxisHelper.isDateTime(type);
             if (isDateTime && this.isScalar)
                 return new Date(index);
 
-            var data = this.data;
+            let data = this.data;
             if (type.text) {
                 debug.assert(index < data.categories.length, 'category index out of range');
                 return data.categories[index];
             }
             else {
-                var firstSeries = data.series[0];
+                let firstSeries = data.series[0];
                 if (firstSeries) {
-                    var seriesValues = firstSeries.data;
+                    let seriesValues = firstSeries.data;
                     if (seriesValues) {
                         if (this.data.hasHighlights)
                             index = index * 2;
-                        var dataPoint = seriesValues[index];
+                        let dataPoint = seriesValues[index];
                         if (dataPoint) {
                             if (isDateTime)
                                 return new Date(dataPoint.categoryValue);

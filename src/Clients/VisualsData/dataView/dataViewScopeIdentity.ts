@@ -61,9 +61,9 @@ module powerbi {
             if (ArrayExtensions.isUndefinedOrEmpty(identities))
                 return;
 
-            var expr: data.SQExpr;
-            for (var i = 0, len = identities.length; i < len; i++) {
-                var identity = identities[i];
+            let expr: data.SQExpr;
+            for (let i = 0, len = identities.length; i < len; i++) {
+                let identity = identities[i];
 
                 expr = expr
                     ? powerbi.data.SQExprBuilder.or(expr, identity.expr)

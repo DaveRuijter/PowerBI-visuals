@@ -28,14 +28,31 @@
 
 module powerbi.visuals {
     export interface DataDotChartBehaviorOptions {
-        datapoints: SelectableDataPoint[];
         dots: D3.Selection;
-        clearCatcher: D3.Selection;
+        dotLabels: D3.Selection;
+        isPartOfCombo?: boolean;
     }
 
-    export class DataDotChartWebBehavior {
-        public select(hasSelection: boolean, selection: D3.Selection) {
-            selection.style("fill-opacity",(d: DataDotChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, false));
+    export class DataDotChartWebBehavior implements IInteractiveBehavior {
+        private dots: D3.Selection;
+
+        public bindEvents(options: DataDotChartBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            let dots = this.dots = options.dots;
+            let dotLabels = options.dotLabels;
+
+            dots.on('click', (d: SelectableDataPoint) => {
+                selectionHandler.handleSelection(d, d3.event.ctrlKey);
+            });
+
+            if (dotLabels) {
+                dotLabels.on('click', (d: SelectableDataPoint) => {
+                    selectionHandler.handleSelection(d, d3.event.ctrlKey);
+                });
+            }
+        }
+
+        public renderSelection(hasSelection: boolean): void {
+            this.dots.style("fill-opacity",(d: DataDotChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, false));
         }
     }
 }  

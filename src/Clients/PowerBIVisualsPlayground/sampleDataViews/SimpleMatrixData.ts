@@ -29,141 +29,165 @@
 module powerbi.visuals.sampleDataViews {
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
-    
+
     export class SimpleMatrixData extends SampleDataViews implements ISampleDataViewsMethods {
 
         public name: string = "SimpleMatrixData";
         public displayName: string = "Simple matrix data";
 
-        public visuals: string[] = ['matrix',
+        public visuals: string[] = ['matrix','sunburst'
         ];
 
         public getDataViews(): DataView[] {
             var dataTypeNumber = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double);
             var dataTypeString = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text);
-            
+
             var measureSource1: DataViewMetadataColumn = { displayName: 'measure1', type: dataTypeNumber, isMeasure: true, index: 3, objects: { general: { formatString: '#.0' } } };
             var measureSource2: DataViewMetadataColumn = { displayName: 'measure2', type: dataTypeNumber, isMeasure: true, index: 4, objects: { general: { formatString: '#.00' } } };
             var measureSource3: DataViewMetadataColumn = { displayName: 'measure3', type: dataTypeNumber, isMeasure: true, index: 5, objects: { general: { formatString: '#' } } };
 
             var rowGroupSource1: DataViewMetadataColumn = { displayName: 'RowGroup1', queryName: 'RowGroup1', type: dataTypeString, index: 0 };
+            var rowGroupSource1Column = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "t", name: "rowgroup1" } });
             var rowGroupSource2: DataViewMetadataColumn = { displayName: 'RowGroup2', queryName: 'RowGroup2', type: dataTypeString, index: 1 };
+            var rowGroupSource2Column = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "t", name: "rowgroup2" } });
             var rowGroupSource3: DataViewMetadataColumn = { displayName: 'RowGroup3', queryName: 'RowGroup3', type: dataTypeString, index: 2 };
+            var rowGroupSource3Column = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "t", name: "rowgroup3" } });
 
             var matrixThreeMeasuresThreeRowGroups: DataViewMatrix = {
                 rows: {
                     root: {
                         children: [
                             {
-                                level: 0,
+                             
                                 value: 'North America',
                                 children: [
                                     {
-                                        level: 1,
+                                       
                                         value: 'Canada',
                                         children: [
                                             {
-                                                level: 2,
+                                              
                                                 value: 'Ontario',
                                                 values: {
                                                     0: { value: 1000 },
                                                     1: { value: 1001, valueSourceIndex: 1 },
                                                     2: { value: 1002, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Ontario'))),
                                             },
                                             {
-                                                level: 2,
+                                               
                                                 value: 'Quebec',
                                                 values: {
                                                     0: { value: 1010 },
                                                     1: { value: 1011, valueSourceIndex: 1 },
                                                     2: { value: 1012, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Quebec'))),
                                             }
-                                        ]
+                                        ],
+                                        identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource2Column, powerbi.data.SQExprBuilder.text('Canada'))),
+                                        childIdentityFields: [rowGroupSource3Column]
                                     },
                                     {
-                                        level: 1,
+                                        
                                         value: 'USA',
                                         children: [
                                             {
-                                                level: 2,
+                                             
                                                 value: 'Washington',
                                                 values: {
                                                     0: { value: 1100 },
                                                     1: { value: 1101, valueSourceIndex: 1 },
                                                     2: { value: 1102, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Washington'))),
                                             },
                                             {
-                                                level: 2,
+                                               
                                                 value: 'Oregon',
                                                 values: {
                                                     0: { value: 1110 },
                                                     1: { value: 1111, valueSourceIndex: 1 },
                                                     2: { value: 1112, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Oregon'))),
                                             }
-                                        ]
+                                        ],
+                                        identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource2Column, powerbi.data.SQExprBuilder.text('USA'))),
+                                        childIdentityFields: [rowGroupSource3Column]
                                     }
-                                ]
+                                ],
+                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource1Column, powerbi.data.SQExprBuilder.text('North America'))),
+                                childIdentityFields: [rowGroupSource2Column]
                             },
                             {
-                                level: 0,
+                              
                                 value: 'South America',
                                 children: [
                                     {
-                                        level: 1,
+                                      
                                         value: 'Brazil',
                                         children: [
                                             {
-                                                level: 2,
+                                               
                                                 value: 'Amazonas',
                                                 values: {
                                                     0: { value: 2000 },
                                                     1: { value: 2001, valueSourceIndex: 1 },
                                                     2: { value: 2002, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Amazonas'))),
                                             },
                                             {
-                                                level: 2,
+                                             
                                                 value: 'Mato Grosso',
                                                 values: {
                                                     0: { value: 2010 },
                                                     1: { value: 2011, valueSourceIndex: 1 },
                                                     2: { value: 2012, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Mato Grosso'))),
                                             }
-                                        ]
+                                        ],
+                                        identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource2Column, powerbi.data.SQExprBuilder.text('Brazil'))),
+                                        childIdentityFields: [rowGroupSource3Column]
                                     },
                                     {
-                                        level: 1,
+                                       
                                         value: 'Chile',
                                         children: [
                                             {
-                                                level: 2,
+                                            
                                                 value: 'Arica',
                                                 values: {
                                                     0: { value: 2100 },
                                                     1: { value: 2101, valueSourceIndex: 1 },
                                                     2: { value: 2102, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Arica'))),
                                             },
                                             {
-                                                level: 2,
+                                       
                                                 value: 'Parinacota',
                                                 values: {
                                                     0: { value: 2110 },
                                                     1: { value: 2111, valueSourceIndex: 1 },
                                                     2: { value: 2112, valueSourceIndex: 2 }
-                                                }
+                                                },
+                                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource3Column, powerbi.data.SQExprBuilder.text('Parinacota'))),
                                             }
-                                        ]
+                                        ],
+                                        identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource2Column, powerbi.data.SQExprBuilder.text('Chile'))),
+                                        childIdentityFields: [rowGroupSource3Column]
                                     }
-                                ]
+                                ],
+                                identity: powerbi.data.createDataViewScopeIdentity(powerbi.data.SQExprBuilder.equal(rowGroupSource1Column, powerbi.data.SQExprBuilder.text('South America'))),
+                                childIdentityFields: [rowGroupSource2Column]
                             },
 
-                        ]
+                        ],
+                        childIdentityFields: [rowGroupSource1Column],
                     },
                     levels: [
                         { sources: [rowGroupSource1] },
@@ -202,6 +226,6 @@ module powerbi.visuals.sampleDataViews {
 
         public randomize(): void {
         }
-        
+
     }
 }

@@ -66,7 +66,7 @@ module powerbi.visuals {
      * This chart only supports a single series of data.
      * This chart does not display a legend.
      */
-    export class DataDotChart implements ICartesianVisual, IInteractiveVisual {
+    export class DataDotChart implements ICartesianVisual {
         public static formatStringProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'formatString' };
         private static ClassName = 'dataDotChart';
 
@@ -86,7 +86,6 @@ module powerbi.visuals {
         private element: JQuery;
         private mainGraphicsG: D3.Selection;
         private mainGraphicsContext: D3.Selection;
-        private clearCatcher: D3.Selection;
         private currentViewport: IViewport;
         private hostService: IVisualHostServices;
         private cartesianVisualHost: ICartesianVisualHost;
@@ -118,7 +117,6 @@ module powerbi.visuals {
 
             // Common properties
             this.svg = options.svg;
-            this.clearCatcher = this.svg.select(".clearCatcher");
             this.mainGraphicsG = this.svg.append('g')
                 .classed('dataDotChartMainGraphicsContext', true);
             this.mainGraphicsContext = this.mainGraphicsG.append('svg');
@@ -131,7 +129,7 @@ module powerbi.visuals {
             // Interactivity properties
             this.interactivity = options.interactivity;
 
-            var element = this.element = options.element;
+            let element = this.element = options.element;
             element.addClass(DataDotChart.ClassName);
             element.css('overflow', 'visible');
         }
@@ -148,14 +146,14 @@ module powerbi.visuals {
             if (dataViews.length > 0) {
 
                 // I only handle a single data view
-                var dataView = dataViews[0];
+                let dataView = dataViews[0];
                 if (dataView && dataView.categorical) {
 
-                    var dataViewCategorical = this.dataViewCategorical = dataView.categorical;
-                    var dvCategories = dataViewCategorical.categories;
+                    let dataViewCategorical = this.dataViewCategorical = dataView.categorical;
+                    let dvCategories = dataViewCategorical.categories;
 
                     // I default to text unless there is a category type
-                    var categoryType = ValueType.fromDescriptor({ text: true });
+                    let categoryType = ValueType.fromDescriptor({ text: true });
                     if (dvCategories && dvCategories.length > 0 && dvCategories[0].source && dvCategories[0].source.type)
                         categoryType = dvCategories[0].source.type;
 
@@ -168,7 +166,7 @@ module powerbi.visuals {
         }
 
         public setFilteredData(startIndex: number, endIndex: number): any {
-            var data = this.clippedData = Prototype.inherit(this.data);
+            let data = this.clippedData = Prototype.inherit(this.data);
 
             if (data && data.series && data.series.data)
                 data.series = { data: data.series.data.slice(startIndex, endIndex), xCol: data.series.xCol, yCol: data.series.yCol };
@@ -180,30 +178,30 @@ module powerbi.visuals {
             this.currentViewport = options.viewport;
             this.margin = options.margin;
 
-            var data = this.clippedData = this.data;
-            var viewport = this.currentViewport;
-            var margin = this.margin;
-            var series: DataDotChartSeries = data ? data.series : null;
-            var seriesArray = series && series.data && series.data.length > 0 ? [series] : [];
-            var categoryCount = series && series.data ? series.data.length : 0;
+            let data = this.clippedData = this.data;
+            let viewport = this.currentViewport;
+            let margin = this.margin;
+            let series: DataDotChartSeries = data ? data.series : null;
+            let seriesArray = series && series.data && series.data.length > 0 ? [series] : [];
+            let categoryCount = series && series.data ? series.data.length : 0;
 
             // If there are highlights, then the series is 2x in length and highlights are interwoven.
             if (data.hasHighlights) {
                 categoryCount = categoryCount / 2;
             }
 
-            var width = viewport.width - (margin.left + margin.right);
-            var height = viewport.height - (margin.top + margin.bottom);
+            let width = viewport.width - (margin.left + margin.right);
+            let height = viewport.height - (margin.top + margin.bottom);
 
-            var xMetaDataColumn: DataViewMetadataColumn;
-            var yMetaDataColumn: DataViewMetadataColumn;
+            let xMetaDataColumn: DataViewMetadataColumn;
+            let yMetaDataColumn: DataViewMetadataColumn;
 
             if (DataDotChart.hasDataPoint(series)) {
                 xMetaDataColumn = series.xCol;
                 yMetaDataColumn = series.yCol;
             }
 
-            var layout = CartesianChart.getLayout(
+            let layout = CartesianChart.getLayout(
                 null,
                 {
                     availableWidth: width,
@@ -212,16 +210,16 @@ module powerbi.visuals {
                     isScalar: false,
                     isScrollable: this.isScrollable
                 });
-            var outerPadding = layout.categoryThickness * CartesianChart.OuterPaddingRatio;
+            let outerPadding = layout.categoryThickness * CartesianChart.OuterPaddingRatio;
 
             // clip data that won't fit
             if (!this.isScrollable) {
                 this.clippedData = DataDotChart.createClippedDataIfOverflowed(data, layout.categoryCount);
             }
 
-            var yDomain = AxisHelper.createValueDomain(seriesArray, /*includeZero:*/ true) || fallBackDomain;
+            let yDomain = AxisHelper.createValueDomain(seriesArray, /*includeZero:*/ true) || fallBackDomain;
 
-            var combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, yDomain);
+            let combinedDomain = AxisHelper.combineDomain(options.forcedYDomain, yDomain);
 
             this.yAxisProperties = AxisHelper.createAxis({
                 pixelSpan: height,
@@ -236,8 +234,8 @@ module powerbi.visuals {
                 isCategoryAxis: true
             });
 
-            var axisType = this.xAxisProperties ? this.xAxisProperties.axisType : ValueType.fromDescriptor({ text: true });
-            var xDomain = AxisHelper.createDomain(seriesArray, axisType, /*isScalar:*/ false, options.forcedXDomain);
+            let axisType = this.xAxisProperties ? this.xAxisProperties.axisType : ValueType.fromDescriptor({ text: true });
+            let xDomain = AxisHelper.createDomain(seriesArray, axisType, /*isScalar:*/ false, options.forcedXDomain);
             this.xAxisProperties = AxisHelper.createAxis({
                 pixelSpan: width,
                 dataDomain: xDomain,
@@ -259,13 +257,13 @@ module powerbi.visuals {
         private static createClippedDataIfOverflowed(data: DataDotChartData, categoryCount: number): DataDotChartData {                                                
 
             // If there are highlights, then the series is 2x in length and highlights are interwoven.
-            var requiredLength = data.hasHighlights ? Math.min(data.series.data.length, categoryCount * 2) : Math.min(data.series.data.length, categoryCount);
+            let requiredLength = data.hasHighlights ? Math.min(data.series.data.length, categoryCount * 2) : Math.min(data.series.data.length, categoryCount);
 
             if (requiredLength >= data.series.data.length) {
                 return data;
             }
 
-            var clipped: DataDotChartData = Prototype.inherit(data);
+            let clipped: DataDotChartData = Prototype.inherit(data);
             clipped.series = Prototype.inherit(data.series); // This prevents clipped and data from sharing the series object
             clipped.series.data = clipped.series.data.slice(0, requiredLength);
             return clipped;
@@ -276,17 +274,17 @@ module powerbi.visuals {
         }
 
         private lookupXValue(index: number, type: ValueType): any {
-            var data = this.data;
+            let data = this.data;
 
-            var isDateTime = AxisHelper.isDateTime(type);
+            let isDateTime = AxisHelper.isDateTime(type);
             if (isDateTime)
                 return new Date(index);
 
             if (data && data.series) {
-                var seriesData = data.series.data;
+                let seriesData = data.series.data;
 
                 if (seriesData) {
-                    var dataAtIndex = seriesData[index];
+                    let dataAtIndex = seriesData[index];
                     if (dataAtIndex) {
                         return dataAtIndex.categoryValue;
                     }
@@ -300,29 +298,29 @@ module powerbi.visuals {
             this.xAxisProperties = xProperties;
         }
 
-        public render(suppressAnimations: boolean): void {
+        public render(suppressAnimations: boolean): CartesianVisualRenderResult {
             if (!this.clippedData)
                 return;
-            var data = this.clippedData;
-            var dataPoints = data.series.data;
-            var hasHighlights = data.hasHighlights;
+            let data = this.clippedData;
+            let dataPoints = data.series.data;
+            let hasHighlights = data.hasHighlights;
 
-            var margin = this.margin;
-            var viewport = this.currentViewport;
-            var width = viewport.width - (margin.left + margin.right);
-            var height = viewport.height - (margin.top + margin.bottom);
-            var xScale = <D3.Scale.OrdinalScale>this.xAxisProperties.scale;
-            var yScale = this.yAxisProperties.scale;
-            var dotWidth = this.xAxisProperties.categoryThickness * (1 - CartesianChart.InnerPaddingRatio);
-            var dotRadius = dotWidth / 2;
-            var dotColor = this.cartesianVisualHost.getSharedColors().getNewColorScale().getColor(DataDotChart.DotColorKey);
+            let margin = this.margin;
+            let viewport = this.currentViewport;
+            let width = viewport.width - (margin.left + margin.right);
+            let height = viewport.height - (margin.top + margin.bottom);
+            let xScale = <D3.Scale.OrdinalScale>this.xAxisProperties.scale;
+            let yScale = this.yAxisProperties.scale;
+            let dotWidth = this.xAxisProperties.categoryThickness * (1 - CartesianChart.InnerPaddingRatio);
+            let dotRadius = dotWidth / 2;
+            let dotColor = this.cartesianVisualHost.getSharedColors().getNewColorScale().getColor(DataDotChart.DotColorKey);
 
-            var hasSelection = dataHasSelection(dataPoints);
+            let hasSelection = this.interactivityService ? this.interactivityService.hasSelection() : false;
 
             this.mainGraphicsContext.attr('width', width)
                 .attr('height', height);
 
-            var dots = this.mainGraphicsContext.selectAll(DataDotChart.DotClassSelector).data(dataPoints, d => d.identity.getKey());
+            let dots = this.mainGraphicsContext.selectAll(DataDotChart.DotClassSelector).data(dataPoints, d => d.identity.getKey());
 
             dots.enter()
                 .append('circle')
@@ -340,7 +338,7 @@ module powerbi.visuals {
 
             dots.exit().remove();
 
-            var dotLabels = this.mainGraphicsContext.selectAll(DataDotChart.DotLabelClassSelector).data(dataPoints, d => d.identity.getKey());
+            let dotLabels = this.mainGraphicsContext.selectAll(DataDotChart.DotLabelClassSelector).data(dataPoints, d => d.identity.getKey());
 
             dotLabels.enter()
                 .append('text')
@@ -359,12 +357,12 @@ module powerbi.visuals {
                 })
                 .text(d => this.yAxisProperties.formatter.format(d.value));
 
-            var overflowed = false;
+            let overflowed = false;
             dotLabels
                 .each(function () {
                     // jQuery fails to properly inspect SVG class elements, the $('<div>') notation works around it.
                     if (!overflowed && !$("<div>").addClass($(this).attr("class")).hasClass("null-value")) {
-                        var width = TextMeasurementService.measureSvgTextElementWidth(this);
+                        let width = TextMeasurementService.measureSvgTextElementWidth(this);
                         if (width > dotWidth) {
                             dotLabels.classed('overflowed', true);
                             overflowed = true;
@@ -373,19 +371,19 @@ module powerbi.visuals {
                 });
 
             dotLabels.exit().remove();
-
+            let behaviorOptions: DataDotChartBehaviorOptions = undefined;
             if (this.interactivityService) {
-                var behaviorOptions: DataDotChartBehaviorOptions = {
+                behaviorOptions = {
                     dots: dots,
+                    dotLabels: dotLabels,
                     datapoints: dataPoints,
-                    clearCatcher: this.clearCatcher,
                 };
-
-                this.interactivityService.apply(this, behaviorOptions);
             }        
 
             // This should always be the last line in the render code.
             SVGUtil.flushAllD3TransitionsIfNeeded(this.options);
+
+            return { dataPoints: dataPoints, behaviorOptions: behaviorOptions, labelDataPoints: [] };
         }
 
         public calculateLegend(): LegendData {
@@ -397,43 +395,45 @@ module powerbi.visuals {
         }
 
         private createLegendDataPoints(columnIndex: number): LegendData {
-            var data = this.data;
+            let data = this.data;
             if (!data)
                 return null;
 
-            var series = data.series;
-            var seriesData = series.data;
+            let series = data.series;
+            let seriesData = series.data;
 
-            var legendDataPoints: LegendDataPoint[] = [];
-            var category: any;
+            let legendDataPoints: LegendDataPoint[] = [];
+            let category: any;
 
-            var axisType = this.xAxisProperties ? this.xAxisProperties.axisType : ValueType.fromDescriptor({ text: true });
+            let axisType = this.xAxisProperties ? this.xAxisProperties.axisType : ValueType.fromDescriptor({ text: true });
 
             // Category will be the same for all series. This is an optimization.
             if (data.series && data.series.data) {
-                var firstDataPoint: DataDotChartDataPoint = data.series.data[0];
+                let firstDataPoint: DataDotChartDataPoint = data.series.data[0];
                 category = firstDataPoint && this.lookupXValue(firstDataPoint.categoryValue, axisType);
             }
 
             // Create a legend data point for the specified column                
             if (series.yCol) {
 
-                var formatStringProp = DataDotChart.formatStringProp;
-                var lineDataPoint = seriesData[columnIndex];
-                var measure = lineDataPoint && lineDataPoint.value;
+                let formatStringProp = DataDotChart.formatStringProp;
+                let lineDataPoint = seriesData[columnIndex];
+                let measure = lineDataPoint && lineDataPoint.value;
 
-                var label = converterHelper.getFormattedLegendLabel(series.yCol, this.dataViewCategorical.values, formatStringProp);
+                let label = converterHelper.getFormattedLegendLabel(series.yCol, this.dataViewCategorical.values, formatStringProp);
 
-                var dotColor = this.cartesianVisualHost.getSharedColors().getNewColorScale().getColor(DataDotChart.DotColorKey);
-                var dataViewCategoricalValues = this.dataViewCategorical.values;
-                var identity = dataViewCategoricalValues && dataViewCategoricalValues.length > columnIndex ? dataViewCategoricalValues[columnIndex].identity : null;
+                let dotColor = this.cartesianVisualHost.getSharedColors().getNewColorScale().getColor(DataDotChart.DotColorKey);
+                let dataViewCategoricalValues = this.dataViewCategorical.values;
+                let identity = dataViewCategoricalValues && dataViewCategoricalValues.length > columnIndex ?
+                    SelectionId.createWithIdAndMeasure(dataViewCategoricalValues[columnIndex].identity, dataViewCategoricalValues[columnIndex].source.queryName) :
+                    SelectionId.createWithMeasure(dataViewCategoricalValues.source.queryName);
                 legendDataPoints.push({
                     color: dotColor.value,
                     icon: LegendIcon.Line,
                     label: label,
                     category: valueFormatter.format(category, valueFormatter.getFormatString(series.xCol, formatStringProp)),
                     measure: valueFormatter.format(measure, valueFormatter.getFormatString(series.yCol, formatStringProp)),
-                    identity: identity ? SelectionId.createWithId(identity) : SelectionId.createNull(),
+                    identity: identity,
                     selected: false
                 });
             }
@@ -449,9 +449,9 @@ module powerbi.visuals {
         }
 
         public static converter(dataView: DataView, blankCategoryValue: string): DataDotChartData {
-            var categorical = dataView.categorical;
+            let categorical = dataView.categorical;
 
-            var category: DataViewCategoryColumn = categorical.categories && categorical.categories.length > 0
+            let category: DataViewCategoryColumn = categorical.categories && categorical.categories.length > 0
                 ? categorical.categories[0]
                 : {
                     source: undefined,
@@ -459,25 +459,27 @@ module powerbi.visuals {
                     identity: undefined
                 };
 
-            var categoryType: ValueType = AxisHelper.getCategoryValueType(category.source);
-            var isDateTime = AxisHelper.isDateTime(categoryType);
-            var categoryValues = category.values;
+            let categoryType: ValueType = AxisHelper.getCategoryValueType(category.source);
+            let isDateTime = AxisHelper.isDateTime(categoryType);
+            let categoryValues = category.values;
 
             // I only handle a single series
             if (categorical.values) {
-                var measure = categorical.values[0];
+                let measure = categorical.values[0];
 
-                var hasHighlights: boolean = !!measure.highlights;
+                let hasHighlights: boolean = !!measure.highlights;
 
-                var dataPoints: DataDotChartDataPoint[] = [];
-                for (var categoryIndex = 0, len = measure.values.length; categoryIndex < len; categoryIndex++) {
+                let dataPoints: DataDotChartDataPoint[] = [];
+                for (let categoryIndex = 0, len = measure.values.length; categoryIndex < len; categoryIndex++) {
 
                     debug.assert(!category.identity || categoryIndex < category.identity.length, 'Category identities is smaller than category values.');
 
                     // I create the identity from the category.  If there is no category, then I use the measure name to create identity
-                    var identity = category.identity ? SelectionId.createWithId(category.identity[categoryIndex]) : SelectionId.createWithMeasure(measure.source.queryName);
+                    let identity = category.identity ?
+                        SelectionId.createWithIdAndMeasure(category.identity[categoryIndex], measure.source.queryName) :
+                        SelectionId.createWithMeasure(measure.source.queryName);
 
-                    var categoryValue = categoryValues[categoryIndex];
+                    let categoryValue = categoryValues[categoryIndex];
 
                     dataPoints.push({
                         categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
@@ -491,8 +493,8 @@ module powerbi.visuals {
 
                     if (hasHighlights) {
 
-                        var highlightIdentity = SelectionId.createWithHighlight(identity);
-                        var highlightValue = measure.highlights[categoryIndex];
+                        let highlightIdentity = SelectionId.createWithHighlight(identity);
+                        let highlightValue = measure.highlights[categoryIndex];
 
                         dataPoints.push({
                             categoryValue: isDateTime && categoryValue ? categoryValue.getTime() : categoryValue,
@@ -524,12 +526,6 @@ module powerbi.visuals {
                 hasHighlights: false,
                 hasDynamicSeries: false,
             };
-        }
-
-        public accept(visitor: InteractivityVisitor, options: any): void {
-            debug.assertValue(visitor, 'visitor');
-
-            visitor.visitDataDotChart(options);
         }
     }
 } 

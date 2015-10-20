@@ -32,6 +32,7 @@ module powerbi.visuals {
         line: LineObject;
         fill: FillObject;
         lockAspect: LockAspectObject;
+        rotation: RotationObject;
     }
 
     export interface LineObject extends DataViewObject {
@@ -51,6 +52,10 @@ module powerbi.visuals {
         show: boolean;
     }
 
+    export interface RotationObject extends DataViewObject {
+        angle: number;
+    }
+
     export interface BasicShapeDataViewObject extends DataViewObject {
         shapeType: string;
         shapeSvg: string;
@@ -66,6 +71,7 @@ module powerbi.visuals {
         shapeTransparency: number;
         lockAspectRatio: boolean;
         roundEdge: number;
+        angle: number;
     }
 
     export class BasicShapeVisual implements IVisual {
@@ -73,13 +79,15 @@ module powerbi.visuals {
         private element: JQuery;
         private data: BasicShapeData;
         private selection: D3.Selection;
-        public static DefaultStrokeColor: string = "#00b8aa";
-        private static DefaultFillColor: string = "#e6e6e6";
-        private static DefaultShape: string = powerbi.basicShapeType.rectangle;
-        private static DefaultWeightValue: number = 3;
-        private static DefaultLineTransValue: number = 100;
-        private static DefaultFillTransValue: number = 0;
-        private static DefaultRoundEdgeValue: number = 0;
+
+        public static DefaultShape: string = powerbi.basicShapeType.rectangle;
+        public static DefaultStrokeColor: string = '#00B8AA';
+        public static DefaultFillColor: string = '#E6E6E6';
+        public static DefaultFillTransValue: number = 100;
+        public static DefaultWeightValue: number = 3;
+        public static DefaultLineTransValue: number = 100;
+        public static DefaultRoundEdgeValue: number = 0;
+        public static DefaultAngle: number = 0;
 
         /**property for the shape line color */
         get shapeType(): string {
@@ -145,6 +153,13 @@ module powerbi.visuals {
         set lockAspectRatio(show: boolean) {
             this.data.lockAspectRatio = show;
         }
+        /**property for the shape angle */
+        get angle(): number {
+            return this.data ? this.data.angle : BasicShapeVisual.DefaultAngle;
+        }
+        set angle(angle: number) {
+            this.data.angle = angle;
+        }
 
         public init(options: VisualInitOptions) {
             this.element = options.element;
@@ -155,21 +170,27 @@ module powerbi.visuals {
         public constructor(options?: VisualInitOptions) {
         }
 
-        public onDataChanged(options: VisualDataChangedOptions): void {
+        public update(options: VisualUpdateOptions): void {
             debug.assertValue(options, 'options');
-            if (options.dataViews && options.dataViews.length > 0 && options.dataViews[0].metadata && options.dataViews[0].metadata.objects) {
-                var dataViewObject = <BasicShapeDataViewObjects>options.dataViews[0].metadata.objects;
-                this.data = this.setData(dataViewObject);
-                this.render();
+
+            this.currentViewport = options.viewport;
+
+            let dataViews = options.dataViews;
+            if (!_.isEmpty(dataViews)) {
+                let dataView = options.dataViews[0];
+                if (dataView.metadata && dataView.metadata.objects) {
+                    let dataViewObject = <BasicShapeDataViewObjects>options.dataViews[0].metadata.objects;
+                    this.data = this.getDataFromDataView(dataViewObject);
+                }
             }
+
+            this.render();
         }
 
-        private setData(dataViewObject: BasicShapeDataViewObjects): BasicShapeData {
+        private getDataFromDataView(dataViewObject: BasicShapeDataViewObjects): BasicShapeData {
             if (dataViewObject) {
-                // revert to default logic
-                this.data = null;
                 return {
-                    shapeType: dataViewObject.general.shapeType,
+                    shapeType: dataViewObject.general !== undefined && dataViewObject.general.shapeType !== undefined ? dataViewObject.general.shapeType : this.shapeType,
                     lineColor: dataViewObject.line !== undefined && dataViewObject.line.lineColor !== undefined ? dataViewObject.line.lineColor.solid.color : this.lineColor,
                     lineTransparency: dataViewObject.line !== undefined && dataViewObject.line.transparency !== undefined ? dataViewObject.line.transparency : this.lineTransparency,
                     lineWeight: dataViewObject.line !== undefined && dataViewObject.line.weight !== undefined ? dataViewObject.line.weight : this.lineWeight,
@@ -177,18 +198,20 @@ module powerbi.visuals {
                     shapeTransparency: dataViewObject.fill !== undefined && dataViewObject.fill.transparency !== undefined ? dataViewObject.fill.transparency : this.shapeTransparency,
                     fillColor: dataViewObject.fill !== undefined && dataViewObject.fill.fillColor !== undefined ? dataViewObject.fill.fillColor.solid.color : this.fillColor,
                     showFill: dataViewObject.fill !== undefined && dataViewObject.fill.show !== undefined ? dataViewObject.fill.show : this.showFill,
-                    lockAspectRatio: dataViewObject.lockAspect !== undefined && dataViewObject.lockAspect.show !== undefined ? dataViewObject.lockAspect.show : this.lockAspectRatio
+                    lockAspectRatio: dataViewObject.lockAspect !== undefined && dataViewObject.lockAspect.show !== undefined ? dataViewObject.lockAspect.show : this.lockAspectRatio,
+                    angle: dataViewObject.rotation !== undefined && dataViewObject.rotation.angle !== undefined ? dataViewObject.rotation.angle : this.angle
                 };
             }
+
             return null;
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
-            var objectInstances: VisualObjectInstance[] = [];
+            let objectInstances: VisualObjectInstance[] = [];
 
             switch (options.objectName) {
                 case 'line':
-                    var instance: VisualObjectInstance = {
+                    let instance: VisualObjectInstance = {
                         selector: null,
                         properties: {
                             lineColor: this.lineColor,
@@ -198,7 +221,7 @@ module powerbi.visuals {
                         objectName: options.objectName
                     };
                     if (this.data.shapeType === powerbi.basicShapeType.rectangle) {
-                        instance.properties["roundEdge"] = this.roundEdge;
+                        instance.properties['roundEdge'] = this.roundEdge;
                     }
 
                     objectInstances.push(instance);
@@ -213,7 +236,7 @@ module powerbi.visuals {
                         },
                         objectName: options.objectName
                     });
-                    ;
+
                     return objectInstances;
                 case 'lockAspect':
                     objectInstances.push({
@@ -223,51 +246,50 @@ module powerbi.visuals {
                         },
                         objectName: options.objectName
                     });
-                    ;
+
+                    return objectInstances;
+                case 'rotation':
+                    objectInstances.push({
+                        selector: null,
+                        properties: {
+                            angle: this.angle
+                        },
+                        objectName: options.objectName
+                    });
+
                     return objectInstances;
             }
+
             return null;
 
         }
 
-        public onResizing(viewport: IViewport): void {
-            if (this.currentViewport && (this.currentViewport.height === viewport.height && this.currentViewport.width === viewport.width)) {
-                return;
-            }
-
-            this.currentViewport = viewport;
-
-            this.render();
-        }
-
         public render(): void {
-            this.selection.html("");
-
-            if (this.data) {
-                switch (this.data.shapeType) {
-                    case powerbi.basicShapeType.rectangle:
-                        shapeFactory.createRectangle(
-                            this.data, this.currentViewport.height, this.currentViewport.width, this.selection);
-                        break;
-                    case powerbi.basicShapeType.oval:
-                        shapeFactory.createOval(
-                            this.data, this.currentViewport.height, this.currentViewport.width, this.selection);
-                        break;
-                    case powerbi.basicShapeType.line:
-                        shapeFactory.createLine(
-                            this.data, this.currentViewport.height, this.currentViewport.width, this.selection);
-                        break;
-                    case powerbi.basicShapeType.arrow:
-                        shapeFactory.createUpArrow(
-                            this.data, this.currentViewport.height, this.currentViewport.width, this.selection);
-                        break;
-                    case powerbi.basicShapeType.triangle:
-                        shapeFactory.createTriangle(
-                            this.data, this.currentViewport.height, this.currentViewport.width, this.selection);
-                        break;
-                    default:
-                        break;
-                }
+            this.selection.html('');
+            
+            switch (this.shapeType) {
+                case powerbi.basicShapeType.rectangle:
+                    shapeFactory.createRectangle(
+                        this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
+                    break;
+                case powerbi.basicShapeType.oval:
+                    shapeFactory.createOval(
+                        this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
+                    break;
+                case powerbi.basicShapeType.line:
+                    shapeFactory.createLine(
+                        this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
+                    break;
+                case powerbi.basicShapeType.arrow:
+                    shapeFactory.createUpArrow(
+                        this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
+                    break;
+                case powerbi.basicShapeType.triangle:
+                    shapeFactory.createTriangle(
+                        this.data, this.currentViewport.height, this.currentViewport.width, this.selection, this.angle);
+                    break;
+                default:
+                    break;
             }
         }
     }

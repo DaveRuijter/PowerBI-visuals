@@ -24,28 +24,59 @@
  *  THE SOFTWARE.
  */
 
-/// <reference path="_references.ts"/>
+/// <reference path="../_references.ts"/>
 
 module powerbi.data {
     /** Represents a data reader. */
     export interface IDataReader {
         /** Executes a query, with a promise of completion.  The response object should be compatible with the transform implementation. */
-        execute? (options: DataReaderExecutionOptions): RejectablePromise2<DataReaderData, IClientError>;
+        execute?(options: DataReaderExecutionOptions): RejectablePromise2<DataReaderData, IClientError>;
 
         /** Transforms the given data into a DataView.  When this function is not specified, the data is put on a property on the DataView. */
-        transform? (obj: DataReaderData): DataReaderTransformResult;
+        transform?(obj: DataReaderData): DataReaderTransformResult;
 
         /** Stops all future communication and reject and pending communication  */
-        stopCommunication? (): void;
+        stopCommunication?(): void;
 
         /** Resumes communication which enables future requests */
-        resumeCommunication? (): void;
+        resumeCommunication?(): void;
 
         /** Clear cache */
-        clearCache? (): void;
+        clearCache?(): void;
 
         /** rewriteCacheEntries */
-        rewriteCacheEntries? (rewriter: DataReaderCacheRewriter): void;
+        rewriteCacheEntries?(rewriter: DataReaderCacheRewriter): void;
+    }
+
+    /** Represents a query generator. */
+    export interface IQueryGenerator {
+        /** Query generation function to convert a (prototype) SemanticQuery to a runnable query command. */
+        execute(options: QueryGeneratorOptions): QueryGeneratorResult;
+    }
+
+    /** Represents a custom data reader plugin, to be registered in the powerbi.data.plugins object. */
+    export interface IDataReaderPlugin {
+        /** The name of this plugin. */
+        name: string;
+        
+        /** Factory method for the IDataReader. */
+        reader(hostServices: IDataReaderHostServices): IDataReader;
+
+        /** Factory method for the IQueryGenerator. */
+        queryGenerator?(): IQueryGenerator;
+    }
+
+    export interface QueryGeneratorOptions {
+        query: SemanticQuery;
+        mappings: CompiledDataViewMapping[];
+        projections: QueryProjectionsByRole;
+        highlightFilter?: SemanticFilter;
+        restartToken?: RestartToken;
+    }
+
+    export interface QueryGeneratorResult {
+        command: DataReaderQueryCommand;
+        splits?: DataViewSplitTransform[];
     }
 
     export interface DataReaderTransformResult {
@@ -56,15 +87,11 @@ module powerbi.data {
     }
 
     export interface RestartToken {
+        // This interface is intentionally empty, as plugins define their own data structure.
     }
 
-    /** Represents a custom data reader plugin, to be registered in the powerbi.data.plugins object. */
-    export interface IDataReaderPlugin {
-        /** The name of this plugin. */
-        name: string;
-        
-        /** Factory method for the IDataReader. */
-        create(hostServices: IDataReaderHostServices): IDataReader;
+    export interface DataReaderQueryCommand {
+        // This interface is intentionally empty, as plugins define their own data structure.
     }
 
     /** Represents a query command defined by an IDataReader. */

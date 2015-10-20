@@ -45,4 +45,3 @@ VisualsTests
 
 # Obj dirs
 src/Clients/**/obj/*.*
-/src/Clients/Externals/ThirdPartyIP/jqueryui

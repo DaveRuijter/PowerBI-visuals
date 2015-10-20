@@ -123,7 +123,7 @@ module jsCommon {
             }
 
             if (format.indexOf("%") !== -1 && format.length > 2) {
-                for (var i = 0; i < _regexCache.length; i++) {
+                for (let i = 0; i < _regexCache.length; i++) {
                     format = format.replace(_regexCache[i].r, _regexCache[i].s);
                 }
             }

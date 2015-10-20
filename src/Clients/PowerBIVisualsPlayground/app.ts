@@ -34,7 +34,7 @@ interface JQuery {
 module powerbi.visuals {
     
     import defaultVisualHostServices = powerbi.visuals.defaultVisualHostServices;
-
+    import visualPluginFactory = powerbi.visuals.visualPluginFactory;
     import HostControls = powerbi.visuals.HostControls;
 
     /**
@@ -43,7 +43,7 @@ module powerbi.visuals {
     export class Playground {
 
         /** Represents sample data view used by visualization elements. */
-        private static pluginService: IVisualPluginService = new powerbi.visuals.visualPluginFactory.PlaygroundVisualPluginService();
+        private static pluginService: IVisualPluginService = new visualPluginFactory.PlaygroundVisualPluginService();
         private static currentVisual: IVisual;
 
         private static hostControls: HostControls;
@@ -100,7 +100,7 @@ module powerbi.visuals {
 
             let visualByDefault = jsCommon.Utility.getURLParamValue('visual');
             if (visualByDefault) {
-                $('.topBar, #options').css({ "display": "none" });
+                //$('.topBar, #options').css({ "display": "none" });
                 Playground.onVisualTypeSelection(visualByDefault.toString());
             } else {
                 this.onVisualTypeSelection($('#visualTypes').val());

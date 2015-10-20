@@ -38,11 +38,11 @@ module powerbi.visuals.samples {
         }
 
         public init(options: VisualInitOptions): void {
-            var div = d3.select(options.element.get(0)).append("div");
+            let div = d3.select(options.element.get(0)).append("div");
             
             div.append("h1").text("ConsoleWriter");
             div.append("p").text("This IVisual writes messages passed to it to the javscript console output. Check your console for the actual messages passed. For more information, click below");
-            var anchor = div.append('a');
+            let anchor = div.append('a');
             anchor.attr('href', "http://microsoft.github.io/PowerBI-visuals/modules/powerbi.html")
             .text("Online help");
 

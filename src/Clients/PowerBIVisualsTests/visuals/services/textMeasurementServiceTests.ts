@@ -31,6 +31,26 @@ module powerbitests {
     import TextMeasurementService = powerbi.TextMeasurementService;
 
     describe("Text measurement service", () => {
+        let Ellipsis = '…';
+
+        describe('measureSvgTextElementWidth', () => {
+            it('svg text element', () => {
+                var element = $("<text>")
+                    .text("PowerBI rocks!")
+                    .css({
+                        "font-family": "Arial",
+                        "font-size": "11px",
+                        "font-weight": "bold",
+                        "font-style": "italic",
+                        "white-space": "nowrap",
+                    });
+                attachToDom(element);
+
+                let width = TextMeasurementService.measureSvgTextElementWidth(<any>element.get(0));
+                expect(width).toBeGreaterThan(50);
+            });
+        });
+
         it("measureSvgTextWidth", () => {
             var getTextWidth = (fontSize: number) => {
                 var textProperties: TextProperties = {
@@ -97,81 +117,88 @@ module powerbitests {
             expect(properties).toEqual(expectedProperties);
         });
 
-        it("getSvgMeasurementProperties", () => {
-            var svg = $("<svg>");
-            var element = $("<text>")
-                .text("PowerBI rocks!")
-                .css({
-                    "font-family": "Arial",
-                    "font-size": "11px",
-                    "font-weight": "bold",
-                    "font-style": "italic",
-                    "white-space": "nowrap",
-                });
-            svg.append(element);
-            attachToDom(svg);
+        describe("getSvgMeasurementProperties", () => {
+            it("svg text element", () => {
+                var svg = $("<svg>");
+                var element = $("<text>")
+                    .text("PowerBI rocks!")
+                    .css({
+                        "font-family": "Arial",
+                        "font-size": "11px",
+                        "font-weight": "bold",
+                        "font-style": "italic",
+                        "white-space": "nowrap",
+                    });
+                svg.append(element);
+                attachToDom(svg);
 
-            var properties = TextMeasurementService.getSvgMeasurementProperties(<any>element[0]);
-            var expectedProperties: TextProperties = {
-                fontFamily: "Arial",
-                fontSize: "11px",
-                fontWeight: "bold",
-                fontStyle: "italic",
-                whiteSpace: "nowrap",
-                text: "PowerBI rocks!",
-            };
+                var properties = TextMeasurementService.getSvgMeasurementProperties(<any>element[0]);
+                var expectedProperties: TextProperties = {
+                    fontFamily: "Arial",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    fontStyle: "italic",
+                    whiteSpace: "nowrap",
+                    text: "PowerBI rocks!",
+                };
 
-            expect(properties).toEqual(expectedProperties);
+                expect(properties).toEqual(expectedProperties);
+            });
         });
 
-        it("getTailoredTextOrDefault without ellipses", () => {
-            var properties: TextProperties = {
-                fontFamily: "Arial",
-                fontSize: "11px",
-                fontWeight: "bold",
-                fontStyle: "italic",
-                whiteSpace: "nowrap",
-                text: "PowerBI rocks!",
-            };
+        describe('getTailoredTextOrDefault', () => {
+            it("without ellipsis", () => {
+                var properties: TextProperties = {
+                    fontFamily: "Arial",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    fontStyle: "italic",
+                    whiteSpace: "nowrap",
+                    text: "PowerBI rocks!",
+                };
 
-            var text = TextMeasurementService.getTailoredTextOrDefault(properties, 100);
+                var text = TextMeasurementService.getTailoredTextOrDefault(properties, 100);
 
-            expect(text).toEqual("PowerBI rocks!");
+                expect(text).toEqual("PowerBI rocks!");
+            });
+
+            it("with ellipsis", () => {
+                var properties: TextProperties = {
+                    fontFamily: "Arial",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    fontStyle: "italic",
+                    whiteSpace: "nowrap",
+                    text: "PowerBI rocks!",
+                };
+
+                var text = TextMeasurementService.getTailoredTextOrDefault(properties, 45);
+
+                expect(jsCommon.StringExtensions.endsWith(text, Ellipsis)).toBeTruthy();
+                expect(jsCommon.StringExtensions.startsWithIgnoreCase(text, 'Pow')).toBeTruthy();
+            });
         });
 
-        it("getTailoredTextOrDefault with ellipses", () => {
-            var properties: TextProperties = {
-                fontFamily: "Arial",
-                fontSize: "11px",
-                fontWeight: "bold",
-                fontStyle: "italic",
-                whiteSpace: "nowrap",
-                text: "PowerBI rocks!",
-            };
+        describe('svgEllipsis', () => {
+            it("with ellipsis", () => {
+                var element = createSvgTextElement("PowerBI rocks!");
+                attachToDom(element);
 
-            var text = TextMeasurementService.getTailoredTextOrDefault(properties, 20);
+                TextMeasurementService.svgEllipsis(<any>element[0], 20);
 
-            expect(jsCommon.StringExtensions.endsWith(text, "...")).toBeTruthy();
-        });
+                var text = $(element).text();
+                expect(jsCommon.StringExtensions.endsWith(text, Ellipsis)).toBeTruthy();
+            });
 
-        it("svgEllipsis with ellipses", () => {
-            var element = createSvgTextElement("PowerBI rocks!");
-            attachToDom(element);
+            it("without ellipsis", () => {
+                var element = createSvgTextElement("PowerBI rocks!");
+                attachToDom(element);
 
-            TextMeasurementService.svgEllipsis(<any>element[0], 20);
+                TextMeasurementService.svgEllipsis(<any>element[0], 100);
 
-            var text = $(element).text();
-            expect(jsCommon.StringExtensions.endsWith(text, "...")).toBeTruthy();
-        });
-
-        it("svgEllipsis without ellipses", () => {
-            var element = createSvgTextElement("PowerBI rocks!");
-            attachToDom(element);
-
-            TextMeasurementService.svgEllipsis(<any>element[0], 100);
-
-            var text = $(element).text();
-            expect(text).toEqual("PowerBI rocks!");
+                var text = $(element).text();
+                expect(text).toEqual("PowerBI rocks!");
+            });
         });
 
         describe('wordBreak', () => {
@@ -184,10 +211,10 @@ module powerbitests {
 
                 var text = $(element).text();
                 expect($(element).find('tspan').length).toBe(1);
-                expect(jsCommon.StringExtensions.endsWith(text, "...")).toBeTruthy();
+                expect(jsCommon.StringExtensions.endsWith(text, Ellipsis)).toBeTruthy();
             });
 
-            it('with breaks', () => {
+            it('with breaks and ellipses', () => {
                 var originalText = "PowerBI rocks!";
                 var element = createSvgTextElement(originalText);
                 attachToDom(element);
@@ -196,7 +223,7 @@ module powerbitests {
 
                 var text = $(element).text();
                 expect($(element).find('tspan').length).toBe(2);
-                expect(text.match(/\.\.\./g).length).toBe(2);
+                expect(text.match(RegExp(Ellipsis, 'g')).length).toBe(2);
             });
 
             it('with breaks but forced to single line', () => {
@@ -208,7 +235,7 @@ module powerbitests {
 
                 var text = $(element).text();
                 expect($(element).find('tspan').length).toBe(1);
-                expect(jsCommon.StringExtensions.endsWith(text, "...")).toBeTruthy();
+                expect(jsCommon.StringExtensions.endsWith(text, Ellipsis)).toBeTruthy();
             });
 
             it('with breaks but forced to single line due to low max height', () => {
@@ -220,7 +247,7 @@ module powerbitests {
 
                 var text = $(element).text();
                 expect($(element).find('tspan').length).toBe(1);
-                expect(jsCommon.StringExtensions.endsWith(text, "...")).toBeTruthy();
+                expect(jsCommon.StringExtensions.endsWith(text, Ellipsis)).toBeTruthy();
             });
 
             it('with breaks multiple words on each line', () => {
@@ -232,7 +259,7 @@ module powerbitests {
 
                 var text = $(element).text();
                 expect($(element).find('tspan').length).toBe(3);
-                expect(jsCommon.StringExtensions.endsWith(text, "...")).toBeTruthy();
+                expect(jsCommon.StringExtensions.endsWith(text, Ellipsis)).toBeTruthy();
             });
         });
 

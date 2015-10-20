@@ -90,9 +90,9 @@ module powerbi {
     }
 
     export interface DataViewMatrixMapping extends HasDataVolume {
-        rows?: DataViewRoleForMappingWithReduction;
+        rows?: DataViewRoleForMappingWithReduction | DataViewListRoleMappingWithReduction;
         columns?: DataViewRoleForMappingWithReduction;
-        values?: DataViewRoleForMapping;
+        values?: DataViewRoleForMapping | DataViewListRoleMapping;
     }
 
     /* tslint:disable:no-unused-expression */

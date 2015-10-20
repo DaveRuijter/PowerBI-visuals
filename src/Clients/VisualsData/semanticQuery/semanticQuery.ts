@@ -49,7 +49,7 @@ module powerbi.data {
     /** Represents a sort over an expression. */
     export interface SQSortDefinition {
         expr: SQExpr;
-        direction: QuerySortDirection;
+        direction: SortDirection;
     }
 
     export interface QueryFromEnsureEntityResult {
@@ -97,18 +97,18 @@ module powerbi.data {
             orderBy: SQSortDefinition[],
             select: NamedSQExpr[]): SemanticQuery {
 
-            var unreferencedKeyFinder = new UnreferencedKeyFinder(from.keys());
+            let unreferencedKeyFinder = new UnreferencedKeyFinder(from.keys());
 
             // Where
             if (where) {
-                for (var i = 0, len = where.length; i < len; i++) {
-                    var filter = where[i];
+                for (let i = 0, len = where.length; i < len; i++) {
+                    let filter = where[i];
 
                     filter.condition.accept(unreferencedKeyFinder);
 
-                    var filterTarget = filter.target;
+                    let filterTarget = filter.target;
                     if (filterTarget) {
-                        for (var j = 0, jlen = filterTarget.length; j < jlen; j++)
+                        for (let j = 0, jlen = filterTarget.length; j < jlen; j++)
                             if (filterTarget[j])
                                 filterTarget[j].accept(unreferencedKeyFinder);
                     }
@@ -117,16 +117,16 @@ module powerbi.data {
 
             // OrderBy
             if (orderBy) {
-                for (var i = 0, len = orderBy.length; i < len; i++)
+                for (let i = 0, len = orderBy.length; i < len; i++)
                     orderBy[i].expr.accept(unreferencedKeyFinder);
             }
 
             // Select
-            for (var i = 0, len = select.length; i < len; i++)
+            for (let i = 0, len = select.length; i < len; i++)
                 select[i].expr.accept(unreferencedKeyFinder);
 
-            var unreferencedKeys = unreferencedKeyFinder.result();
-            for (var i = 0, len = unreferencedKeys.length; i < len; i++)
+            let unreferencedKeys = unreferencedKeyFinder.result();
+            for (let i = 0, len = unreferencedKeys.length; i < len; i++)
                 from.remove(unreferencedKeys[i]);
 
             return new SemanticQuery(from, where, orderBy, select);
@@ -157,11 +157,11 @@ module powerbi.data {
         }
 
         private setSelect(values: NamedSQExpr[]): SemanticQuery {
-            var selectItems: NamedSQExpr[] = [],
+            let selectItems: NamedSQExpr[] = [],
                 from = this.fromValue.clone();
 
-            for (var i = 0, len = values.length; i < len; i++) {
-                var value = values[i];
+            for (let i = 0, len = values.length; i < len; i++) {
+                let value = values[i];
                 selectItems.push({
                     name: value.name,
                     expr: SQExprRewriterWithSourceRenames.rewrite(value.expr, from)
@@ -175,10 +175,10 @@ module powerbi.data {
         public removeSelect(expr: SQExpr): SemanticQuery {
             debug.assertValue(expr, 'expr');
 
-            var originalItems = this.selectItems,
+            let originalItems = this.selectItems,
                 selectItems: NamedSQExpr[] = [];
-            for (var i = 0, len = originalItems.length; i < len; i++) {
-                var originalExpr = originalItems[i];
+            for (let i = 0, len = originalItems.length; i < len; i++) {
+                let originalExpr = originalItems[i];
                 if (SQExpr.equals(originalExpr.expr, expr))
                     continue;
 
@@ -190,8 +190,8 @@ module powerbi.data {
 
         /** Removes the given expression from order by. */
         public removeOrderBy(expr: SQExpr): SemanticQuery {
-            var sorts = this.orderBy();
-            for (var i = sorts.length - 1; i >= 0; i--) {
+            let sorts = this.orderBy();
+            for (let i = sorts.length - 1; i >= 0; i--) {
                 if (SQExpr.equals(sorts[i].expr, expr))
                     sorts.splice(i, 1);
             }
@@ -200,7 +200,7 @@ module powerbi.data {
         }
 
         public selectNameOf(expr: SQExpr): string {
-            var index = SQExprUtils.indexOfExpr(_.map(this.selectItems, s => s.expr), expr);
+            let index = SQExprUtils.indexOfExpr(_.map(this.selectItems, s => s.expr), expr);
             if (index >= 0)
                 return this.selectItems[index].name;
         }
@@ -211,7 +211,7 @@ module powerbi.data {
             if (index >= this.selectItems.length)
                 return;
 
-            var select = this.select(),
+            let select = this.select(),
                 from = this.fromValue.clone(),
                 originalName = select[index].name;
             select[index] = {
@@ -226,7 +226,7 @@ module powerbi.data {
         public addSelect(expr: SQExpr): SemanticQuery {
             debug.assertValue(expr, 'expr');
 
-            var selectItems = this.select(),
+            let selectItems = this.select(),
                 from = this.fromValue.clone();
             selectItems.push({
                 name: SQExprUtils.uniqueName(selectItems, expr),
@@ -248,12 +248,12 @@ module powerbi.data {
         }
 
         private getOrderBy(): SQSortDefinition[] {
-            var result: SQSortDefinition[] = [];
+            let result: SQSortDefinition[] = [];
 
-            var orderBy = this.orderByItems;
+            let orderBy = this.orderByItems;
             if (orderBy) {
-                for (var i = 0, len = orderBy.length; i < len; i++) {
-                    var clause = orderBy[i];
+                for (let i = 0, len = orderBy.length; i < len; i++) {
+                    let clause = orderBy[i];
 
                     result.push({
                         expr: clause.expr,
@@ -268,10 +268,10 @@ module powerbi.data {
         private setOrderBy(values: SQSortDefinition[]): SemanticQuery {
             debug.assertValue(values, 'values');
 
-            var updatedOrderBy: SQSortDefinition[] = [],
+            let updatedOrderBy: SQSortDefinition[] = [],
                 from = this.fromValue.clone();
-            for (var i = 0, len = values.length; i < len; i++) {
-                var clause = values[i];
+            for (let i = 0, len = values.length; i < len; i++) {
+                let clause = values[i];
                 updatedOrderBy.push({
                     expr: SQExprRewriterWithSourceRenames.rewrite(clause.expr, from),
                     direction: clause.direction,
@@ -293,11 +293,11 @@ module powerbi.data {
         }
 
         private getWhere(): SQFilter[] {
-            var result: SQFilter[] = [];
+            let result: SQFilter[] = [];
 
-            var whereItems = this.whereItems;
+            let whereItems = this.whereItems;
             if (whereItems) {
-                for (var i = 0, len = whereItems.length; i < len; i++)
+                for (let i = 0, len = whereItems.length; i < len; i++)
                     result.push(whereItems[i]);
             }
 
@@ -307,20 +307,20 @@ module powerbi.data {
         private setWhere(values: SQFilter[]): SemanticQuery {
             debug.assertValue(values, 'values');
 
-            var updatedWhere: SQFilter[] = [],
+            let updatedWhere: SQFilter[] = [],
                 from = this.fromValue.clone();
-            for (var i = 0, len = values.length; i < len; i++) {
-                var filter = values[i];
-                var updatedFilter: SQFilter = {
+            for (let i = 0, len = values.length; i < len; i++) {
+                let filter = values[i];
+                let updatedFilter: SQFilter = {
                     condition: SQExprRewriterWithSourceRenames.rewrite(filter.condition, from),
                 };
 
-                var filterTarget = filter.target;
+                let filterTarget = filter.target;
                 if (filterTarget) {
                     updatedFilter.target = [];
-                    for (var j = 0, jlen = filterTarget.length; j < jlen; j++)
+                    for (let j = 0, jlen = filterTarget.length; j < jlen; j++)
                         if (filterTarget[j]) {
-                            var updatedTarget = SQExprRewriterWithSourceRenames.rewrite(filterTarget[j], from);
+                            let updatedTarget = SQExprRewriterWithSourceRenames.rewrite(filterTarget[j], from);
                             updatedFilter.target.push(updatedTarget);
                         }
                 }
@@ -334,14 +334,14 @@ module powerbi.data {
         public addWhere(filter: SemanticFilter): SemanticQuery {
             debug.assertValue(filter, 'filter');
 
-            var updatedWhere: SQFilter[] = this.where(),
+            let updatedWhere: SQFilter[] = this.where(),
                 incomingWhere: SQFilter[] = filter.where(),
                 from = this.fromValue.clone();
 
-            for (var i = 0, len = incomingWhere.length; i < len; i++) {
-                var clause = incomingWhere[i];
+            for (let i = 0, len = incomingWhere.length; i < len; i++) {
+                let clause = incomingWhere[i];
 
-                var updatedClause: SQFilter = {
+                let updatedClause: SQFilter = {
                     condition: SQExprRewriterWithSourceRenames.rewrite(clause.condition, from),
                 };
 
@@ -355,11 +355,11 @@ module powerbi.data {
         }
 
         public rewrite(exprRewriter: ISQExprVisitor<SQExpr>): SemanticQuery {
-            var rewriter = new SemanticQueryRewriter(exprRewriter);
-            var from = rewriter.rewriteFrom(this.fromValue);
-            var where = rewriter.rewriteWhere(this.whereItems, from);
-            var orderBy = rewriter.rewriteOrderBy(this.orderByItems, from);
-            var select = rewriter.rewriteSelect(this.selectItems, from);
+            let rewriter = new SemanticQueryRewriter(exprRewriter);
+            let from = rewriter.rewriteFrom(this.fromValue);
+            let where = rewriter.rewriteWhere(this.whereItems, from);
+            let orderBy = rewriter.rewriteOrderBy(this.orderByItems, from);
+            let select = rewriter.rewriteSelect(this.selectItems, from);
 
             return SemanticQuery.createWithTrimmedFrom(from, where, orderBy, select);
         }
@@ -381,12 +381,12 @@ module powerbi.data {
         public static fromSQExpr(contract: SQExpr): SemanticFilter {
             debug.assertValue(contract, 'contract');
 
-            var from = new SQFrom();
+            let from = new SQFrom();
 
-            var rewrittenContract = SQExprRewriterWithSourceRenames.rewrite(contract, from);
+            let rewrittenContract = SQExprRewriterWithSourceRenames.rewrite(contract, from);
             // DEVNOTE targets of some filters are visual specific and will get resolved only during query generation.
             //         Thus not setting a target here.
-            var where: SQFilter[] = [{
+            let where: SQFilter[] = [{
                 condition: rewrittenContract
             }];
 
@@ -398,36 +398,36 @@ module powerbi.data {
         }
 
         public conditions(): SQExpr[] {
-            var expressions: SQExpr[] = [];
+            let expressions: SQExpr[] = [];
 
-            var where = this.whereItems;
-            for (var i = 0, len = where.length; i < len; i++) {
-                var filter = where[i];
+            let where = this.whereItems;
+            for (let i = 0, len = where.length; i < len; i++) {
+                let filter = where[i];
                 expressions.push(filter.condition);
             }
             return expressions;
         }
 
         public where(): SQFilter[] {
-            var result: SQFilter[] = [];
+            let result: SQFilter[] = [];
 
-            var whereItems = this.whereItems;
-            for (var i = 0, len = whereItems.length; i < len; i++)
+            let whereItems = this.whereItems;
+            for (let i = 0, len = whereItems.length; i < len; i++)
                 result.push(whereItems[i]);
 
             return result;
         }
 
         public rewrite(exprRewriter: ISQExprVisitor<SQExpr>): SemanticFilter {
-            var rewriter = new SemanticQueryRewriter(exprRewriter);
-            var from = rewriter.rewriteFrom(this.fromValue);
-            var where = rewriter.rewriteWhere(this.whereItems, from);
+            let rewriter = new SemanticQueryRewriter(exprRewriter);
+            let from = rewriter.rewriteFrom(this.fromValue);
+            let where = rewriter.rewriteWhere(this.whereItems, from);
 
             return new SemanticFilter(from, where);
         }
 
         public validate(schema: FederatedConceptualSchema, errors?: SQExprValidationError[]): SQExprValidationError[] {
-            var validator = new SQExprValidationVisitor(schema, errors);
+            let validator = new SQExprValidationVisitor(schema, errors);
             this.rewrite(validator);
             return validator.errors;
         }
@@ -440,11 +440,11 @@ module powerbi.data {
             if (filters.length === 1)
                 return filters[0];
 
-            var firstFilter = filters[0];
-            var from = firstFilter.from(),
+            let firstFilter = filters[0];
+            let from = firstFilter.from(),
                 where: SQFilter[] = ArrayExtensions.take(firstFilter.whereItems, firstFilter.whereItems.length);
 
-            for (var i = 1, len = filters.length; i < len; i++)
+            for (let i = 1, len = filters.length; i < len; i++)
                 SemanticFilter.applyFilter(filters[i], from, where);
 
             return new SemanticFilter(from, where);
@@ -456,11 +456,11 @@ module powerbi.data {
             debug.assertValue(where, 'where');
 
             // Where
-            var filterWhereItems = filter.whereItems;
-            for (var i = 0; i < filterWhereItems.length; i++) {
-                var filterWhereItem = filterWhereItems[i];
+            let filterWhereItems = filter.whereItems;
+            for (let i = 0; i < filterWhereItems.length; i++) {
+                let filterWhereItem = filterWhereItems[i];
 
-                var updatedWhereItem: SQFilter = {
+                let updatedWhereItem: SQFilter = {
                     condition: SQExprRewriterWithSourceRenames.rewrite(filterWhereItem.condition, from),
                 };
 
@@ -492,16 +492,16 @@ module powerbi.data {
             debug.assertValue(entity, 'entity');
 
             // 1) Reuse a reference to the entity among the already referenced
-            var keys = this.keys();
-            for (var i = 0, len = keys.length; i < len; i++) {
-                var key = keys[i],
+            let keys = this.keys();
+            for (let i = 0, len = keys.length; i < len; i++) {
+                let key = keys[i],
                     item = this.items[key];
                 if (item && entity.entity === item.entity && entity.schema === item.schema)
                     return { name: key };
             }
 
             // 2) Add a reference to the entity
-            var candidateName = desiredVariableName || this.candidateName(entity.entity),
+            let candidateName = desiredVariableName || this.candidateName(entity.entity),
                 uniqueName: string = candidateName,
                 i = 2;
             while (this.items[uniqueName]) {
@@ -520,7 +520,7 @@ module powerbi.data {
         private candidateName(ref: string): string {
             debug.assertValue(ref, 'ref');
 
-            var idx = ref.lastIndexOf('.');
+            let idx = ref.lastIndexOf('.');
             if (idx >= 0 && (idx !== ref.length - 1))
                 ref = ref.substr(idx + 1);
 
@@ -529,7 +529,7 @@ module powerbi.data {
 
         public clone(): SQFrom {
             // NOTE: consider deprecating this method and instead making QueryFrom be CopyOnWrite (currently we proactively clone).
-            var cloned = new SQFrom();
+            let cloned = new SQFrom();
 
             // NOTE: we use extend rather than prototypical inheritance on items because we use Object.keys.
             $.extend(cloned.items, this.items);
@@ -549,7 +549,7 @@ module powerbi.data {
         }
 
         public visitEntity(expr: SQEntityExpr): SQExpr {
-            var updatedName = this.renames[expr.entity];
+            let updatedName = this.renames[expr.entity];
 
             if (updatedName)
                 return new SQEntityExpr(expr.schema, expr.entity, updatedName);
@@ -560,16 +560,16 @@ module powerbi.data {
         public rewriteFilter(filter: SQFilter): SQFilter {
             debug.assertValue(filter, 'filter');
 
-            var updatedTargets = undefined;
+            let updatedTargets = undefined;
             if (filter.target)
                 updatedTargets = this.rewriteArray(filter.target);
 
-            var updatedCondition = filter.condition.accept(this);
+            let updatedCondition = filter.condition.accept(this);
 
             if (filter.condition === updatedCondition && filter.target === updatedTargets)
                 return filter;
 
-            var updatedFilter: SQFilter = {
+            let updatedFilter: SQFilter = {
                 condition: updatedCondition,
             };
 
@@ -582,10 +582,10 @@ module powerbi.data {
         public rewriteArray(exprs: SQExpr[]): SQExpr[] {
             debug.assertValue(exprs, 'exprs');
 
-            var updatedExprs: SQExpr[];
+            let updatedExprs: SQExpr[];
 
-            for (var i = 0, len = exprs.length; i < len; i++) {
-                var expr = exprs[i],
+            for (let i = 0, len = exprs.length; i < len; i++) {
+                let expr = exprs[i],
                     rewrittenExpr = expr.accept(this);
 
                 if (expr !== rewrittenExpr && !updatedExprs)
@@ -602,8 +602,8 @@ module powerbi.data {
             debug.assertValue(expr, 'expr');
             debug.assertValue(from, 'from');
 
-            var renames = QuerySourceRenameDetector.run(expr, from);
-            var rewriter = new SQExprRewriterWithSourceRenames(renames);
+            let renames = QuerySourceRenameDetector.run(expr, from);
+            let rewriter = new SQExprRewriterWithSourceRenames(renames);
             return expr.accept(rewriter);
         }
     }
@@ -614,7 +614,7 @@ module powerbi.data {
         private renames: SQSourceRenames;
 
         public static run(expr: SQExpr, from: SQFrom): SQSourceRenames {
-            var detector = new QuerySourceRenameDetector(from);
+            let detector = new QuerySourceRenameDetector(from);
             expr.accept(detector);
 
             return detector.renames;
@@ -630,11 +630,11 @@ module powerbi.data {
 
         public visitEntity(expr: SQEntityExpr): void {
             // TODO: Renames must take the schema into account, not just entity set name.
-            var existingEntity = this.from.entity(expr.variable);
+            let existingEntity = this.from.entity(expr.variable);
             if (existingEntity && existingEntity.schema === expr.schema && existingEntity.entity === expr.entity)
                 return;
 
-            var actualEntity = this.from.ensureEntity(
+            let actualEntity = this.from.ensureEntity(
                 {
                     schema: expr.schema,
                     entity: expr.entity,
@@ -657,7 +657,7 @@ module powerbi.data {
         }
 
         public visitEntity(expr: SQEntityExpr): void {
-            var index = this.keys.indexOf(expr.variable);
+            let index = this.keys.indexOf(expr.variable);
             if (index >= 0)
                 this.keys.splice(index, 1);
         }

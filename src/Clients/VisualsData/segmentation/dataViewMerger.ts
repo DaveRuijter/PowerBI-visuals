@@ -107,12 +107,12 @@ module powerbi.data.segmentation {
 
             // Merge categories values and identities
             if (source.categories && segment.categories) {
-                var segmentCategoriesLength = segment.categories.length;
+                let segmentCategoriesLength = segment.categories.length;
                 debug.assert(source.categories.length === segmentCategoriesLength, "Source and segment categories have different lengths.");
 
-                for (var categoryIndex: number = 0; categoryIndex < segmentCategoriesLength; categoryIndex++) {
-                    var segmentCategory = segment.categories[categoryIndex];
-                    var sourceCategory = source.categories[categoryIndex];
+                for (let categoryIndex: number = 0; categoryIndex < segmentCategoriesLength; categoryIndex++) {
+                    let segmentCategory = segment.categories[categoryIndex];
+                    let sourceCategory = source.categories[categoryIndex];
 
                     debug.assert(DataViewAnalysis.areMetadataColumnsEquivalent(sourceCategory.source, segmentCategory.source), "Source and segment category have different sources.");
 
@@ -137,12 +137,12 @@ module powerbi.data.segmentation {
 
             // Merge values for each value column
             if (source.values && segment.values) {
-                var segmentValuesLength = segment.values.length;
+                let segmentValuesLength = segment.values.length;
                 debug.assert(source.values.length === segmentValuesLength, "Source and segment values have different lengths.");
 
-                for (var valueIndex: number = 0; valueIndex < segmentValuesLength; valueIndex++) {
-                    var segmentValue = segment.values[valueIndex];
-                    var sourceValue = source.values[valueIndex];
+                for (let valueIndex: number = 0; valueIndex < segmentValuesLength; valueIndex++) {
+                    let segmentValue = segment.values[valueIndex];
+                    let sourceValue = source.values[valueIndex];
 
                     debug.assert(jsCommon.JsonComparer.equals(sourceValue.source, segmentValue.source), "Source and segment value have different sources.");
 
@@ -170,7 +170,7 @@ module powerbi.data.segmentation {
             if (index >= segment.length)
                 return segment;
 
-            var result: any[] = [];
+            let result: any[] = [];
             if (index !== undefined)
                 result = segment.splice(0, index);
 
@@ -195,9 +195,9 @@ module powerbi.data.segmentation {
             debug.assert(sourceRoot.children && sourceRoot.children.length >= 0,
                 "Source tree has different structure than segment.");
 
-            var firstAppendIndex = findFirstAppendIndex(segmentRoot.children);
-            var lastSourceChild = sourceRoot.children[sourceRoot.children.length - 1];
-            var mergedChildren = merge(sourceRoot.children, segmentRoot.children, firstAppendIndex);
+            let firstAppendIndex = findFirstAppendIndex(segmentRoot.children);
+            let lastSourceChild = sourceRoot.children[sourceRoot.children.length - 1];
+            let mergedChildren = merge(sourceRoot.children, segmentRoot.children, firstAppendIndex);
 
             if (mergedChildren.length > 0)
                 mergeTreeNodes(lastSourceChild, mergedChildren[mergedChildren.length - 1], allowDifferentStructure);
@@ -207,9 +207,9 @@ module powerbi.data.segmentation {
             if (children.length === 0)
                 return 0;
 
-            var i: number = 0;
+            let i: number = 0;
             for (; i < children.length; i++) {
-                var childSegment: DataViewTreeSegmentNode = <DataViewTreeSegmentNode>children[i];
+                let childSegment: DataViewTreeSegmentNode = <DataViewTreeSegmentNode>children[i];
                 if (!childSegment.isMerge)
                     break;
             }

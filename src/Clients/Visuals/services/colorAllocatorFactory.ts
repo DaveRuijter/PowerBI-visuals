@@ -52,7 +52,7 @@ module powerbi.visuals {
 
             this.options = options;
 
-            var min = options.min,
+            let min = options.min,
                 max = options.max;
             this.scale = d3.scale.linear()
                 .domain([min.value, max.value])
@@ -61,7 +61,7 @@ module powerbi.visuals {
         }
 
         public color(value: number): string {
-            var min = this.options.min,
+            let min = this.options.min,
                 max = this.options.max;
             if (min.value === max.value) {
                 if (value >= max.value)
@@ -81,7 +81,7 @@ module powerbi.visuals {
 
             this.options = options;
 
-            var min = options.min,
+            let min = options.min,
                 mid = options.mid,
                 max = options.max;
             this.scale = d3.scale.linear()
@@ -91,7 +91,7 @@ module powerbi.visuals {
         }
 
         public color(value: number): string {
-            var min = this.options.min,
+            let min = this.options.min,
                 mid = this.options.mid,
                 max = this.options.max;
 
@@ -116,7 +116,7 @@ module powerbi.visuals {
 
             this.options = options;
 
-            var min = options.min,
+            let min = options.min,
                 mid = options.mid,
                 max = options.max;
             /*
@@ -135,7 +135,7 @@ module powerbi.visuals {
         }
 
         public color(value: number): string {
-            var min = this.options.min,
+            let min = this.options.min,
                 mid = this.options.mid,
                 max = this.options.max;
 

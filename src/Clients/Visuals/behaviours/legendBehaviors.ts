@@ -28,27 +28,42 @@
 
 module powerbi.visuals {
     export interface LegendBehaviorOptions {
-        datapoints: LegendDataPoint[];
         legendItems: D3.Selection;
         legendIcons: D3.Selection;
         clearCatcher: D3.Selection;
     }
 
-    export class LegendWebBehavior {
-        private static selectedLegendColor = '#A6A6A6';
-        public select(hasSelection: boolean, legendIcons: D3.Selection) {
+    export class LegendBehavior implements IInteractiveBehavior {
+        public static dimmedLegendColor = '#A6A6A6';
+        private legendIcons;
+
+        public bindEvents(options: LegendBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            let legendItems = options.legendItems;
+            this.legendIcons = options.legendIcons;
+            let clearCatcher = options.clearCatcher;
+
+            legendItems.on('click', (d: LegendDataPoint) => {
+                selectionHandler.handleSelection(d, d3.event.ctrlKey);
+            });
+
+            clearCatcher.on('click', () => {
+                selectionHandler.handleClearSelection();
+            });
+        }
+
+        public renderSelection(hasSelection: boolean): void {
             if (hasSelection) {
-                legendIcons.style({
+                this.legendIcons.style({
                     'fill': (d: LegendDataPoint) => {
                         if (!d.selected)
-                            return LegendWebBehavior.selectedLegendColor;   
+                            return LegendBehavior.dimmedLegendColor;   
                         else
                             return d.color;
                     }
                 });
             }
             else {
-                legendIcons.style({
+                this.legendIcons.style({
                     'fill': (d: LegendDataPoint) => {
                         return d.color;
                     }

@@ -38,7 +38,7 @@ module powerbi.visuals {
         export function categoryIsAlsoSeriesRole(dataView: DataViewCategorical, seriesRoleName: string, categoryRoleName: string): boolean {
             if (dataView.categories && dataView.categories.length > 0) {
                 // Need to pivot data if our category soure is a series role
-                var category = dataView.categories[0];
+                let category = dataView.categories[0];
                 return category.source &&
                     DataRoleHelper.hasRole(category.source, seriesRoleName) &&
                     DataRoleHelper.hasRole(category.source, categoryRoleName);
@@ -49,8 +49,8 @@ module powerbi.visuals {
 
         export function getPivotedCategories(dataView: DataViewCategorical, formatStringProp: DataViewObjectPropertyIdentifier): PivotedCategoryInfo {
             if (dataView.categories && dataView.categories.length > 0) {
-                var category = dataView.categories[0];
-                var categoryValues = category.values;
+                let category = dataView.categories[0];
+                let categoryValues = category.values;
 
                 return category.values.length > 0
                     ? {
@@ -89,8 +89,8 @@ module powerbi.visuals {
             debug.assertValue(source, 'source');
             debug.assertValue(values, 'values');
 
-            var sourceForFormat = source;
-            var nameForFormat = source.displayName;
+            let sourceForFormat = source;
+            let nameForFormat = source.displayName;
             if (source.groupName !== undefined) {
                 sourceForFormat = values.source;
                 nameForFormat = source.groupName;
@@ -110,8 +110,8 @@ module powerbi.visuals {
             valueAxisProperties: DataViewObject,
             category: DataViewMetadataColumn,
             values: DataViewMetadataColumn[]) {
-            var xAxisLabel = null;
-            var yAxisLabel = null;
+            let xAxisLabel = null;
+            let yAxisLabel = null;
 
             if (categoryAxisProperties) {
 
@@ -122,7 +122,7 @@ module powerbi.visuals {
             }
 
             if (valueAxisProperties) {
-                var valuesNames: string[] = [];
+                let valuesNames: string[] = [];
                 
                 if (values) {
                     // Take the name from the values, and make it unique because there are sometimes duplications

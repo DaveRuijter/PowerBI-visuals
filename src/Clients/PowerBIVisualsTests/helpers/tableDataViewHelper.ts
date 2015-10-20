@@ -41,7 +41,7 @@ module powerbitests.tableDataViewHelper {
         // Generate alternating column types
         var columnTypes: ColumnType[] = [];
         for (var i = 0; i < columnCount; ++i) {
-            columnTypes.push(i % 2 === 0 ? ColumnType.Numeric : ColumnType.Text);
+            columnTypes.push(i % 2 === 0 ? ColumnType.Text : ColumnType.Numeric);
         }
 
         return tableDataViewHelper.getDataWithColumnsOfType(columnTypes, false, numRows, objects);
@@ -92,10 +92,11 @@ module powerbitests.tableDataViewHelper {
         return data;
     }
 
-    export function dataViewObjectsTotals(totalsEnabled: boolean): powerbi.visuals.TableDataViewObjects {
+    export function dataViewObjects(totalsEnabled: boolean): powerbi.visuals.TableDataViewObjects {
         return {
             general: {
                 totals: totalsEnabled,
+                autoSizeColumnWidth: false,
             }
         };
     }

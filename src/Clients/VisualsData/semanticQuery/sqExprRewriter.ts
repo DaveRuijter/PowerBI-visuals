@@ -32,7 +32,7 @@ module powerbi.data {
     /** Rewrites an expression tree, including all descendant nodes. */
     export class SQExprRewriter implements ISQExprVisitor<SQExpr> {
         public visitColumnRef(expr: SQColumnRefExpr): SQExpr {
-            var origArg = expr.source,
+            let origArg = expr.source,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -42,7 +42,7 @@ module powerbi.data {
         }
 
         public visitMeasureRef(expr: SQMeasureRefExpr): SQExpr {
-            var origArg = expr.source,
+            let origArg = expr.source,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -52,7 +52,7 @@ module powerbi.data {
         }
 
         public visitAggr(expr: SQAggregationExpr): SQExpr {
-            var origArg = expr.arg,
+            let origArg = expr.arg,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -61,12 +61,42 @@ module powerbi.data {
             return new SQAggregationExpr(rewrittenArg, expr.func);
         }
 
+        public visitHierarchy(expr: SQHierarchyExpr): SQExpr {
+            let origArg = expr.arg,
+                rewrittenArg = origArg.accept(this);
+
+            if (origArg === rewrittenArg)
+                return expr;
+
+            return new SQHierarchyExpr(rewrittenArg, expr.hierarchy);
+        }
+
+        public visitHierarchyLevel(expr: SQHierarchyLevelExpr): SQExpr {
+            let origArg = expr.arg,
+                rewrittenArg = origArg.accept(this);
+
+            if (origArg === rewrittenArg)
+                return expr;
+
+            return new SQHierarchyLevelExpr(rewrittenArg, expr.level);
+        }
+
+        public visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr): SQExpr {
+            let origArg = expr.arg,
+                rewrittenArg = origArg.accept(this);
+
+            if (origArg === rewrittenArg)
+                return expr;
+
+            return new SQPropertyVariationSourceExpr(rewrittenArg, expr.name, expr.property);
+        }
+
         public visitEntity(expr: SQEntityExpr): SQExpr {
             return expr;
         }
 
         public visitAnd(orig: SQAndExpr): SQExpr {
-            var origLeft = orig.left,
+            let origLeft = orig.left,
                 rewrittenLeft = origLeft.accept(this),
                 origRight = orig.right,
                 rewrittenRight = origRight.accept(this);
@@ -78,7 +108,7 @@ module powerbi.data {
         }
 
         public visitBetween(orig: SQBetweenExpr): SQExpr {
-            var origArg = orig.arg,
+            let origArg = orig.arg,
                 rewrittenArg = origArg.accept(this),
                 origLower = orig.lower,
                 rewrittenLower = origLower.accept(this),
@@ -92,13 +122,13 @@ module powerbi.data {
         }
 
         public visitIn(orig: SQInExpr): SQExpr {
-            var origArgs = orig.args,
+            let origArgs = orig.args,
                 rewrittenArgs = this.rewriteAll(origArgs),
                 origValues: SQExpr[][] = orig.values,
                 rewrittenValues: SQExpr[][];
 
-            for (var i = 0, len = origValues.length; i < len; i++) {
-                var origValueTuple = origValues[i],
+            for (let i = 0, len = origValues.length; i < len; i++) {
+                let origValueTuple = origValues[i],
                     rewrittenValueTuple = this.rewriteAll(origValueTuple);
 
                 if (origValueTuple !== rewrittenValueTuple && !rewrittenValues)
@@ -117,9 +147,9 @@ module powerbi.data {
         private rewriteAll(origExprs: SQExpr[]): SQExpr[]{
             debug.assertValue(origExprs, 'origExprs');
 
-            var rewrittenResult: SQExpr[];
-            for (var i = 0, len = origExprs.length; i < len; i++) {
-                var origExpr = origExprs[i],
+            let rewrittenResult: SQExpr[];
+            for (let i = 0, len = origExprs.length; i < len; i++) {
+                let origExpr = origExprs[i],
                     rewrittenExpr = origExpr.accept(this);
 
                 if (origExpr !== rewrittenExpr && !rewrittenResult)
@@ -133,7 +163,7 @@ module powerbi.data {
         }
 
         public visitOr(orig: SQOrExpr): SQExpr {
-            var origLeft = orig.left,
+            let origLeft = orig.left,
                 rewrittenLeft = origLeft.accept(this),
                 origRight = orig.right,
                 rewrittenRight = origRight.accept(this);
@@ -145,7 +175,7 @@ module powerbi.data {
         }
 
         public visitCompare(orig: SQCompareExpr): SQExpr {
-            var origLeft = orig.left,
+            let origLeft = orig.left,
                 rewrittenLeft = origLeft.accept(this),
                 origRight = orig.right,
                 rewrittenRight = origRight.accept(this);
@@ -157,7 +187,7 @@ module powerbi.data {
         }
 
         public visitContains(orig: SQContainsExpr): SQExpr {
-            var origLeft = orig.left,
+            let origLeft = orig.left,
                 rewrittenLeft = origLeft.accept(this),
                 origRight = orig.right,
                 rewrittenRight = origRight.accept(this);
@@ -169,7 +199,7 @@ module powerbi.data {
         }
 
         public visitExists(orig: SQExistsExpr): SQExpr {
-            var origArg = orig.arg,
+            let origArg = orig.arg,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -179,7 +209,7 @@ module powerbi.data {
         }
 
         public visitNot(orig: SQNotExpr): SQExpr {
-            var origArg = orig.arg,
+            let origArg = orig.arg,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -189,7 +219,7 @@ module powerbi.data {
         }
 
         public visitStartsWith(orig: SQStartsWithExpr): SQExpr {
-            var origLeft = orig.left,
+            let origLeft = orig.left,
                 rewrittenLeft = origLeft.accept(this),
                 origRight = orig.right,
                 rewrittenRight = origRight.accept(this);
@@ -205,7 +235,7 @@ module powerbi.data {
         }
 
         public visitDateSpan(orig: SQDateSpanExpr): SQExpr {
-            var origArg = orig.arg,
+            let origArg = orig.arg,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -215,7 +245,7 @@ module powerbi.data {
         }
 
         public visitDateAdd(orig: SQDateAddExpr): SQExpr {
-            var origArg = orig.arg,
+            let origArg = orig.arg,
                 rewrittenArg = origArg.accept(this);
 
             if (origArg === rewrittenArg)
@@ -225,6 +255,14 @@ module powerbi.data {
         }
 
         public visitNow(orig: SQNowExpr): SQExpr {
+            return orig;
+        }
+
+        public visitDefaultValue(orig: SQDefaultValueExpr): SQExpr {
+            return orig;
+        }
+
+        public visitAnyValue(orig: SQAnyValueExpr): SQExpr {
             return orig;
         }
     }

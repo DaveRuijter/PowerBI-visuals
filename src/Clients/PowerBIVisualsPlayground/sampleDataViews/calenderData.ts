@@ -49,7 +49,7 @@ module powerbi.visuals.sampleDataViews {
         
         public getDataViews(): DataView[] {
 
-            var fieldExpr = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: "table1", column: "date" });
+            var fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "table1", name: "date" }});
 
             var categoryValues = this.dates;
             var categoryIdentities = categoryValues.map(function(value) {

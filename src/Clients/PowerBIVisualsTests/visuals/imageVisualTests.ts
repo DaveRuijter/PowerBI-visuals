@@ -66,17 +66,27 @@ module powerbitests {
 
         it("Image to about:blank", () => {
             imageVisualDataBuilder.imageUrl = "about:blank";
-            imageVisualDataBuilder.onDataChanged();
+            imageVisualDataBuilder.update();
 
             //invalid image data url
-            expect(imageVisualDataBuilder.imageBackgroundElement.css("backgroundImage")).toBe("none");
+            expect(imageVisualDataBuilder.imageBackgroundElement.css("background-image")).toBe("none");
         });
 
         it("Image from base64 string", () => {
             imageVisualDataBuilder.imageUrl = imageBase64value;
-            imageVisualDataBuilder.onDataChanged();
+            imageVisualDataBuilder.update();
 
-            expect(imageVisualDataBuilder.imageBackgroundElement.css("backgroundImage")).toBe("url(" + imageBase64value + ")");
+            expect(imageVisualDataBuilder.imageBackgroundElement.css("background-image")).toBe("url(" + imageBase64value + ")");
+        });
+
+        it("Image DOM Verification", () => {
+            imageVisualDataBuilder.imageUrl = imageBase64value;
+            imageVisualDataBuilder.update();
+
+            expect(imageVisualDataBuilder.imageBackgroundElement.css('background-image')).toBe('url(' + imageBase64value + ')');
+            expect(imageVisualDataBuilder.imageBackgroundElement.css('background-size')).toBe('contain');
+            expect(imageVisualDataBuilder.imageBackgroundElement.css('height')).toBe('200px');
+            expect(imageVisualDataBuilder.imageBackgroundElement.css('width')).toBe('300px');
         });
 
         it('Image scaling types', () => {
@@ -84,22 +94,22 @@ module powerbitests {
 
             // Fit
             imageVisualDataBuilder.imageScalingType = "Fit";
-            imageVisualDataBuilder.onDataChanged();
+            imageVisualDataBuilder.update();
             expect(imageVisualDataBuilder.imageBackgroundElement.css('background-size')).toBe('100% 100%');
 
             // Fill
             imageVisualDataBuilder.imageScalingType = "Fill";
-            imageVisualDataBuilder.onDataChanged();
+            imageVisualDataBuilder.update();
             expect(imageVisualDataBuilder.imageBackgroundElement.css('background-size')).toBe('cover');
 
             // Reset to default
             imageVisualDataBuilder.imageScalingType = null;
-            imageVisualDataBuilder.onDataChanged();
+            imageVisualDataBuilder.update();
             expect(imageVisualDataBuilder.imageBackgroundElement.css('background-size')).toBe('contain');
 
             // Normal
             imageVisualDataBuilder.imageScalingType = "Normal";
-            imageVisualDataBuilder.onDataChanged();
+            imageVisualDataBuilder.update();
             expect(imageVisualDataBuilder.imageBackgroundElement.css('background-size')).toBe('contain');
         });
     });
@@ -154,22 +164,26 @@ module powerbitests {
             this.init();
         }
 
+        private createViewport(): powerbi.IViewport {
+            return {
+                height: this._element.height(),
+                width: this._element.width(),
+            };
+        }
+
         private init() {
             this.image.init({
                 element: this._element,
                 host: this._hostService,
                 style: this._style,
-                viewport: {
-                    height: this._element.height(),
-                    width: this._element.width()
-                },
+                viewport: this.createViewport(),
                 animation: {
                     transitionImmediate: true
                 }
             });
         }
 
-        public onDataChanged() {
+        public update() {
 
             var objects: powerbi.DataViewObjects = {
                 general: {
@@ -181,7 +195,8 @@ module powerbitests {
                 objects["imageScaling"] = { imageScalingType: this.imageScalingType };
             }
 
-            this.image.onDataChanged({
+            this.image.update({
+                viewport: this.createViewport(),
                 dataViews: [{
                     metadata: {
                         columns: [],

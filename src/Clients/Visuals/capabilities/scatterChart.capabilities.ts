@@ -118,6 +118,10 @@ module powerbi.visuals {
                     axisStyle: {
                         displayName: data.createDisplayNameGetter('Visual_Axis_Style'),
                         type: { formatting: { axisStyle: true } }
+                    },
+                    labelColor: {
+                        displayName: data.createDisplayNameGetter('Visual_Axis_LabelColor'),
+                        type: { fill: { solid: { color: true } } }
                     }
                 }
             },
@@ -151,6 +155,10 @@ module powerbi.visuals {
                     axisStyle: {
                         displayName: data.createDisplayNameGetter('Visual_Axis_Style'),
                         type: { formatting: { axisStyle: true } }
+                    },
+                    labelColor: {
+                        displayName: data.createDisplayNameGetter('Visual_Axis_LabelColor'),
+                        type: { fill: { solid: { color: true } } }
                     }
 
                 }
@@ -186,6 +194,15 @@ module powerbi.visuals {
                     color: {
                         displayName: data.createDisplayNameGetter('Visual_LabelsFill'),
                         type: { fill: { solid: { color: true } } }
+                    },
+                },
+            },
+            colorBorder: {
+                displayName: data.createDisplayNameGetter('Visual_ColorBorder'),
+                properties: {
+                    show: {
+                        displayName: data.createDisplayNameGetter('Visual_Show'),
+                        type: { bool: true }
                     },
                 },
             },
@@ -240,6 +257,9 @@ module powerbi.visuals {
         dataPoint: {
             defaultColor: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPoint', propertyName: 'defaultColor' },
             fill: <DataViewObjectPropertyIdentifier>{ objectName: 'dataPoint', propertyName: 'fill' },
+        },
+        colorBorder: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'colorBorder', propertyName: 'show' },
         },
         fillPoint: {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'fillPoint', propertyName: 'show' },

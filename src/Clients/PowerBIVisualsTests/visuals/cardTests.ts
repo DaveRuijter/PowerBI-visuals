@@ -32,6 +32,7 @@ module powerbitests {
     import DataViewTransform = powerbi.data.DataViewTransform;
     import ValueType = powerbi.ValueType;
     import SVGUtil = powerbi.visuals.SVGUtil;
+    import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
 
     describe("Card", () => {
         it("Card_registered_capabilities", () => {
@@ -155,33 +156,33 @@ module powerbitests {
             cardBuilder.singleValue = 0;
             cardBuilder.onDataChanged();
 
-            var objects = cardBuilder.card.enumerateObjectInstances({ objectName: "cardTitle" });
-            expect(objects.length).toBe(1);
-            expect(objects[0].properties["show"]).toBeDefined();
-            expect(objects[0].properties["show"]).toBe(false); 
-
+            var objects = <VisualObjectInstanceEnumerationObject>cardBuilder.card.enumerateObjectInstances({ objectName: "cardTitle" });
+            expect(objects.instances.length).toBe(1);
+            expect(objects.instances[0].properties["show"]).toBeDefined();
+            expect(objects.instances[0].properties["show"]).toBe(false);
+            expect(objects.containers).toBeUndefined();
         });
 
         function verifyTitle(card: Card) {
-            var objects = card.enumerateObjectInstances({ objectName: "cardTitle" });
-            expect(objects.length).toBe(1);
-            expect(objects[0].properties["show"]).toBeDefined(); 
-            expect(objects[0].properties["show"]).toBe(true); 
+            var objects = <VisualObjectInstanceEnumerationObject>card.enumerateObjectInstances({ objectName: "cardTitle" });
+            expect(objects.instances.length).toBe(1);
+            expect(objects.instances[0].properties["show"]).toBeDefined(); 
+            expect(objects.instances[0].properties["show"]).toBe(true); 
         }
         
         function verifyLabels(card: Card, color?: string, precision?: number, displayUnits?: number) {
-            var objects = card.enumerateObjectInstances({ objectName: "labels" });
+            var objects = <VisualObjectInstanceEnumerationObject>card.enumerateObjectInstances({ objectName: "labels" });
             var defaultLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
 
-            expect(objects.length).toBe(1);
-            expect(objects[0].properties).toBeDefined();
+            expect(objects.instances.length).toBe(1);
+            expect(objects.instances[0].properties).toBeDefined();
 
             // Default values
             color = color ? color : Card.DefaultStyle.value.color;
             precision = precision ? precision : 0;
             displayUnits = displayUnits ? displayUnits : defaultLabelSettings.displayUnits;
 
-            var properties = objects[0].properties;
+            var properties = objects.instances[0].properties;
             expect(properties["color"]).toBe(color);
             expect(properties["labelPrecision"]).toBe(precision);
             expect(properties["labelDisplayUnits"]).toBe(displayUnits);
@@ -523,6 +524,94 @@ module powerbitests {
                 done();
             }, DefaultWaitForRender);
         });
+
+        it('change word wrapping', (done) => {
+            cardBuilder = new CardBuilder(null, true);
+
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [{
+                    displayName: 'very very very very long category label',
+                    isMeasure: true,
+                    objects: { 'general': { formatString: '#0' } }
+                }],
+                groups: [],
+                measures: [0],
+                objects: {
+                    labels: {
+                        show: true
+                    },
+                    wordWrap: {
+                        show: false
+                    },
+                }
+            };
+
+            cardBuilder.metadata = metadata;
+            cardBuilder.singleValue = "7";
+            cardBuilder.onDataChanged();
+
+            cardBuilder.onResizing(1000, 200);
+
+            setTimeout(() => {
+                // No word wrapping, category label should be cut
+                expect($('.card .label')[0].textContent).toContain('…');
+                expect($('.card .label tspan').length).toBe(0);
+
+                metadata.objects = {
+                    labels: {
+                        show: true
+                    },
+                    wordWrap: {
+                        show: true
+                    },
+                };
+
+                cardBuilder.metadata = metadata;
+                cardBuilder.onDataChanged();
+
+                // Word wrapping is on, category label should be visible is several lines
+                var tspans = $('.card .label tspan');
+                expect(tspans.length).toBe(3);
+                expect(tspans[0].textContent).toBe('very very very');
+                expect(tspans[1].textContent).toBe('very long');
+                expect(tspans[2].textContent).toBe('category label');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('card label off with word wrapping does not call wordBreak', () => {
+            cardBuilder = new CardBuilder(null, true);
+
+            var metadata: powerbi.DataViewMetadata = {
+                columns: [{
+                    displayName: 'very very very very long category label',
+                    isMeasure: true,
+                    objects: { 'general': { formatString: '#0' } }
+                }],
+                groups: [],
+                measures: [0],
+                objects: {
+                    labels: {
+                        show: true
+                    },
+                    cardTitle: {
+                        show: false
+                    },
+                    wordWrap: {
+                        show: true
+                    },
+                }
+            };
+
+            let spy = spyOn(powerbi.TextMeasurementService, 'wordBreak');
+            spy.and.callThrough();
+
+            cardBuilder.metadata = metadata;
+            cardBuilder.singleValue = "7";
+            cardBuilder.onDataChanged();
+
+            expect(spy.calls.count()).toBe(0);
+        });
     });
 
     describe("Card tests on Minerva", () => {
@@ -594,6 +683,28 @@ module powerbitests {
             setTimeout(() => {
                 expect($(".label").first().text()).toBe("date");
                 expect($(".value").first().text()).toBe("6/20/2015");
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it("Card with KPI value on canvas", (done) => {
+            cardBuilder.metadata = {
+                columns: [
+                    {
+                        displayName: 'kpi name',
+                        format: 'g',
+                        kpiStatusGraphic: 'Five Bars Colored',
+                        isMeasure: true
+                    }
+                ]
+            };
+            cardBuilder.singleValue = 2;
+
+            cardBuilder.onDataChanged();
+
+            setTimeout(() => {
+                expect($(".g text").length).toBe(0);
+                expect($(".caption.kpiFiveBarsBig4").length).toBe(1);
                 done();
             }, DefaultWaitForRender);
         });
@@ -678,8 +789,8 @@ module powerbitests {
                 var valueText = $(".value").first().text();
                 expect(labelText.length).toBeLessThan(60);
                 expect(valueText.length).toBeLessThan(30);
-                expect(valueText.substr(valueText.length - 3)).toBe("...");
-                expect(labelText.substr(labelText.length - 3)).toBe("...");
+                expect(valueText.substr(valueText.length - 1)).toBe('…');
+                expect(labelText.substr(labelText.length - 1)).toBe('…');
 
                 done();
             }, DefaultWaitForRender);

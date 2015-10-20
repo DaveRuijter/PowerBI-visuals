@@ -42,11 +42,13 @@ module powerbi.visuals {
     }
 
     export interface TableCell {
-        value: string;
+        textContent?: string;
+        domContent?: JQuery;
         isMeasure: boolean;
         isTotal: boolean;
         isBottomMost: boolean;
         showUrl: boolean;
+        showImage?: boolean;
     }
 
     export interface TableTotal {
@@ -111,7 +113,7 @@ module powerbi.visuals {
             if (!item)
                 return false;
 
-            var row = <DataViewVisualTableRow>item;
+            let row = <DataViewVisualTableRow>item;
             return row.index !== undefined && row.values !== undefined;
         }
 
@@ -173,31 +175,40 @@ module powerbi.visuals {
          * Returns the intersection between a row and a column item.
          */
         public getIntersection(rowItem: any, columnItem: DataViewMetadataColumn): TableCell {
-            var value: any;
-            var isTotal: boolean = false;
-            var isBottomMost: boolean = false;
-            var columnIndex = TableHierarchyNavigator.getIndex(this.tableDataView.columns, columnItem);
+            let TablixUtils = controls.internal.TablixUtils;
+            let value: any;
+            let isTotal: boolean = false;
+            let isBottomMost: boolean = false;
+            let columnIndex = TableHierarchyNavigator.getIndex(this.tableDataView.columns, columnItem);
 
-            var totalRow = <TableTotal>rowItem;
+            let totalRow = <TableTotal>rowItem;
             if (totalRow.totalCells != null) {
                 isTotal = true;
                 value = totalRow.totalCells[columnIndex];
             }
             else {
-                var bottomRow = this.tableDataView.visualRows[this.tableDataView.visualRows.length - 1];
+                let bottomRow = this.tableDataView.visualRows[this.tableDataView.visualRows.length - 1];
                 isBottomMost = bottomRow === rowItem;
                 value = (<DataViewVisualTableRow>rowItem).values[columnIndex];
             }
 
-            var formattedValue = this.formatter(value, valueFormatter.getFormatString(columnItem, Table.formatStringProp));
+            let formattedValue = this.formatter(value, valueFormatter.getFormatString(columnItem, Table.formatStringProp));
+            let domContent: JQuery;
+            let textContent: string;
+            if (TablixUtils.isValidStatusGraphic(columnItem.kpiStatusGraphic, formattedValue))
+                domContent = TablixUtils.createKpiDom(columnItem.kpiStatusGraphic, formattedValue);
+            else
+                textContent = formattedValue;
 
             return {
-                value: formattedValue,
+                textContent: textContent,
+                domContent: domContent,
                 isMeasure: columnItem.isMeasure,
                 isTotal: isTotal,
                 isBottomMost: isBottomMost,
-                showUrl: UrlHelper.isValidUrl(columnItem, formattedValue)
-            };
+                showUrl: UrlHelper.isValidUrl(columnItem, formattedValue),
+                showImage: UrlHelper.isValidImage(columnItem, formattedValue),
+              };
         }
         
         /**
@@ -215,10 +226,9 @@ module powerbi.visuals {
             // properties of DataViewMetadataColumn to determine if we can use the column equivalency check.
             // We expect this method to handle either VisualTableRows or DataViewMetadataColumns so checking
             // for displayName should be sufficient.
-            if (item1.displayName && item2.displayName)
-            {
-                var column1 = <powerbi.DataViewMetadataColumn>item1;
-                var column2 = <powerbi.DataViewMetadataColumn>item2;
+            if (item1.displayName && item2.displayName) {
+                let column1 = <powerbi.DataViewMetadataColumn>item1;
+                let column2 = <powerbi.DataViewMetadataColumn>item2;
                 return powerbi.DataViewAnalysis.areMetadataColumnsEquivalent(column1, column2);
             }
 
@@ -242,11 +252,11 @@ module powerbi.visuals {
         }
 
         private static getIndex(items: any[], item: any): number {
-            for (var index = 0, len = items.length; index < len; index++) {
+            for (let index = 0, len = items.length; index < len; index++) {
 
                 // For cases when the item was re-created during the DataTransformation phase,
                 // we check for the item's index to verify equality.
-                var arrayItem = items[index];
+                let arrayItem = items[index];
                 if (arrayItem.index != null && item.index != null && arrayItem.index === item.index) {
                     return index;
                 }
@@ -261,8 +271,8 @@ module powerbi.visuals {
     }
 
     export interface TableBinderOptions {
-        onBindRowHeader? (item: any): void;
-        onColumnHeaderClick? (queryName: string): void;
+        onBindRowHeader?(item: any): void;
+        onColumnHeaderClick?(queryName: string): void;
     }
     
     /**
@@ -306,7 +316,7 @@ module powerbi.visuals {
          */
         public bindColumnHeader(item: DataViewMetadataColumn, cell: controls.ITablixCell): void {
 
-            var classNames = TableBinder.columnHeaderClassName;
+            let classNames = TableBinder.columnHeaderClassName;
             if (item.isMeasure)
                 classNames += ' ' + TableBinder.numericCellClassName;
 
@@ -315,7 +325,7 @@ module powerbi.visuals {
             cell.extension.contentHost.textContent = item.displayName;
 
             if (this.options.onColumnHeaderClick) {
-                var handler = (e: MouseEvent) => {
+                let handler = (e: MouseEvent) => {
                     this.options.onColumnHeaderClick(item.queryName ? item.queryName : item.displayName);
                 };
                 cell.extension.registerClickHandler(handler);
@@ -336,11 +346,15 @@ module powerbi.visuals {
          */
         public bindBodyCell(item: TableCell, cell: controls.ITablixCell): void {
             if (item.showUrl)
-                controls.internal.TablixUtils.appendATagToBodyCell(item.value, cell);
-            else
-                cell.extension.contentHost.textContent = item.value;
+                controls.internal.TablixUtils.appendATagToBodyCell(item.textContent, cell);
+            else if (item.showImage)
+                controls.internal.TablixUtils.appendImgTagToBodyCell(item.textContent, cell);
+            else if (!_.isEmpty(item.domContent))
+                $(cell.extension.contentHost).append(item.domContent);
+            else if (item.textContent)
+                cell.extension.contentHost.textContent = item.textContent;
 
-            var classNames = item.isTotal ?
+            let classNames = item.isTotal ?
                 TableBinder.footerClassName :
                 item.isBottomMost ? TableBinder.lastRowClassName : TableBinder.rowClassName;
 
@@ -399,12 +413,12 @@ module powerbi.visuals {
             if (!item.values)
                 return;
 
-            var count = item.values.length;
+            let count = item.values.length;
             if (count === 0)
                 return;
 
-            var allValuesEmpty = true;
-            for (var i: number = 0; i < count; i++) {
+            let allValuesEmpty = true;
+            for (let i: number = 0; i < count; i++) {
                 if (item.values[i]) {
                     allValuesEmpty = false;
                     break;
@@ -425,11 +439,20 @@ module powerbi.visuals {
 
     export interface TableDataViewObject extends DataViewObject {
         totals: boolean;
+        /** Property that drives whether columns should use automatically calculated (based on content) sizes for width or use persisted sizes.
+        Default is true i.e. automatically calculate width based on column content */
+        autoSizeColumnWidth: boolean;
+    }
+
+    export interface ColumnWidthCallbackType {
+        (index: number, width: number): void;
     }
 
     export class Table implements IVisual {
 
         public static formatStringProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'formatString' };
+        public static totalsProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'totals' };
+        public static autoSizeProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'autoSizeColumnWidth' };
         private static preferredLoadMoreThreshold: number = 0.8;
 
         private element: JQuery;
@@ -446,15 +469,17 @@ module powerbi.visuals {
         private waitingForData: boolean;
         private lastAllowHeaderResize: boolean;
         private waitingForSort: boolean;
+        private visualTable: DataViewVisualTable;
+        private columnWidthManager: controls.TablixColumnWidthManager;
 
         public static customizeQuery(options: CustomizeQueryOptions): void {
-            var dataViewMapping = options.dataViewMappings[0];
+            let dataViewMapping = options.dataViewMappings[0];
             if (!dataViewMapping || !dataViewMapping.table || !dataViewMapping.metadata)
                 return;
 
-            var dataViewTableRows: data.CompiledDataViewRoleForMapping = <data.CompiledDataViewRoleForMapping>dataViewMapping.table.rows;
+            let dataViewTableRows: data.CompiledDataViewRoleForMapping = <data.CompiledDataViewRoleForMapping>dataViewMapping.table.rows;
 
-            var objects: TableDataViewObjects = <TableDataViewObjects>dataViewMapping.metadata.objects;
+            let objects: TableDataViewObjects = <TableDataViewObjects>dataViewMapping.metadata.objects;
             dataViewTableRows.for.in.subtotalType = Table.shouldShowTotals(objects) ? data.CompiledSubtotalType.Before : data.CompiledSubtotalType.None;
         }
 
@@ -483,11 +508,11 @@ module powerbi.visuals {
             debug.assertValue(table, 'table');
             debug.assertValue(table.rows, 'table.rows');
 
-            var visualTable = Prototype.inherit<DataViewVisualTable>(table);
+            let visualTable = Prototype.inherit<DataViewVisualTable>(table);
             visualTable.visualRows = [];
 
-            for (var i: number = 0; i < table.rows.length; i++) {
-                var visualRow: DataViewVisualTableRow = {
+            for (let i: number = 0; i < table.rows.length; i++) {
+                let visualRow: DataViewVisualTableRow = {
                     index: i,
                     values: table.rows[i]
                 };
@@ -501,26 +526,61 @@ module powerbi.visuals {
             this.updateViewport(finalViewport);
         }
 
+        // Public for testability
+        public getColumnWidthManager(): controls.TablixColumnWidthManager {
+            return this.columnWidthManager;
+        }
+
         public onDataChanged(options: VisualDataChangedOptions): void {
             debug.assertValue(options, 'options');
+            // To avoid OnDataChanged being called every time resize occurs or the auto-size property switch is flipped.
+            if (this.columnWidthManager && this.columnWidthManager.suppressOnDataChangedNotification) {
+                // Reset flag for cases when cross-filter/cross-higlight happens right after. We do need onDataChanged call to go through
+                this.columnWidthManager.suppressOnDataChangedNotification = false;
+                return;
+            }
 
-            var previousDataView = this.dataView;
-            var dataViews = options.dataViews;
+            let previousDataView = this.dataView;
+            let dataViews = options.dataViews;
 
             if (dataViews && dataViews.length > 0) {
                 this.dataView = dataViews[0];
                 if (options.operationKind === VisualDataChangeOperationKind.Append) {
-                    var visualTable = Table.converter(this.dataView.table);
+                    let visualTable = Table.converter(this.dataView.table);
                     this.hierarchyNavigator.update(visualTable);
                     this.tablixControl.updateModels(/*resetScrollOffsets*/false, visualTable.visualRows);
                     this.refreshControl(false);
                 } else {
+                    this.createOrUpdateHierarchyNavigatorAndControl();
+                    this.populateColumnWidths();
                     this.updateInternal(this.dataView, previousDataView);
                 }
             }
 
             this.waitingForData = false;
             this.waitingForSort = false;
+        }
+
+        private populateColumnWidths(): void {
+            if (!this.columnWidthManager)
+                this.columnWidthManager = new controls.TablixColumnWidthManager(this.dataView, false /* isMatrix */);
+            else
+                this.columnWidthManager.updateDataView(this.dataView);
+
+            this.columnWidthManager.deserializeTablixColumnWidths();
+            if (this.columnWidthManager.persistColumnWidthsOnHost())
+                this.persistColumnWidths(this.columnWidthManager.getVisualObjectInstancesToPersist());
+        }
+
+        public columnWidthChanged(index: number, width: number): void {
+            this.columnWidthManager.columnWidthChanged(index, width);
+            this.persistColumnWidths(this.columnWidthManager.getVisualObjectInstancesToPersist());
+        }
+
+        private persistColumnWidths(objectInstances: VisualObjectInstance[]): void {
+            this.hostServices.persistProperties({
+                merge: objectInstances
+            });
         }
 
         private updateViewport(newViewport: IViewport) {
@@ -534,7 +594,7 @@ module powerbi.visuals {
         }
 
         private refreshControl(clear: boolean) {
-            if (this.element.visible() || this.getLayoutKind() === controls.TablixLayoutKind.DashboardTile) {
+            if (visibilityHelper.partiallyVisible(this.element) || this.getLayoutKind() === controls.TablixLayoutKind.DashboardTile) {
                 this.tablixControl.refresh(clear);
             }
         }
@@ -543,25 +603,41 @@ module powerbi.visuals {
             return this.isInteractive ? controls.TablixLayoutKind.Canvas : controls.TablixLayoutKind.DashboardTile;
         }
 
-        private createControl(dataNavigator: TableHierarchyNavigator): controls.TablixControl {
-            var layoutKind = this.getLayoutKind();
+        private createOrUpdateHierarchyNavigatorAndControl(): void {
+            this.visualTable = Table.converter(this.dataView.table);
+            if (!this.tablixControl) {
+                let dataNavigator = new TableHierarchyNavigator(this.visualTable, this.formatter);
+                this.hierarchyNavigator = dataNavigator;
 
-            var tableBinderOptions: TableBinderOptions = {
+                // Create the control
+                this.tablixControl = this.createControl(dataNavigator);
+            }
+            else {
+                this.hierarchyNavigator.update(this.visualTable);
+            }
+        }
+
+        private createControl(dataNavigator: TableHierarchyNavigator): controls.TablixControl {
+            let layoutKind = this.getLayoutKind();
+
+            let tableBinderOptions: TableBinderOptions = {
                 onBindRowHeader: (item: any) => this.onBindRowHeader(item),
                 onColumnHeaderClick: (queryName: string) => this.onColumnHeaderClick(queryName),
             };
-            var tableBinder = new TableBinder(tableBinderOptions);
+            let tableBinder = new TableBinder(tableBinderOptions);
+            let columnWidthsCallback = () => this.columnWidthManager.getColumnWidths();
+            let columnWidthChangedCallback: ColumnWidthCallbackType = (i, w) => this.columnWidthChanged(i, w);
 
-            var layoutManager: controls.internal.TablixLayoutManager = layoutKind === controls.TablixLayoutKind.DashboardTile
+            let layoutManager: controls.internal.TablixLayoutManager = layoutKind === controls.TablixLayoutKind.DashboardTile
                 ? controls.internal.DashboardTablixLayoutManager.createLayoutManager(tableBinder)
-                : controls.internal.CanvasTablixLayoutManager.createLayoutManager(tableBinder);
+                : controls.internal.CanvasTablixLayoutManager.createLayoutManager(tableBinder, columnWidthsCallback, columnWidthChangedCallback);
 
             // Create Host element
-            var tablixContainer = document.createElement('div');
+            let tablixContainer = document.createElement('div');
             tablixContainer.className = "tablixContainer";
             this.element.append(tablixContainer);
 
-            var tablixOptions: controls.TablixOptions = {
+            let tablixOptions: controls.TablixOptions = {
                 interactive: this.isInteractive,
                 enableTouchSupport: false,
                 layoutKind: layoutKind,
@@ -571,35 +647,29 @@ module powerbi.visuals {
         }
 
         private updateInternal(dataView: DataView, previousDataView: DataView) {
-
-            var visualTable = Table.converter(dataView.table);
-            if (!this.tablixControl) {
-                var dataNavigator = new TableHierarchyNavigator(visualTable, this.formatter);
-                this.hierarchyNavigator = dataNavigator;
-
-                // Create the control
-                this.tablixControl = this.createControl(dataNavigator);
-            }
-            else {
-                this.hierarchyNavigator.update(visualTable);
+            if (this.getLayoutKind() === controls.TablixLayoutKind.DashboardTile) {
+                this.tablixControl.layoutManager.adjustContentSize(UrlHelper.hasImageColumn(dataView));
             }
 
             this.verifyHeaderResize();
 
             // Update models before the viewport to make sure column widths are computed correctly
-            this.tablixControl.updateModels(/*resetScrollOffsets*/true, visualTable.visualRows, visualTable.columns);
+            this.tablixControl.updateModels(/*resetScrollOffsets*/true, this.visualTable.visualRows, this.visualTable.columns);
 
-            var totals = this.createTotalsRow(dataView);
+            let totals = this.createTotalsRow(dataView);
             this.tablixControl.rowDimension.setFooter(totals);
 
             this.tablixControl.viewport = this.currentViewport;
-            var shouldClearControl = this.shouldClearControl(previousDataView, dataView);
+            let shouldClearControl = this.shouldClearControl(previousDataView, dataView);
 
             // Render
             // We need the layout for the DIV to be done so that the control can measure items correctly.
             setTimeout(() => {
                 // Render
                 this.refreshControl(shouldClearControl);
+                this.columnWidthManager.persistAllColumnWidths(this.tablixControl.layoutManager.columnWidthsToPersist);
+                if (this.columnWidthManager.persistColumnWidthsOnHost())
+                    this.persistColumnWidths(this.columnWidthManager.getVisualObjectInstancesToPersist());
             }, 0);
         }
 
@@ -614,18 +684,18 @@ module powerbi.visuals {
             if (!this.shouldShowTotals(dataView))
                 return null;
 
-            var totals = dataView.table.totals;
+            let totals = dataView.table.totals;
             if (!totals || totals.length === 0)
                 return null;
 
-            var totalRow: any[] = [];
-            var columns = dataView.table.columns;
+            let totalRow: any[] = [];
+            let columns = dataView.table.columns;
 
             // Add totals for measure columns, blank for non-measure columns unless it's the first column
-            for (var i = 0, len = columns.length; i < len; ++i) {
-                var column = columns[i];
+            for (let i = 0, len = columns.length; i < len; ++i) {
+                let column = columns[i];
 
-                var totalValue = totals[column.index];
+                let totalValue = totals[column.index];
                 if (totalValue != null) {
                     totalRow.push(totalValue);
                 }
@@ -641,7 +711,7 @@ module powerbi.visuals {
         }
 
         private shouldShowTotals(dataView: DataView): boolean {
-            var objects = <TableDataViewObjects>dataView.metadata.objects;
+            let objects = <TableDataViewObjects>dataView.metadata.objects;
             return Table.shouldShowTotals(objects);
         }
 
@@ -653,6 +723,15 @@ module powerbi.visuals {
             return true;
         }
 
+        private shouldAutoSizeColumnWidth(objects: TableDataViewObjects): boolean {
+            if (objects && objects.general) {
+                return objects.general.autoSizeColumnWidth !== false;
+            }
+
+            // Auto adjust is turned on by default
+            return controls.AutoSizeColumnWidthDefault;
+        }
+
         private onBindRowHeader(item: any): void {
             if (this.needsMoreData(item)) {
                 this.hostServices.loadMoreData();
@@ -661,10 +740,10 @@ module powerbi.visuals {
         }
 
         private onColumnHeaderClick(queryName: string) {
-            var sortDescriptors: SortableFieldDescriptor[] = [{
+            let sortDescriptors: SortableFieldDescriptor[] = [{
                 queryName: queryName,
             }];
-            var args: CustomSortEventArgs = {
+            let args: CustomSortEventArgs = {
                 sortDescriptors: sortDescriptors
             };
             this.waitingForSort = true;
@@ -678,22 +757,29 @@ module powerbi.visuals {
             if (this.waitingForData || !this.dataView.metadata || !this.dataView.metadata.segment)
                 return false;
 
-            var leafCount = this.tablixControl.rowDimension.getItemsCount();
-            var loadMoreThreshold = leafCount * Table.preferredLoadMoreThreshold;
+            let leafCount = this.tablixControl.rowDimension.getItemsCount();
+            let loadMoreThreshold = leafCount * Table.preferredLoadMoreThreshold;
 
             return this.hierarchyNavigator.getIndex(item) >= loadMoreThreshold;
         }
 
+        private getTableDataViewObjects(): TableDataViewObjects {
+            if (this.dataView && this.dataView.metadata && this.dataView.metadata.objects)
+                return <TableDataViewObjects>this.dataView.metadata.objects;
+        }
+
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
-            var instances: VisualObjectInstance[] = [];
+            let instances: VisualObjectInstance[] = [];
             
             // Visuals are initialized with an empty data view before queries are run, therefore we need to make sure that
             // we are resilient here when we do not have data view.
             if (this.dataView && options.objectName === 'general') {
+                let objects = this.getTableDataViewObjects();
                 instances.push({
                     selector: null,
                     properties: {
-                        totals: this.shouldShowTotals(this.dataView),
+                        totals: Table.shouldShowTotals(objects),
+                        autoSizeColumnWidth: this.shouldAutoSizeColumnWidth(objects),
                     },
                     objectName: options.objectName
                 });
@@ -706,7 +792,7 @@ module powerbi.visuals {
         }
 
         private verifyHeaderResize() {
-            var currentAllowHeaderResize = this.shouldAllowHeaderResize();
+            let currentAllowHeaderResize = this.shouldAllowHeaderResize();
             if (currentAllowHeaderResize !== this.lastAllowHeaderResize) {
                 this.lastAllowHeaderResize = currentAllowHeaderResize;
                 this.tablixControl.layoutManager.setAllowHeaderResize(currentAllowHeaderResize);

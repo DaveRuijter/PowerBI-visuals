@@ -37,7 +37,7 @@ module powerbi {
             function wrapCtor() { };
             wrapCtor.prototype = obj;
 
-            var inherited = new wrapCtor();
+            let inherited = new wrapCtor();
 
             if (extension)
                 extension(inherited);
@@ -54,10 +54,10 @@ module powerbi {
             if (!prototype)
                 return;
 
-            var overwritten: TArray;
+            let overwritten: TArray;
 
-            for (var i = 0, len = (<T[]><any>prototype).length; i < len; i++) {
-                var value = override(prototype[i]);
+            for (let i = 0, len = (<T[]><any>prototype).length; i < len; i++) {
+                let value = override(prototype[i]);
                 if (value) {
                     if (!overwritten)
                         overwritten = inherit(prototype);

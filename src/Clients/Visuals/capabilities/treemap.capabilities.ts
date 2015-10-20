@@ -150,7 +150,7 @@ module powerbi.visuals {
         sorting: {
             custom: {},
             implicit: {
-                clauses: [{ role: 'Values', direction: data.QuerySortDirection.Descending }]
+                clauses: [{ role: 'Values', direction: SortDirection.Descending }]
             },
         },
         drilldown: {

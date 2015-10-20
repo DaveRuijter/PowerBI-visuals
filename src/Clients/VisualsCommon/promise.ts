@@ -64,6 +64,8 @@ module powerbi {
          * @param value Object representing the promise result.
          */
         resolve<TSuccess>(value?: TSuccess): IPromise2<TSuccess, any>;
+
+        all(promises: IPromise2<any, any>[]): IPromise2<any, any>;
     }
 
     /** 

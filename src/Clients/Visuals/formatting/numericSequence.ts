@@ -48,7 +48,7 @@ module powerbi {
             debug.assert(minPower === undefined|| (minPower >= Double.MIN_EXP && minPower <= Double.MAX_EXP), "minPower");
             debug.assert(maxAllowedMargin === undefined|| (maxAllowedMargin >= 0), "maxAllowedMargin");
 
-            var result = new NumericSequence();
+            let result = new NumericSequence();
 
             if (expectedCount === undefined)
                 expectedCount = 10;
@@ -73,55 +73,55 @@ module powerbi {
                 return result;
             }
 
-            var interval = 0;
-            var min = 0;
-            var max = 9;
-            var canExtendMin = maxAllowedMargin > 0 && !range.hasFixedMin;
-            var canExtendMax = maxAllowedMargin > 0 && !range.hasFixedMax;
+            let interval = 0;
+            let min = 0;
+            let max = 9;
+            let canExtendMin = maxAllowedMargin > 0 && !range.hasFixedMin;
+            let canExtendMax = maxAllowedMargin > 0 && !range.hasFixedMax;
 
-            var size = range.getSize();
-            var exp = Double.log10(size);
+            let size = range.getSize();
+            let exp = Double.log10(size);
 
             // Account for Exp of steps
-            var stepExp = Double.log10(steps[0]);
+            let stepExp = Double.log10(steps[0]);
             exp = exp - stepExp;
 
             // Account for MaxCount
-            var expectedCountExp = Double.log10(expectedCount);
+            let expectedCountExp = Double.log10(expectedCount);
             exp = exp - expectedCountExp;
 
             // Account for MinPower
             exp = Math.max(exp, minPower - stepExp + 1);
-
+            let count = undefined;
             // Create array of "good looking" numbers
             if (interval !== 0) {
                 // If explicit interval is defined - use it instead of the steps array.
-                var power = Double.pow10(exp);
-                var roundMin = Double.floorToPrecision(range.min, power);
-                var roundMax = Double.ceilToPrecision(range.max, power);
-                var roundRange = NumericSequenceRange.calculateFixedRange(roundMin, roundMax);
+                let power = Double.pow10(exp);
+                let roundMin = Double.floorToPrecision(range.min, power);
+                let roundMax = Double.ceilToPrecision(range.max, power);
+                let roundRange = NumericSequenceRange.calculateFixedRange(roundMin, roundMax);
 
                 roundRange.shrinkByStep(range, interval);
                 min = roundRange.min;
                 max = roundRange.max;
-                var count = Math.floor(roundRange.getSize() / interval);
+                count = Math.floor(roundRange.getSize() / interval);
             }
             else {
                 // No interval defined -> find optimal interval
-                var dexp;
+                let dexp;
                 for (dexp = 0; dexp < 3; dexp++) {
-                    var e = exp + dexp;
-                    var power = Double.pow10(e);
+                    let e = exp + dexp;
+                    let power = Double.pow10(e);
 
-                    var roundMin = Double.floorToPrecision(range.min, power);
-                    var roundMax = Double.ceilToPrecision(range.max, power);
+                    let roundMin = Double.floorToPrecision(range.min, power);
+                    let roundMax = Double.ceilToPrecision(range.max, power);
 
                     // Go throught the steps array looking for the smallest step that produces the right interval count.
-                    var stepsCount = steps.length;
-                    var stepPower = Double.pow10(e - 1);
-                    for (var i = 0; i < stepsCount; i++) {
-                        var step = steps[i] * stepPower;
-                        var roundRange = NumericSequenceRange.calculateFixedRange(roundMin, roundMax, useZeroRefPoint);
+                    let stepsCount = steps.length;
+                    let stepPower = Double.pow10(e - 1);
+                    for (let i = 0; i < stepsCount; i++) {
+                        let step = steps[i] * stepPower;
+                        let roundRange = NumericSequenceRange.calculateFixedRange(roundMin, roundMax, useZeroRefPoint);
                         roundRange.shrinkByStep(range, step);
 
                         // If the range is based on Data we might need to extend it to provide nice data margins.
@@ -162,14 +162,14 @@ module powerbi {
             result._canExtendMax = canExtendMax;
 
             // Fill in the Sequence
-            var precision = Double.getPrecision(interval, 0);
+            let precision = Double.getPrecision(interval, 0);
             result.precision = precision;
 
-            var sequence = [];
+            let sequence = [];
 
-            var x = Double.roundToPrecision(min, precision);
+            let x = Double.roundToPrecision(min, precision);
             sequence.push(x);
-            for (var i = 0; i < count; i++) {
+            for (let i = 0; i < count; i++) {
                 x = Double.roundToPrecision(x + interval, precision);
                 sequence.push(x);
             }
@@ -194,15 +194,15 @@ module powerbi {
             if (min === max) {
                 max = min + 1;
             }
-            var stepCount = 0;
-            var step = 0;
+            let stepCount = 0;
+            let step = 0;
 
             // Calculate step
-            for (var i = 0; i < steps.length; i++)
+            for (let i = 0; i < steps.length; i++)
             {
                 step = steps[i];
-                var maxStepCount = Double.ceilWithPrecision(max / step);
-                var minStepCount = Double.floorWithPrecision(min / step);
+                let maxStepCount = Double.ceilWithPrecision(max / step);
+                let minStepCount = Double.floorWithPrecision(min / step);
                 stepCount = maxStepCount - minStepCount;
                     
                 if (stepCount <= maxCount) {
@@ -211,13 +211,13 @@ module powerbi {
             }
 
             // Calculate the offset
-            var offset = -min;
+            let offset = -min;
             offset = offset % step;
 
             // Create sequence
-            var result = new NumericSequence();
+            let result = new NumericSequence();
             result.sequence = [];
-            for (var x = min + offset; ; x += step)
+            for (let x = min + offset; ; x += step)
             {
                 result.sequence.push(x);
                 if (x >= max)
@@ -231,9 +231,9 @@ module powerbi {
         }
 
         public trimMinMax(min: number, max: number): void {        
-            var minMargin = (min - this.min) / this.interval;
-            var maxMargin = (this.max - max) / this.interval;
-            var marginPrecision = 0.001;
+            let minMargin = (min - this.min) / this.interval;
+            let maxMargin = (this.max - max) / this.interval;
+            let marginPrecision = 0.001;
 
             if (!this._canExtendMin || (minMargin > this._maxAllowedMargin && minMargin > marginPrecision)) {
                 this.min = min;

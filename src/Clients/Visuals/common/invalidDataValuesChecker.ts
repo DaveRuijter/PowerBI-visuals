@@ -35,7 +35,7 @@ module powerbi.visuals {
         supportsNegativeInfinity: boolean,
         supportsPositiveInfinity: boolean): IVisualWarning[] {
 
-        var checker: InvalidDataValuesChecker = new InvalidDataValuesChecker(
+        let checker: InvalidDataValuesChecker = new InvalidDataValuesChecker(
             supportsNaN /*supportsNaN*/,
             supportsNegativeInfinity /*supportsNegativeInfinity*/,
             supportsPositiveInfinity /*supportsPositiveInfinity*/);
@@ -63,7 +63,7 @@ module powerbi.visuals {
         public getWarningMessages(dataViews: DataView[]): IVisualWarning[] {
             this.loadWarningStatus(dataViews);
 
-            var warnings: IVisualWarning[] = [];
+            let warnings: IVisualWarning[] = [];
             if (this.hasNaN && !this.supportsNaN) {
                 warnings.push(new NaNNotSupportedWarning());
             }
@@ -86,23 +86,23 @@ module powerbi.visuals {
             this.hasOutOfRange = false;
             this.hasPositiveInfinity = false;
 
-            for (var k: number = 0; k < dataViews.length; k++) {
-                var dataView = dataViews[k];
-                var values = dataView && dataView.categorical && dataView.categorical.values
+            for (let k: number = 0; k < dataViews.length; k++) {
+                let dataView = dataViews[k];
+                let values = dataView && dataView.categorical && dataView.categorical.values
                     ? dataView.categorical.values
                     : null;
 
                 if (!values)
                     return;
 
-                var valueLength = values.length;
-                for (var i: number = 0; i < valueLength; i++) {
-                    var value = values[i];
+                let valueLength = values.length;
+                for (let i: number = 0; i < valueLength; i++) {
+                    let value = values[i];
 
                     if (value.values) {
-                        var valueValueLength = value.values.length;
-                        for (var j: number = 0; j < valueValueLength; j++) {
-                            var v = value.values[j];
+                        let valueValueLength = value.values.length;
+                        for (let j: number = 0; j < valueValueLength; j++) {
+                            let v = value.values[j];
 
                             if (isNaN(v))
                                 this.hasNaN = true;

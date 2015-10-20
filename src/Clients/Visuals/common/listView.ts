@@ -27,21 +27,18 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+
     export interface IListView {
-        data(data: any[], dataIdFunction: (d) => {}): IListView;
+        data(data: any[], dataIdFunction: (d) => {}, dataAppended: boolean): IListView;
         rowHeight(rowHeight: number): IListView;
         viewport(viewport: IViewport): IListView;
-        render(sizeChanged: boolean, resetScrollbarPosition?: boolean): void;
+        render(): void;
         empty(): void;
     }
 
     export module ListViewFactory {
-        export function createHTMLListView(options): IListView {
-            return new ListView(options, ListViewMode.HTML);
-        }
-
-        export function createSVGListView(options): IListView {
-            return new ListView(options, ListViewMode.SVG);
+        export function createListView(options): IListView {
+            return new ListView(options);
         }
     }
 
@@ -53,11 +50,7 @@ module powerbi.visuals {
         baseContainer: D3.Selection;
         rowHeight: number;
         viewport: IViewport;
-    }
-
-    const enum ListViewMode {
-        SVG,
-        HTML
+        scrollEnabled: boolean;
     }
 
     /**
@@ -65,126 +58,118 @@ module powerbi.visuals {
      * It can create lists containing either HTML or SVG elements.
      */
     class ListView implements IListView {
-        private _dataIdFunction: (d: any) => {};
+        private getDatumIndex: (d: any) => {};
         private _data: any[];
         private _totalRows: number;
 
         private options: ListViewOptions;
         private visibleGroupContainer: D3.Selection;
         private scrollContainer: D3.Selection;
-        private position: number;
-        private delta: number;
-        private mode: ListViewMode;
-        private visibleRows: number;
+        private cancelMeasurePass: () => void;
+        private renderTimeoutId: number;
         
         /**
          * The value indicates the percentage of data already shown
          * in the list view that triggers a loadMoreData call.
          */
         private static loadMoreDataThreshold = 0.8;
+        private static defaultRowHeight = 1;
 
-        public constructor(options: ListViewOptions, mode: ListViewMode) {
-            this.options = options;
-            this.mode = mode;
+        public constructor(options: ListViewOptions) {
+            // make a copy of options so that it is not modified later by caller
+            this.options = $.extend(true, {}, options);
 
             this.options.baseContainer
                 .style('overflow-y', 'auto')
-                .on('scroll', () => this.render(false));
+                .on('scroll', () => this.renderImpl(this.options.rowHeight));
             this.scrollContainer = options.baseContainer
-                .append(mode === ListViewMode.SVG ? 'svg' : 'div')
+                .append('div')
                 .attr('class', 'scrollRegion');
             this.visibleGroupContainer = this.scrollContainer
-                .append(mode === ListViewMode.SVG ? 'g' : 'div')
+                .append('div')
                 .attr('class', 'visibleGroup');
 
             ListView.SetDefaultOptions(options);
-
-            this.position = 0;
         }
 
         private static SetDefaultOptions(options: ListViewOptions) {
-            options.rowHeight = options.rowHeight || 1;
+            options.rowHeight = options.rowHeight || ListView.defaultRowHeight;
         }
 
         public rowHeight(rowHeight: number): ListView {
-            this.options.rowHeight = rowHeight;
+            this.options.rowHeight = Math.ceil(rowHeight);
             return this;
         }
 
-        public data(data: any[], dataIdFunction: (d) => {}): IListView {
+        public data(data: any[], getDatumIndex: (d) => {}, dataReset: boolean = false): IListView {
             this._data = data;
-            this._dataIdFunction = dataIdFunction;
-            this._totalRows = data ? data.length : 0;
+            this.getDatumIndex = getDatumIndex;
+            this.setTotalRows();
+            if (dataReset) {
+                $(this.options.baseContainer.node()).scrollTop(0);
+            }
+            this.render();
             return this;
         }
 
         public viewport(viewport: IViewport): IListView {
             this.options.viewport = viewport;
+            this.render();
             return this;
         }
 
         public empty(): void {
             this._data = [];
-            this.render(false, true);
+            this.render();
         }
 
-        public render(sizeChanged: boolean = false, resetScrollbarPosition: boolean = false): void {
-            if (!(this._data && this.options))
-                return;
-            var scrollTop: number;
+        public render(): void {
+            if (this.renderTimeoutId)
+                window.clearTimeout(this.renderTimeoutId);
 
-            var options = this.options;
-            var rowHeight = options.rowHeight;
-
-            debug.assertValue(rowHeight, 'rowHeight');
-            debug.assert(rowHeight > 0, 'rowHeight should be more than 0');
-
-            if (resetScrollbarPosition) {
-                this.position = 0;
-                scrollTop = 0;
-                $(options.baseContainer.node()).scrollTop(scrollTop);
-            }
-            else
-                scrollTop = options.baseContainer.node().scrollTop;
-
-            if (sizeChanged) {
-                var height = options.viewport.height;
-                this.visibleRows = Math.ceil(height / rowHeight) + 1;
+            this.renderTimeoutId = window.setTimeout(() => {
+                this.getRowHeight().then((rowHeight: number) => {
+                    this.renderImpl(rowHeight);
+                });
+                this.renderTimeoutId = undefined;
+            },0);
             }
 
-            var totalHeight = Math.max(0, (this._totalRows * rowHeight));
+        private renderImpl(rowHeight: number): void {
+            var totalHeight = this.options.scrollEnabled ? Math.max(0, (this._totalRows * rowHeight)) : this.options.viewport.height;
             this.scrollContainer
                 .style('height', totalHeight + "px")
                 .attr('height', totalHeight);
 
-            var lastPosition = this.position;
-
-            var position = this.position = Math.floor(scrollTop / rowHeight);
-            this.delta = position - lastPosition;
-            this.scrollToFrame(position);
+            this.scrollToFrame(true /*loadMoreData*/);
         }
 
-        private scrollToFrame(scrollPosition: number): void {
+        private scrollToFrame(loadMoreData: boolean): void {
             var options = this.options;
             var visibleGroupContainer = this.visibleGroupContainer;
             var totalRows = this._totalRows;
-            var rowHeight = options.rowHeight;
-            var visibleRows = this.visibleRows;
-
+            var rowHeight = options.rowHeight || ListView.defaultRowHeight;
+            var visibleRows = this.getVisibleRows() || 1;
+            var scrollTop: number = options.baseContainer.node().scrollTop;
+            var scrollPosition = (scrollTop === 0) ? 0 : Math.floor(scrollTop / rowHeight);
             var translateY = scrollPosition * rowHeight;
+
             visibleGroupContainer
                 .attr('transform', d => SVGUtil.translate(0, translateY))
-                .style('transform', d => SVGUtil.translateWithPixels(0, translateY))
-                .style('-webkit-transform', d => SVGUtil.translateWithPixels(0, translateY));
+                .style({
+                    //order matters for proper overriding
+                    'transform': d => SVGUtil.translateWithPixels(0, translateY),
+                    '-webkit-transform': d => SVGUtil.translateWithPixels(0, translateY)
+                });
 
             var position0 = Math.max(0, Math.min(scrollPosition, totalRows - visibleRows + 1)),
                 position1 = position0 + visibleRows;
             var rowSelection = visibleGroupContainer.selectAll(".row")
-                .data(this._data.slice(position0, Math.min(position1, totalRows)), this._dataIdFunction);
+                .data(this._data.slice(position0, Math.min(position1, totalRows)), this.getDatumIndex);
 
             rowSelection
                 .enter()
-                .append('g')
+                .append('div')
                 .classed('row', true)
                 .call(d => options.enter(d));
             rowSelection.order();
@@ -193,22 +178,65 @@ module powerbi.visuals {
 
             rowUpdateSelection.call(d => options.update(d));
 
-            if (this.mode === ListViewMode.SVG) {
-                rowUpdateSelection.each(function (d, i) {
-                    var translate = SVGUtil.translate(0, i * rowHeight);
-                    d3.select(this)
-                        .attr('transform', d => translate)
-                        .style('transform', d => translate);
-                });
-            }
-
             rowSelection
                 .exit()
                 .call(d => options.exit(d))
                 .remove();
 
-            if (position1 >= totalRows * ListView.loadMoreDataThreshold)
+            if (loadMoreData && visibleRows !== totalRows && position1 >= totalRows * ListView.loadMoreDataThreshold)
                 options.loadMoreData();
+        }
+
+        private setTotalRows(): void {
+            var data = this._data;
+            this._totalRows = data ? data.length : 0;
+        }
+
+        private getVisibleRows(): number {
+            var minimumVisibleRows = 1;
+            var rowHeight = this.options.rowHeight;
+            var viewportHeight = this.options.viewport.height;
+
+            if (!rowHeight || rowHeight < 1)
+                return minimumVisibleRows;
+            
+            if (this.options.scrollEnabled)
+                return Math.min(Math.ceil(viewportHeight / rowHeight) + 1, this._totalRows) || minimumVisibleRows;
+
+            return Math.min(Math.floor(viewportHeight / rowHeight), this._totalRows) || minimumVisibleRows;
+        }
+
+        private getRowHeight(): JQueryPromise<number> {
+            var deferred = $.Deferred<number>();
+            var listView = this;
+            var options = listView.options;
+            if (this.cancelMeasurePass)
+                this.cancelMeasurePass();
+
+            // if there is no data, resolve and return
+            if (!(this._data && this._data.length && options)) {
+                listView.rowHeight(ListView.defaultRowHeight);
+                return deferred.resolve(options.rowHeight).promise();
+            }
+
+            //render the first item to calculate the row height
+            this.scrollToFrame(false /*loadMoreData*/);
+            var requestAnimationFrameId = window.requestAnimationFrame(() => {
+                //measure row height
+                var firstRow = listView.visibleGroupContainer.select(".row").node().firstChild;
+                var rowHeight: number = $(firstRow).outerHeight(true);
+                listView.rowHeight(rowHeight);
+                deferred.resolve(rowHeight);
+                listView.cancelMeasurePass = undefined;
+                window.cancelAnimationFrame(requestAnimationFrameId);
+            });
+
+            this.cancelMeasurePass = () => {
+                window.cancelAnimationFrame(requestAnimationFrameId);
+                deferred.reject();
+            };
+
+            return deferred.promise();
         }
     }
 }

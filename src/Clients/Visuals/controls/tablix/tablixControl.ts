@@ -114,19 +114,19 @@ module powerbi.visuals.controls {
 
             // Options
             this._options = options;
-            var isInteractive = options.interactive;
+            let isInteractive = options.interactive;
             this._isTouchEnabled = isInteractive && options.enableTouchSupport;
 
             // Main Div
             this._mainDiv = internal.TablixUtils.createDiv();
-            var mainDivStyle = this._mainDiv.style;
+            let mainDivStyle = this._mainDiv.style;
             mainDivStyle.position = "absolute";
             mainDivStyle.left = "0px";
             mainDivStyle.top = "0px";
 
             // Footer Div
             this._footerDiv = internal.TablixUtils.createDiv();
-            var footerDivStyle = this._footerDiv.style;
+            let footerDivStyle = this._footerDiv.style;
             footerDivStyle.position = "absolute";
             footerDivStyle.left = "0px";
 
@@ -199,7 +199,7 @@ module powerbi.visuals.controls {
             // Row Dimension
             this._rowDimension._initializeScrollbar(this._container, null);
 
-            var rowDimensionScrollbarStyle = this._rowDimension.scrollbar.element.style;
+            let rowDimensionScrollbarStyle = this._rowDimension.scrollbar.element.style;
             rowDimensionScrollbarStyle.position = "absolute";
             rowDimensionScrollbarStyle.top = "0" + TablixControl.UnitOfMeasurement;
             rowDimensionScrollbarStyle.right = "0" + TablixControl.UnitOfMeasurement;
@@ -212,7 +212,7 @@ module powerbi.visuals.controls {
             // Column Dimension
             this._columnDimension._initializeScrollbar(this._container, null);
 
-            var columnDimensionScrollbarStyle = this._columnDimension.scrollbar.element.style;
+            let columnDimensionScrollbarStyle = this._columnDimension.scrollbar.element.style;
             columnDimensionScrollbarStyle.position = "absolute";
             columnDimensionScrollbarStyle.left = "0" + TablixControl.UnitOfMeasurement;
             columnDimensionScrollbarStyle.bottom = "0" + TablixControl.UnitOfMeasurement;
@@ -349,7 +349,7 @@ module powerbi.visuals.controls {
         }
 
         public updateColumnDimensions(rowHierarchyWidth: number, columnHierarchyWidth: number, count: number) {
-            var gridDimensions = this._gridDimensions;
+            let gridDimensions = this._gridDimensions;
 
             gridDimensions.columnCount = count;
             gridDimensions.rowHierarchyWidth = rowHierarchyWidth;
@@ -357,7 +357,7 @@ module powerbi.visuals.controls {
         }
 
         public updateRowDimensions(columnHierarchyHeight: number, rowHierarchyHeight: number, rowHierarchyContentHeight: number, count: number, footerHeight) {
-            var gridDimensions = this._gridDimensions;
+            let gridDimensions = this._gridDimensions;
 
             gridDimensions.rowCount = count;
             gridDimensions.rowHierarchyHeight = rowHierarchyHeight;
@@ -367,7 +367,7 @@ module powerbi.visuals.controls {
         }
 
         private updateTouchDimensions(): void {
-            var gridDimensions = this._gridDimensions;
+            let gridDimensions = this._gridDimensions;
 
             this._columnTouchDelegate.resize(gridDimensions.rowHierarchyWidth, 0, gridDimensions.columnHierarchyWidth, gridDimensions.columnHierarchyHeight);
             this._columnTouchDelegate.setScrollDensity(gridDimensions.columnCount / gridDimensions.columnHierarchyWidth);
@@ -385,13 +385,13 @@ module powerbi.visuals.controls {
         }
 
         private onMouseWheel(e: MouseWheelEvent): void {
-            var dimension = this.determineDimensionToScroll();
+            let dimension = this.determineDimensionToScroll();
             if (dimension)
                 dimension.scrollbar.onMouseWheel(e);
         }
 
         private onFireFoxMouseWheel(e: MouseWheelEvent): void {
-            var dimension = this.determineDimensionToScroll();
+            let dimension = this.determineDimensionToScroll();
             if (dimension)
                 dimension.scrollbar.onFireFoxMouseWheel(e);
         }
@@ -457,25 +457,25 @@ module powerbi.visuals.controls {
         private updateVerticalPosition(): void {
 
             // Set the height of the footer div to non-zero if we have a footer to render
-            var footerHeight = 0;
+            let footerHeight = 0;
             if (this._rowDimension.hasFooter()) {
                 footerHeight = this._gridDimensions.footerHeight;
             }
             this._footerDiv.style.height = footerHeight + TablixControl.UnitOfMeasurement;
 
-            var hasVerticalScrollbar = this._rowDimension.scrollbar.visible;
+            let hasVerticalScrollbar = this._rowDimension.scrollbar.visible;
             // TODO: ideally the tablix control would not know about where it is rendered but the layout manager
             //       would provider that information; we should refactor the layout manager so that getLayoutKind is not needed anymore.
-            var isDashboardTile = this._layoutManager.getLayoutKind() === TablixLayoutKind.DashboardTile;
-            var showFooter = hasVerticalScrollbar || isDashboardTile;
+            let isDashboardTile = this._layoutManager.getLayoutKind() === TablixLayoutKind.DashboardTile;
+            let showFooter = hasVerticalScrollbar || isDashboardTile;
             if (showFooter) {
-                var mainBottom = footerHeight;
-                var footerBottom = 0;
-                var verticalScrollbarBottom = 0;
+                let mainBottom = footerHeight;
+                let footerBottom = 0;
+                let verticalScrollbarBottom = 0;
 
                 // If we have a horizontal scrollbar, we need to adjust the bottom
                 // value by the scrollbar width
-                var hasHorizontalScrollbar = this._columnDimension.scrollbar.visible;
+                let hasHorizontalScrollbar = this._columnDimension.scrollbar.visible;
                 if (hasHorizontalScrollbar) {
                     mainBottom += this._scrollbarWidth;
                     footerBottom += this._scrollbarWidth;
@@ -519,20 +519,20 @@ module powerbi.visuals.controls {
                 return;
             }
 
-            var done = false;
+            let done = false;
             this._renderIterationCount = 0;
 
             this._layoutManager.onStartRenderingSession(scrollingDimension, this._mainDiv, clear);
-            var binder: ITablixBinder = this._binder;
+            let binder: ITablixBinder = this._binder;
             binder.onStartRenderingSession();
 
-            var priorFooterHeight: number = this._gridDimensions.footerHeight;
-            var priorRowHierarchyHeight: number = this._gridDimensions.rowHierarchyHeight;
-            var priorRowHierarchyContentHeight: number = this._gridDimensions.rowHierarchyContentHeight;
+            let priorFooterHeight: number = this._gridDimensions.footerHeight;
+            let priorRowHierarchyHeight: number = this._gridDimensions.rowHierarchyHeight;
+            let priorRowHierarchyContentHeight: number = this._gridDimensions.rowHierarchyContentHeight;
 
             while (!done) {
-                var hScrollbarVisibility = this._columnDimension.scrollbar.visible;
-                var vScrollbarVisibility = this._rowDimension.scrollbar.visible;
+                let hScrollbarVisibility = this._columnDimension.scrollbar.visible;
+                let vScrollbarVisibility = this._rowDimension.scrollbar.visible;
 
                 this._columnDimension._onStartRenderingIteration();
                 this._rowDimension._onStartRenderingIteration();
@@ -569,7 +569,7 @@ module powerbi.visuals.controls {
 
             this.updateContainerDimensions();
 
-            var lastRenderingArgs = this._lastRenderingArgs;
+            let lastRenderingArgs = this._lastRenderingArgs;
             lastRenderingArgs.rowScrollOffset = this.rowDimension.scrollOffset;
             lastRenderingArgs.columnScrollOffset = this.columnDimension.scrollOffset;
             lastRenderingArgs.scrollingDimension = scrollingDimension;
@@ -589,10 +589,10 @@ module powerbi.visuals.controls {
         }
 
         private updateContainerDimensions(): void {
-            var gridDimensions = this._gridDimensions;
+            let gridDimensions = this._gridDimensions;
 
             if (this._autoSizeWidth) {
-                var vScrollBarWidth: number = this._rowDimension.scrollbar.visible ? this._scrollbarWidth : 0;
+                let vScrollBarWidth: number = this._rowDimension.scrollbar.visible ? this._scrollbarWidth : 0;
                 this._container.style.width =
                 gridDimensions.rowHierarchyWidth +
                 gridDimensions.columnHierarchyWidth +
@@ -601,7 +601,7 @@ module powerbi.visuals.controls {
             }
 
             if (this._autoSizeHeight) {
-                var hScrollBarHeight: number = this._columnDimension.scrollbar.visible ? this._scrollbarWidth : 0;
+                let hScrollBarHeight: number = this._columnDimension.scrollbar.visible ? this._scrollbarWidth : 0;
                 this._container.style.height =
                 gridDimensions.columnHierarchyHeight +
                 gridDimensions.rowHierarchyHeight +
@@ -612,19 +612,19 @@ module powerbi.visuals.controls {
         }
 
         private cornerCellMatch(item: any, cell: ITablixCell): boolean {
-            var previousItem: any = cell.item;
+            let previousItem: any = cell.item;
             return cell.type === TablixCellType.CornerCell && previousItem && this._hierarchyNavigator.cornerCellItemEquals(item, previousItem);
         }
 
         private renderCorner(): void {
-            var columnDepth: number = this._columnDimension.getDepth();
-            var rowDepth: number = this._rowDimension.getDepth();
+            let columnDepth: number = this._columnDimension.getDepth();
+            let rowDepth: number = this._rowDimension.getDepth();
 
-            for (var i = 0; i < columnDepth; i++) {
-                for (var j = 0; j < rowDepth; j++) {
-                    var item = this._hierarchyNavigator.getCorner(j, i);
-                    var cell: ITablixCell = this._layoutManager.getOrCreateCornerCell(item, j, i);
-                    var match = this.cornerCellMatch(item, cell);
+            for (let i = 0; i < columnDepth; i++) {
+                for (let j = 0; j < rowDepth; j++) {
+                    let item = this._hierarchyNavigator.getCorner(j, i);
+                    let cell: ITablixCell = this._layoutManager.getOrCreateCornerCell(item, j, i);
+                    let match = this.cornerCellMatch(item, cell);
                     if (!match) {
                         this._unbindCell(cell);
                         cell.type = TablixCellType.CornerCell;
@@ -657,9 +657,9 @@ module powerbi.visuals.controls {
         }
 
         private onTouchEvent(args: any[]): void {
-            var colShift: number;
-            var rowShift: number;
-            var that: TablixControl;
+            let colShift: number;
+            let rowShift: number;
+            let that: TablixControl;
 
             if ((args) && (args.length > 0)) {
                 if (("_columnDimension" in args[0]) && ("_rowDimension" in args[0])) {

@@ -52,17 +52,17 @@ module powerbi.data {
             selector: Selector): DataViewObjectDefinition {
             debug.assertValue(defns, 'defns');
 
-            var defnsForObject = defns[objectName];
+            let defnsForObject = defns[objectName];
             if (!defnsForObject)
                 defns[objectName] = defnsForObject = [];
 
-            for (var i = 0, len = defnsForObject.length; i < len; i++) {
-                var defn = defnsForObject[i];
+            for (let i = 0, len = defnsForObject.length; i < len; i++) {
+                let defn = defnsForObject[i];
                 if (Selector.equals(defn.selector, selector))
                     return defn;
             }
 
-            var newDefn: DataViewObjectDefinition = {
+            let newDefn: DataViewObjectDefinition = {
                 selector: selector,
                 properties: {},
             };
@@ -78,12 +78,12 @@ module powerbi.data {
             propertyName: string): void {
             debug.assertValue(defns, 'defns');
 
-            var defnsForObject = defns[objectName];
+            let defnsForObject = defns[objectName];
             if (!defnsForObject)
                 return;
             
-            for (var i = 0, len = defnsForObject.length; i < len; i++) {   
-                var defn = defnsForObject[i];             
+            for (let i = 0, len = defnsForObject.length; i < len; i++) {   
+                let defn = defnsForObject[i];             
                 if (Selector.equals(defn.selector, selector)) {   
                     //note: We decided that delete is acceptable here and that we don't need optimization here                
                     delete defn.properties[propertyName];
@@ -97,7 +97,7 @@ module powerbi.data {
             propertyId: DataViewObjectPropertyIdentifier,
             selector: Selector): DataViewObjectPropertyDefinition {
 
-            var properties = getPropertyContainer(defns, propertyId, selector);
+            let properties = getPropertyContainer(defns, propertyId, selector);
             if (!properties)
                 return;
 
@@ -109,12 +109,12 @@ module powerbi.data {
             propertyId: DataViewObjectPropertyIdentifier,
             selector: Selector): DataViewObjectPropertyDefinitions {
 
-            var defnsForObject = defns[propertyId.objectName];
+            let defnsForObject = defns[propertyId.objectName];
             if (!defnsForObject)
                 return;
 
-            for (var i = 0, len = defnsForObject.length; i < len; i++) {
-                var defn = defnsForObject[i];
+            for (let i = 0, len = defnsForObject.length; i < len; i++) {
+                let defn = defnsForObject[i];
                 if (Selector.equals(defn.selector, selector))
                     return defn.properties;
             }

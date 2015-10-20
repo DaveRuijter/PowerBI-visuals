@@ -36,6 +36,15 @@ module powerbi.visuals {
                     }
                 }
             },
+            lockAspect: {
+                displayName: data.createDisplayNameGetter('Visual_BasicShape_LockAspect'),
+                properties: {
+                    show: {
+                        displayName: data.createDisplayNameGetter('Visual_Show'),
+                        type: { bool: true }
+                    }
+                }
+            },
             imageScaling: {
                 displayName: data.createDisplayNameGetter('Visual_Image_Scaling_Type'),
                 properties: {

@@ -69,9 +69,9 @@ module powerbi.data {
     }
 
     export interface CompiledDataViewMatrixMapping extends HasDataVolume {
-        rows?: CompiledDataViewRoleForMappingWithReduction;
+        rows?: CompiledDataViewRoleForMappingWithReduction | CompiledDataViewListRoleMappingWithReduction;
         columns?: CompiledDataViewRoleForMappingWithReduction;
-        values?: CompiledDataViewRoleForMapping;
+        values?: CompiledDataViewRoleForMapping | CompiledDataViewListRoleMapping;
     }
 
     export type CompiledDataViewRoleMapping = CompiledDataViewRoleBindMapping | CompiledDataViewRoleForMapping;

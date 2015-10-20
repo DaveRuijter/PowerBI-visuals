@@ -58,7 +58,7 @@
 /// <reference path="dataView\dataViewPivotMatrix.ts"/>
 /// <reference path="dataView\dataViewSelfCrossJoin.ts"/>
 /// <reference path="displayNameGetter.ts"/>
-/// <reference path="iDataReader.ts"/>
+/// <reference path="dataReader/dataReader.ts"/>
 /// <reference path="iFormattingService.ts"/>
 /// <reference path="dataView\dataView.ts"/>
 /// <reference path="dataView\dataViewAnalysis.ts"/>
@@ -72,7 +72,6 @@
 /// <reference path="segmentation\dataViewMerger.ts"/>
 /// <reference path="semanticQuery\exprPatterns\filterScopeIdsCollector.ts"/>
 /// <reference path="semanticQuery\exprPatterns\scopeIdentityKeyExtractor.ts"/>
-/// <reference path="semanticQuery\exprPatterns\sqFieldDef.ts"/>
 /// <reference path="semanticQuery\primitiveValueEncoding.ts"/>
 /// <reference path="semanticQuery\sqExprRewriter.ts"/>
 /// <reference path="semanticQuery\sqExpr.ts"/>

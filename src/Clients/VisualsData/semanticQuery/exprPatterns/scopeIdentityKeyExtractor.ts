@@ -32,7 +32,7 @@ module powerbi.data {
     /** Recognizes DataViewScopeIdentity expression trees to extract comparison keys. */
     export module ScopeIdentityKeyExtractor {
         export function run(expr: SQExpr): SQExpr[] {
-            var extractor = new KeyExtractorImpl();
+            let extractor = new KeyExtractorImpl();
             expr.accept(extractor);
 
             if (extractor.malformed)

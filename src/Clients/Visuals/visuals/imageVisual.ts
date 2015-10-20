@@ -76,41 +76,40 @@ module powerbi.visuals {
             }];
         }
 
-        public onDataChanged(options: VisualDataChangedOptions): void {
-            var dataViews = options.dataViews;
+        public update(options: VisualUpdateOptions): void {
+            let dataViews = options.dataViews;
             if (!dataViews || dataViews.length === 0)
                 return;
 
-            var objects = <ImageDataViewObjects>dataViews[0].metadata.objects;
+            let objects = <ImageDataViewObjects>dataViews[0].metadata.objects;
             if (!objects || !objects.general)
                 return;
 
-            var div: JQuery = this.imageBackgroundElement;
+            let div: JQuery = this.imageBackgroundElement;
             if (!div) {
                 div = $("<div class='imageBackground' />");
                 this.imageBackgroundElement = div;
                 this.imageBackgroundElement.appendTo(this.element);
             }
 
-            var imageUrl = objects.general.imageUrl;
+            let viewport = options.viewport;
+            div.css('height', viewport.height);
 
             if (objects.imageScaling)
                 this.scalingType = objects.imageScaling.imageScalingType.toString();
             else
                 this.scalingType = imageScalingType.normal;
 
+            let imageUrl = objects.general.imageUrl;
             if (Utility.isValidImageDataUrl(imageUrl))
                 div.css("backgroundImage", "url(" + imageUrl + ")");
 
             if (this.scalingType === imageScalingType.fit)
-                div.css("background-size", "100% 100%"); 
+                div.css("background-size", "100% 100%");
             else if (this.scalingType === imageScalingType.fill)
-                div.css("background-size", "cover"); 
-            else 
+                div.css("background-size", "cover");
+            else
                 div.css("background-size", "contain");
-        }
-
-        public onResizing(viewport: IViewport): void {
         }
     }
 } 

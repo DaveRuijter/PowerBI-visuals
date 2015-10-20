@@ -50,13 +50,13 @@ module powerbi.data {
             if (ArrayExtensions.isUndefinedOrEmpty(selectors))
                 return;
 
-            var expr: SQExpr;
-            for (var i = 0, ilen = selectors.length; i < ilen; i++) {
-                var identity = selectors[i];
-                var data = identity.data;
-                var exprToAdd: SQExpr = undefined;
+            let expr: SQExpr;
+            for (let i = 0, ilen = selectors.length; i < ilen; i++) {
+                let identity = selectors[i];
+                let data = identity.data;
+                let exprToAdd: SQExpr = undefined;
                 if (data && data.length) {
-                    for (var j = 0, jlen = data.length; j < jlen; j++) {
+                    for (let j = 0, jlen = data.length; j < jlen; j++) {
                         exprToAdd = SQExprBuilder.and(exprToAdd, (<DataViewScopeIdentity>identity.data[j]).expr);
                     }
                 }
@@ -75,13 +75,13 @@ module powerbi.data {
             debug.assertValue(selector.data, 'selector.data');
             debug.assertValue(identities, 'identities');
 
-            var selectorData = selector.data;
+            let selectorData = selector.data;
             if (selectorData.length !== identities.length)
                 return false;
 
-            for (var i = 0, len = selectorData.length; i < len; i++) {
-                var dataItem = selector.data[i];
-                var selectorDataItem = <DataViewScopeIdentity>dataItem;
+            for (let i = 0, len = selectorData.length; i < len; i++) {
+                let dataItem = selector.data[i];
+                let selectorDataItem = <DataViewScopeIdentity>dataItem;
                 if (selectorDataItem.expr) {
                     if (!DataViewScopeIdentity.equals(selectorDataItem, identities[i]))
                         return false;
@@ -100,13 +100,13 @@ module powerbi.data {
             debug.assertValue(selector.data, 'selector.data');
             debug.assertValue(keysList, 'keysList');
 
-            var selectorData = selector.data,
+            let selectorData = selector.data,
                 selectorDataLength = selectorData.length;
             if (selectorDataLength !== keysList.length)
                 return false;
 
-            for (var i = 0; i < selectorDataLength; i++) {
-                var selectorDataItem = selector.data[i],
+            for (let i = 0; i < selectorDataLength; i++) {
+                let selectorDataItem = selector.data[i],
                     selectorDataExprs: SQExpr[];
 
                 if ((<DataViewScopeIdentity>selectorDataItem).expr) {
@@ -164,7 +164,7 @@ module powerbi.data {
             if (x.length !== y.length)
                 return false;
 
-            for (var i = 0, len = x.length; i < len; i++) {
+            for (let i = 0, len = x.length; i < len; i++) {
                 if (!equalsData(x[i], y[i]))
                     return false;
             }
@@ -182,10 +182,10 @@ module powerbi.data {
         }
 
         export function getKey(selector: Selector): string {
-            var toStringify: any = {};
+            let toStringify: any = {};
             if (selector.data) {
-                var data = [];
-                for (var i = 0, ilen = selector.data.length; i < ilen; i++) {
+                let data = [];
+                for (let i = 0, ilen = selector.data.length; i < ilen; i++) {
                     data.push(selector.data[i].key);
                 }
                 toStringify.data = data;
@@ -200,12 +200,12 @@ module powerbi.data {
         export function containsWildcard(selector: Selector): boolean {
             debug.assertValue(selector, 'selector');
 
-            var dataItems = selector.data;
+            let dataItems = selector.data;
             if (!dataItems)
                 return false;
 
-            for (var i = 0, len = dataItems.length; i < len; i++) {
-                var wildcard = <DataViewScopeWildcard>dataItems[i];
+            for (let i = 0, len = dataItems.length; i < len; i++) {
+                let wildcard = <DataViewScopeWildcard>dataItems[i];
                 if (wildcard.exprs)
                     return true;
             }

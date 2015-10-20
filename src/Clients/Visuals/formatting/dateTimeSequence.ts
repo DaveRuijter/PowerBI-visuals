@@ -72,7 +72,7 @@ module powerbi {
          * @param max - new max to be covered by sequence
          */
         public extendToCover(min: Date, max: Date): void {
-            var x: Date = this.min;
+            let x: Date = this.min;
             while (min < x) {
                 x = DateTimeSequence.addInterval(x, -this.interval, this.unit);
                 this.sequence.splice(0, 0, x);
@@ -93,8 +93,8 @@ module powerbi {
          * @param max - new max to be covered by sequence
          */
         public moveToCover(min: Date, max: Date): void { 
-            var delta: number = DateTimeSequence.getDelta(min, max, this.unit);
-            var count = Math.floor(delta / this.interval);
+            let delta: number = DateTimeSequence.getDelta(min, max, this.unit);
+            let count = Math.floor(delta / this.interval);
             this.min = DateTimeSequence.addInterval(this.min, count * this.interval, this.unit);
 
             this.sequence = [];            
@@ -146,14 +146,14 @@ module powerbi {
             debug.assert(!expectedCount || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "Expected count is out of range");
 
             // Calculate range and sequence
-            var yearsRange = NumericSequenceRange.calculateDataRange(dataMin.getFullYear(), dataMax.getFullYear(), false);
-            var yearsSequence = NumericSequence.calculate(yearsRange, expectedCount, 0);
-            var years = yearsSequence.sequence;
+            let yearsRange = NumericSequenceRange.calculateDataRange(dataMin.getFullYear(), dataMax.getFullYear(), false);
+            let yearsSequence = NumericSequence.calculate(yearsRange, expectedCount, 0);
+            let years = yearsSequence.sequence;
 
             // Convert to date sequence
-            var result = new DateTimeSequence(DateTimeUnit.Year);
-            for (var i = 0; i < years.length; i++) { 
-                var year = years[i];
+            let result = new DateTimeSequence(DateTimeUnit.Year);
+            for (let i = 0; i < years.length; i++) { 
+                let year = years[i];
                 if (year) {
                     result.add(new Date(year, 0, 1));
                 }
@@ -169,17 +169,17 @@ module powerbi {
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
             // Calculate range
-            var minYear = dataMin.getFullYear();
-            var maxYear = dataMax.getFullYear();
-            var minMonth = dataMin.getMonth();
-            var maxMonth = (maxYear - minYear) * 12 + dataMax.getMonth();
-            var date = new Date(minYear, 0, 1);
+            let minYear = dataMin.getFullYear();
+            let maxYear = dataMax.getFullYear();
+            let minMonth = dataMin.getMonth();
+            let maxMonth = (maxYear - minYear) * 12 + dataMax.getMonth();
+            let date = new Date(minYear, 0, 1);
             
             // Calculate month sequence 
-            var sequence = NumericSequence.calculateUnits(minMonth, maxMonth, expectedCount, [1, 2, 3, 6, 12]);
+            let sequence = NumericSequence.calculateUnits(minMonth, maxMonth, expectedCount, [1, 2, 3, 6, 12]);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Month);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Month);
             return result;
         }
 
@@ -188,21 +188,21 @@ module powerbi {
             debug.assertValue(dataMax, "dataMax");
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
-            var firstDayOfWeek = 0;
-            var minDayOfWeek = dataMin.getDay();
-            var dayOffset = (minDayOfWeek - firstDayOfWeek + 7) % 7;
-            var minDay = dataMin.getDate() - dayOffset;
+            let firstDayOfWeek = 0;
+            let minDayOfWeek = dataMin.getDay();
+            let dayOffset = (minDayOfWeek - firstDayOfWeek + 7) % 7;
+            let minDay = dataMin.getDate() - dayOffset;
 
             // Calculate range
-            var date = new Date(dataMin.getFullYear(), dataMin.getMonth(), minDay);
-            var min = 0;
-            var max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Week));
+            let date = new Date(dataMin.getFullYear(), dataMin.getMonth(), minDay);
+            let min = 0;
+            let max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Week));
 
             // Calculate week sequence
-            var sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 4, 8]);
+            let sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 4, 8]);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Week);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Week);
             return result;
         }
 
@@ -212,15 +212,15 @@ module powerbi {
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
             // Calculate range
-            var date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate());
-            var min = 0;
-            var max = Double.ceilWithPrecision(DateTimeSequence.getDelta(dataMin, dataMax, DateTimeUnit.Day));
+            let date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate());
+            let min = 0;
+            let max = Double.ceilWithPrecision(DateTimeSequence.getDelta(dataMin, dataMax, DateTimeUnit.Day));
             
             // Calculate day sequence
-            var sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 7, 14]);
+            let sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 7, 14]);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Day);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Day);
             return result;
         }
 
@@ -230,15 +230,15 @@ module powerbi {
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
             // Calculate range
-            var date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate());
-            var min = Double.floorWithPrecision(DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Hour));
-            var max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Hour));
+            let date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate());
+            let min = Double.floorWithPrecision(DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Hour));
+            let max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Hour));
             
             // Calculate hour sequence
-            var sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 3, 6, 12, 24]);
+            let sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 3, 6, 12, 24]);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Hour);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Hour);
             return result;
         }
 
@@ -248,15 +248,15 @@ module powerbi {
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
             // Calculate range
-            var date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate(), dataMin.getHours());
-            var min = Double.floorWithPrecision(DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Minute));
-            var max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Minute));
+            let date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate(), dataMin.getHours());
+            let min = Double.floorWithPrecision(DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Minute));
+            let max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Minute));
 
             // Calculate minutes numeric sequence
-            var sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 5, 10, 15, 30, 60, 60 * 2, 60 * 3, 60 * 6, 60 * 12, 60 * 24]);
+            let sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 5, 10, 15, 30, 60, 60 * 2, 60 * 3, 60 * 6, 60 * 12, 60 * 24]);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Minute);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Minute);
             return result;
         }
 
@@ -266,15 +266,15 @@ module powerbi {
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
             // Calculate range
-            var date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate(), dataMin.getHours(), dataMin.getMinutes());
-            var min = Double.floorWithPrecision(DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Second));
-            var max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Second));
+            let date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate(), dataMin.getHours(), dataMin.getMinutes());
+            let min = Double.floorWithPrecision(DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Second));
+            let max = Double.ceilWithPrecision(DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Second));
 
             // Calculate minutes numeric sequence
-            var sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 5, 10, 15, 30, 60, 60 * 2, 60 * 5, 60 * 10, 60 * 15, 60 * 30, 60 * 60]);
+            let sequence = NumericSequence.calculateUnits(min, max, expectedCount, [1, 2, 5, 10, 15, 30, 60, 60 * 2, 60 * 5, 60 * 10, 60 * 15, 60 * 30, 60 * 60]);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Second);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Second);
             return result;
         }
 
@@ -284,23 +284,23 @@ module powerbi {
             debug.assert(expectedCount === undefined || (expectedCount >= DateTimeSequence.MIN_COUNT && expectedCount <= DateTimeSequence.MAX_COUNT), "expected count is out of range");
 
             // Calculate range
-            var date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate(), dataMin.getHours(), dataMin.getMinutes(), dataMin.getSeconds());
-            var min = DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Millisecond);
-            var max = DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Millisecond);
+            let date = new Date(dataMin.getFullYear(), dataMin.getMonth(), dataMin.getDate(), dataMin.getHours(), dataMin.getMinutes(), dataMin.getSeconds());
+            let min = DateTimeSequence.getDelta(date, dataMin, DateTimeUnit.Millisecond);
+            let max = DateTimeSequence.getDelta(date, dataMax, DateTimeUnit.Millisecond);
             
             // Calculate milliseconds numeric sequence
-            var sequence = NumericSequence.calculate(NumericSequenceRange.calculate(min, max), expectedCount, 0);
+            let sequence = NumericSequence.calculate(NumericSequenceRange.calculate(min, max), expectedCount, 0);
 
             // Convert to date sequence
-            var result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Millisecond);
+            let result = DateTimeSequence.fromNumericSequence(date, sequence, DateTimeUnit.Millisecond);
             return result;
         }
 
         private static fromNumericSequence(date: Date, sequence: NumericSequence, unit: DateTimeUnit) { 
-            var result = new DateTimeSequence(unit);
-            for (var i = 0; i < sequence.sequence.length; i++) { 
-                var x: number = sequence.sequence[i];
-                var d: Date = DateTimeSequence.addInterval(date, x, unit);
+            let result = new DateTimeSequence(unit);
+            for (let i = 0; i < sequence.sequence.length; i++) { 
+                let x: number = sequence.sequence[i];
+                let d: Date = DateTimeSequence.addInterval(date, x, unit);
                 result.add(d);
             }
             result.interval = sequence.interval;
@@ -332,7 +332,7 @@ module powerbi {
         }
 
         private static getDelta(min: Date, max: Date, unit: DateTimeUnit): number {
-            var delta: number = 0;
+            let delta: number = 0;
             switch (unit) {
                 case DateTimeUnit.Year:
                     delta = max.getFullYear() - min.getFullYear();
@@ -364,30 +364,30 @@ module powerbi {
 
         public static getIntervalUnit(min:Date, max:Date, maxCount: number): DateTimeUnit {
             maxCount = Math.max(maxCount, 2);
-            var totalDays = DateTimeSequence.getDelta(min, max, DateTimeUnit.Day);            
+            let totalDays = DateTimeSequence.getDelta(min, max, DateTimeUnit.Day);            
             if (totalDays > 356 && totalDays >= 30 * 6 * maxCount)
                 return DateTimeUnit.Year;
             if (totalDays > 60 && totalDays > 7 * maxCount)
                 return DateTimeUnit.Month;
             if (totalDays > 14 && totalDays > 2 * maxCount)
                 return DateTimeUnit.Week;
-            var totalHours = DateTimeSequence.getDelta(min, max, DateTimeUnit.Hour);
+            let totalHours = DateTimeSequence.getDelta(min, max, DateTimeUnit.Hour);
             if (totalDays > 2 && totalHours > 12 * maxCount)
                 return DateTimeUnit.Day;
             if (totalHours >= 24 && totalHours >= maxCount)
                 return DateTimeUnit.Hour;
-            var totalMinutes = DateTimeSequence.getDelta(min, max, DateTimeUnit.Minute);
+            let totalMinutes = DateTimeSequence.getDelta(min, max, DateTimeUnit.Minute);
             if (totalMinutes > 2 && totalMinutes >= maxCount)
                 return DateTimeUnit.Minute;
-            var totalSeconds = DateTimeSequence.getDelta(min, max, DateTimeUnit.Second);
+            let totalSeconds = DateTimeSequence.getDelta(min, max, DateTimeUnit.Second);
             if (totalSeconds > 2 && totalSeconds >= 0.8 * maxCount)
                 return DateTimeUnit.Second;
-            var totalMilliseconds = DateTimeSequence.getDelta(min, max, DateTimeUnit.Millisecond);
+            let totalMilliseconds = DateTimeSequence.getDelta(min, max, DateTimeUnit.Millisecond);
             if (totalMilliseconds > 0)
                 return DateTimeUnit.Millisecond;
   
             // If the size of the range is 0 we need to guess the unit based on the date's non-zero values starting with milliseconds
-            var date = min;
+            let date = min;
             if (date.getMilliseconds() !== 0)
                 return DateTimeUnit.Millisecond;
             if (date.getSeconds() !== 0)
@@ -407,8 +407,8 @@ module powerbi {
 
     /** DateUtils module provides DateTimeSequence with set of additional date manipulation routines */
     export module DateUtils { 
-        var MonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        var MonthDaysLeap = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let MonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        let MonthDaysLeap = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
         /**
          * Returns bool indicating weither the provided year is a leap year.
@@ -433,13 +433,13 @@ module powerbi {
          * @param yearDelta - number of years to add
          */
         export function addYears(date: Date, yearDelta: number): Date { 
-            var year = date.getFullYear();
-            var month = date.getMonth();
-            var day = date.getDate();
-            var isLeapDay = month === 2 && day === 29;
+            let year = date.getFullYear();
+            let month = date.getMonth();
+            let day = date.getDate();
+            let isLeapDay = month === 2 && day === 29;
 
-            var result = new Date(date.getTime());
-            var year = year + yearDelta;
+            let result = new Date(date.getTime());
+            year = year + yearDelta;
             if (isLeapDay && !isLeap(year)) {
                 day = 28;
             } 
@@ -453,11 +453,11 @@ module powerbi {
          * @param monthDelta - number of months to add
          */
         export function addMonths(date: Date, monthDelta: number): Date { 
-            var year = date.getFullYear();
-            var month = date.getMonth();
-            var day = date.getDate();
+            let year = date.getFullYear();
+            let month = date.getMonth();
+            let day = date.getDate();
            
-            var result = new Date(date.getTime());
+            let result = new Date(date.getTime());
             year += (monthDelta - (monthDelta % 12)) / 12;
             month += monthDelta % 12;
 
@@ -488,10 +488,10 @@ module powerbi {
          * @param days - number of days to add
          */
         export function addDays(date: Date, days: number): Date { 
-            var year = date.getFullYear();
-            var month = date.getMonth();
-            var day = date.getDate();           
-            var result = new Date(date.getTime());
+            let year = date.getFullYear();
+            let month = date.getMonth();
+            let day = date.getDate();           
+            let result = new Date(date.getTime());
             result.setFullYear(year, month, day + days);
             return result;
         }

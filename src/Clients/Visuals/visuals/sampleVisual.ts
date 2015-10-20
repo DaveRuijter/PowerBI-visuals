@@ -77,12 +77,13 @@ import SelectionManager = utility.SelectionManager;
                 },
             ],
             dataViewMappings: [{
-                categories: {
-                    for: { in: 'Category' },
-                    dataReductionAlgorithm: { top: {} }
-                },
-                values: {
-                    select: [{ bind: { to: 'Y' } }]
+                categorical: {
+                    categories: {
+                        for: { in: 'Category' },
+                    },
+                    values: {
+                        select: [{ bind: { to: 'Y' } }]
+                    },
                 },
             }],
             objects: {
@@ -95,7 +96,7 @@ import SelectionManager = utility.SelectionManager;
                         },
                         width: {
                             displayName: '',
-                            type: { numeric:true }
+                            type: { numeric: true }
                         }
                     }
                 },
@@ -106,7 +107,7 @@ import SelectionManager = utility.SelectionManager;
                             displayName: 'Background color',
                             type: { fill: { solid: { color: true } } }
                         },
-                        
+
                     }
                 }
             }
@@ -125,39 +126,44 @@ import SelectionManager = utility.SelectionManager;
         private selectionManager: SelectionManager;
 
         public static converter(dataView: DataView): CheerData {
-            var cat = dataView.categorical.categories[0];
-            var catValues = cat.values;
-            var values = dataView.categorical.values[0].values;
-            var objects = dataView.categorical.categories[0].objects;
-            var object1 = objects && objects.length > 0 ? objects[0] : undefined;
-            var object2 = objects && objects.length > 1 ? objects[1] : undefined;
-            var metadataObjects = dataView.metadata.objects;
-            var backgroundColor = CheerMeter.DefaultBackgroundColor;
+            if (!dataView.categorical || !dataView.categorical.categories) return null;
+            let cat = dataView.categorical.categories[0];
+            if (!cat) return null;
+            let catValues = cat.values;
+            if (!catValues || !dataView.categorical.values) return null;
+            let values = dataView.categorical.values[0].values;
+            let objects = dataView.categorical.categories[0].objects;
+            let object1 = objects && objects.length > 0 ? objects[0] : undefined;
+            let object2 = objects && objects.length > 1 ? objects[1] : undefined;
+            let metadataObjects = dataView.metadata.objects;
+            let backgroundColor = CheerMeter.DefaultBackgroundColor;
             if (metadataObjects) {
-                var general = metadataObjects['general'];
+                let general = metadataObjects['general'];
                 if (general) {
-                    var fill = <Fill>general['fill'];
+                    let fill = <Fill>general['fill'];
                     if (fill) {
                         backgroundColor = fill.solid.color;
                     }
                 }
             }
 
-            var color1 = DataViewObjects.getFillColor(
+            let color1 = DataViewObjects.getFillColor(
                 object1,
                 cheerMeterProps.dataPoint.fill,
                 CheerMeter.DefaultFontColor);
 
-            var color2 = DataViewObjects.getFillColor(
+            let color2 = DataViewObjects.getFillColor(
                 object2,
                 cheerMeterProps.dataPoint.fill,
                 CheerMeter.DefaultFontColor);
 
-            var categoryIdentities = cat.identity;
-            var idn1 = categoryIdentities ? SelectionId.createWithId(categoryIdentities[0], 
-                /* highlight */ false) : SelectionId.createNull();
-            var idn2 = categoryIdentities ? SelectionId.createWithId(categoryIdentities[1], 
-                /* highlight */ false) : SelectionId.createNull();
+            var idn1 = SelectionIdBuilder.builder()
+                .withCategory(cat, 0)
+                .createSelectionId();
+            var idn2 = SelectionIdBuilder.builder()
+                .withCategory(cat, 1)
+                .createSelectionId();
+
             var data = {
                 teamA: {
                     name: catValues[0],
@@ -190,23 +196,24 @@ import SelectionManager = utility.SelectionManager;
 
         public update(options: VisualUpdateOptions) {
             if (!options.dataViews[0]) { return; }
-            var data = this.data = CheerMeter.converter(options.dataViews[0]);
-            var duration = options.suppressAnimations ? 0 : AnimatorCommon.MinervaAnimationDuration;
+            let data = this.data = CheerMeter.converter(options.dataViews[0]);
+            if (!data) return;
+            let duration = options.suppressAnimations ? 0 : AnimatorCommon.MinervaAnimationDuration;
             this.draw(data, duration, options.viewport);
         }
 
         private getRecomendedFontProperties(text1: string, text2: string, parentViewport: IViewport): TextProperties {
-            var textProperties: TextProperties = {
+            let textProperties: TextProperties = {
                 fontSize: '',
                 fontFamily: CheerMeter.DefaultFontFamily,
                 text: text1 + text2
             };
 
-            var min = 1;
-            var max = 1000;
-            var i;
-            var maxWidth = parentViewport.width;
-            var width = 0;
+            let min = 1;
+            let max = 1000;
+            let i;
+            let maxWidth = parentViewport.width;
+            let width = 0;
 
             while (min <= max) {
                 i = (min + max) / 2 | 0;
@@ -233,30 +240,30 @@ import SelectionManager = utility.SelectionManager;
         }
 
         private calculateLayout(data: CheerData, viewport: IViewport): CheerLayout {
-            var text1 = data.teamA.name;
-            var text2 = data.teamB.name;
+            let text1 = data.teamA.name;
+            let text2 = data.teamB.name;
 
-            var avaliableViewport: IViewport = {
+            let avaliableViewport: IViewport = {
                 height: viewport.height,
                 width: viewport.width - CheerMeter.PaddingBetweenText
             };
-            var recomendedFontProperties = this.getRecomendedFontProperties(text1, text2, avaliableViewport);
+            let recomendedFontProperties = this.getRecomendedFontProperties(text1, text2, avaliableViewport);
 
             recomendedFontProperties.text = text1;
-            var width1 = TextMeasurementService.measureSvgTextWidth(recomendedFontProperties) | 0;
+            let width1 = TextMeasurementService.measureSvgTextWidth(recomendedFontProperties) | 0;
 
             recomendedFontProperties.text = text2;
-            var width2 = TextMeasurementService.measureSvgTextWidth(recomendedFontProperties) | 0;
+            let width2 = TextMeasurementService.measureSvgTextWidth(recomendedFontProperties) | 0;
 
-            var padding = ((viewport.width - width1 - width2 - CheerMeter.PaddingBetweenText) / 2) | 0;
+            let padding = ((viewport.width - width1 - width2 - CheerMeter.PaddingBetweenText) / 2) | 0;
 
             recomendedFontProperties.text = text1 + text2;
-            var offsetHeight = (TextMeasurementService.measureSvgTextHeight(recomendedFontProperties)) | 0;
+            let offsetHeight = (TextMeasurementService.measureSvgTextHeight(recomendedFontProperties)) | 0;
 
-            var max = data.teamA.value + data.teamB.value;
-            var availableHeight = viewport.height - offsetHeight;
-            var y1 = (((max - data.teamA.value) / max) * availableHeight + offsetHeight / 2) | 0;
-            var y2 = (((max - data.teamB.value) / max) * availableHeight + offsetHeight / 2) | 0;
+            let max = data.teamA.value + data.teamB.value;
+            let availableHeight = viewport.height - offsetHeight;
+            let y1 = (((max - data.teamA.value) / max) * availableHeight + offsetHeight / 2) | 0;
+            let y2 = (((max - data.teamB.value) / max) * availableHeight + offsetHeight / 2) | 0;
 
             return {
                 x1: padding,
@@ -270,7 +277,7 @@ import SelectionManager = utility.SelectionManager;
         private ensureStartState(layout: CheerLayout, viewport: IViewport) {
             if (this.isFirstTime) {
                 this.isFirstTime = false;
-                var startY = viewport.height / 2;
+                let startY = viewport.height / 2;
                 this.textOne.attr(
                     {
                         'x': layout.x1,
@@ -302,9 +309,9 @@ import SelectionManager = utility.SelectionManager;
         }
 
         private draw(data: CheerData, duration: number, viewport: IViewport) {
-            var easeName = 'back';
-            var textOne = this.textOne;
-            var textTwo = this.textTwo;
+            let easeName = 'back';
+            let textOne = this.textOne;
+            let textTwo = this.textTwo;
 
             this.svg
                 .attr({
@@ -316,7 +323,7 @@ import SelectionManager = utility.SelectionManager;
                 })
                 .style('background-color', data.background);
 
-            var layout = this.calculateLayout(data, viewport);
+            let layout = this.calculateLayout(data, viewport);
 
             this.ensureStartState(layout, viewport);
 
@@ -324,7 +331,7 @@ import SelectionManager = utility.SelectionManager;
                 .style('font-size', layout.fontSize)
                 .style('fill', data.teamA.color)
                 .on('click', () => {
-                this.selectionManager.select(data.teamA.identity, d3.event.ctrlKey).then((ids) => {
+                    this.selectionManager.select(data.teamA.identity, d3.event.ctrlKey).then((ids) => {
                         this.updateSelectionUI(ids);
                     });
                     d3.event.stopPropagation();
@@ -335,7 +342,7 @@ import SelectionManager = utility.SelectionManager;
                 .style('font-size', layout.fontSize)
                 .style('fill', data.teamB.color)
                 .on('click', () => {
-                this.selectionManager.select(data.teamB.identity, d3.event.ctrlKey).then((ids) => {
+                    this.selectionManager.select(data.teamB.identity, d3.event.ctrlKey).then((ids) => {
                         this.updateSelectionUI(ids);
                     });
                     d3.event.stopPropagation();
@@ -365,20 +372,20 @@ import SelectionManager = utility.SelectionManager;
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
-            var instances: VisualObjectInstance[] = [];
-            var data = this.data;
+            let instances: VisualObjectInstance[] = [];
+            let data = this.data;
             switch (options.objectName) {
                 case 'dataPoint':
                     if (data) {
-                        var teams = [data.teamA, data.teamB];
+                        let teams = [data.teamA, data.teamB];
 
-                        for (var i = 0; i < teams.length; i++) {
-                            var slice = teams[i];
+                        for (let i = 0; i < teams.length; i++) {
+                            let slice = teams[i];
 
-                            var color = slice.color;
-                            var selector = slice.identity;
+                            let color = slice.color;
+                            let selector = slice.identity;
 
-                            var dataPointInstance: VisualObjectInstance = {
+                            let dataPointInstance: VisualObjectInstance = {
                                 objectName: 'dataPoint',
                                 displayName: slice.name,
                                 selector: selector,
@@ -392,7 +399,7 @@ import SelectionManager = utility.SelectionManager;
                     }
                     break;
                 case 'general':
-                    var general: VisualObjectInstance = {
+                    let general: VisualObjectInstance = {
                         objectName: 'general',
                         displayName: 'General',
                         selector: null,

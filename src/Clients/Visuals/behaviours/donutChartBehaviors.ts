@@ -28,39 +28,39 @@
 
 module powerbi.visuals {
     export interface DonutBehaviorOptions {
-        datapoints: SelectableDataPoint[];
         slices: D3.Selection;
         highlightSlices: D3.Selection;
         clearCatcher: D3.Selection;
-        allowDrilldown: boolean;
-        visual: DonutChart;
         hasHighlights: boolean;
-        svg: D3.Selection;
     }
 
-    export class DonutChartWebBehavior {
-        private allowDrilldown: boolean;
-        private isDrilled: boolean;
-        private visual: DonutChart;
-        private svg: D3.Selection;
+    export class DonutChartWebBehavior implements IInteractiveBehavior {
+        private slices: D3.Selection;
+        private highlightSlices: D3.Selection;
+        private hasHighlights: boolean;
 
-        constructor(options: DonutBehaviorOptions) {
-            this.allowDrilldown = options.allowDrilldown;
-            this.visual = options.visual;
-            this.svg = options.clearCatcher;
-            this.isDrilled = false;
+        public bindEvents(options: DonutBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            let slices = this.slices = options.slices;
+            let highlightSlices = this.highlightSlices = options.highlightSlices;
+            let clearCatcher = options.clearCatcher;
+            this.hasHighlights = options.hasHighlights;
+
+            let clickHandler = (d: DonutArcDescriptor) => {
+                selectionHandler.handleSelection(d.data, d3.event.ctrlKey);
+            };
+
+            slices.on('click', clickHandler);
+            highlightSlices.on('click', clickHandler);
+
+            clearCatcher.on('click', () => {
+                selectionHandler.handleClearSelection();
+            });
         }
 
-        public select(hasSelection: boolean, selection: D3.Selection, highlighted: boolean, hasHighlights: boolean, data?: DonutDataPoint): void {
-            if (hasSelection && this.allowDrilldown) {
-                // If we are not already drilled down then drill down into this data
-                var dataToShow = !this.isDrilled ? data : undefined;
-                this.visual.setDrilldown(dataToShow);
-                this.isDrilled = !this.isDrilled;
-            }
-            else {
-                selection.style("fill-opacity", (d: DonutArcDescriptor) => ColumnUtil.getFillOpacity(d.data.selected, highlighted, !highlighted && hasSelection, !d.data.selected && hasHighlights));
-            }
+        public renderSelection(hasSelection: boolean): void {
+            let hasHighlights = this.hasHighlights;
+            this.slices.style("fill-opacity", (d: DonutArcDescriptor) => ColumnUtil.getFillOpacity(d.data.selected, false, hasSelection, hasHighlights && !d.data.selected));
+            this.highlightSlices.style("fill-opacity", (d: DonutArcDescriptor) => ColumnUtil.getFillOpacity(d.data.selected, true, false, hasHighlights));
         }
     }
 }  

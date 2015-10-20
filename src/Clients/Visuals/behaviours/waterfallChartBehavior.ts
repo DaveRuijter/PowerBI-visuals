@@ -28,14 +28,24 @@
 
 module powerbi.visuals {
     export interface WaterfallChartBehaviorOptions {
-        datapoints: SelectableDataPoint[];
         bars: D3.Selection;
-        clearCatcher: D3.Selection;
     }
 
     export class WaterfallChartWebBehavior {
-        public select(hasSelection: boolean, selection: D3.Selection) {
-            selection.style("fill-opacity",(d: WaterfallChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, false));
+        private bars: D3.Selection;
+
+        public bindEvents(options: WaterfallChartBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            let bars = this.bars = options.bars;
+
+            bars.on('click', (d: WaterfallChartDataPoint) => {
+                if (!d.isTotal) {
+                    selectionHandler.handleSelection(d, d3.event.ctrlKey);
+                }
+            });
+        }
+
+        public renderSelection(hasSelection: boolean): void {
+            this.bars.style("fill-opacity", (d: WaterfallChartDataPoint) => d.isTotal ? ColumnUtil.DefaultOpacity : ColumnUtil.getFillOpacity(d.selected, d.highlight, hasSelection, false));
         }
     }
 }  

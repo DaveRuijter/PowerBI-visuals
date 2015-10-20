@@ -33,7 +33,9 @@ module powerbitests {
     import DataViewTransform = powerbi.data.DataViewTransform;
     import SVGUtil = powerbi.visuals.SVGUtil;
     import ColorConverter = powerbitests.utils.ColorUtility.convertFromRGBorHexToHex;
-
+    import valueFormatter = powerbi.visuals.valueFormatter;
+    import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
+    import waterfallChartProps = powerbi.visuals.waterfallChartProps;
     powerbitests.mocks.setLocale();
 
     describe("WaterfallChart", () => {
@@ -404,224 +406,7 @@ module powerbitests {
                 return $('.brush .extent');
             }
         });
-
-        describe("data labels validation", () => {
-            var v: powerbi.IVisual;
-            var dataView: powerbi.DataView;
-
-            beforeEach(() => {
-                // Larger values so we can test label formatting
-                dataView = new WaterfallDataBuilder()
-                    .withMeasureValues([10000, -20000, 25000, 200, -100, 0], -10000, 15100, 15100)
-                    .build();
-
-                v = new WaterfallVisualBuilder().build();
-
-            });
-
-            it("verify labels in DOM", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true,
-                        labelPrecision: 0
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    var labels = getDataLabels();
-
-                    expect(labels).toBeInDOM();
-                    expect(labels.first().text()).toBe("10K");
-                    expect(labels.last().text()).toBe("15K");  // Total
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("labels should be visible", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true
-                    }
-                };
-                
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    // 7 data points and 1 total (no overlapping)
-                    expect(getDataLabels().length).toBe(7);
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("labels should be hidden", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: false
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    expect(getDataLabels()).not.toBeInDOM();
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("labels should respect display unit setting", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true,
-                        labelDisplayUnits: 10,
-                        labelPrecision: 0
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    expect(getDataLabels().first().text()).toBe('10,000');
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("labels should support display units with no precision", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true,
-                        labelDisplayUnits: 1000,
-                        labelPrecision: 0
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    expect(getDataLabels().last().text()).toBe("15K");  // Total
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("labels should support display units with precision", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true,
-                        labelDisplayUnits: 1000,
-                        labelPrecision: 1
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    expect(getDataLabels().last().text()).toBe("15.1K");  // Total
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("label color should be overriden", (done) => {
-                var expectedColor = "#000001";
-                var expectedColorInside = powerbi.visuals.dataLabelUtils.defaultInsideLabelColor;
-
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true,
-                        color: { solid: { color: expectedColor } }
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    var labels = getDataLabels();
-
-                    labels.each((i, label) => {
-                        if (i === 1)
-                            expect(getFillColor($(label))).toBe(expectedColorInside);
-                        else
-                        expect(getFillColor($(label))).toBe(expectedColor);
-                    });
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("label color should be the default color", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    var labels = getDataLabels();
-
-                    for (var i = 0, len = labels.length; i < len; i++) {
-                        var labelColor = getFillColor(labels.eq(i));
-
-                        expect(labelColor).toBe(labelColor);
-                    }
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("label for negative values should be below the bar", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-
-                setTimeout(() => {
-                    var negativeLabel = getDataLabels().eq(4);
-                    var negativeRect = getRects().eq(4);
-
-                    var labelY = parseFloat(negativeLabel.attr("y"));
-                    var rectBottomY = parseFloat(negativeRect.attr("y")) + parseFloat(negativeRect.attr("height"));
-
-                    expect(labelY).toBeGreaterThan(rectBottomY);
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            // After visual resizing, labels that bigger than shapes, aren't in the DOM
-            it("labels that don't fit inside or above the shape should be hidden", (done) => {
-                dataView.metadata.objects = {
-                    labels: {
-                        show: true
-                    }
-                };
-
-                v.onDataChanged({ dataViews: [dataView] });
-                v.onResizing({ height: 500, width: 200 });
-
-                setTimeout(() => {
-                    
-                    //one positive label collaide with another label (index 3), and the total label is outside view port, so only 5 labels visible
-                    expect(getDataLabels().length).toBe(5);
-
-                    setTimeout(() => {
-                        v.onResizing({ height: 10, width: 200 });
-
-                        expect(getDataLabels().length).toBe(0);
-                    done();
-                }, DefaultWaitForRender);
-                }, DefaultWaitForRender);
-            });
-        });
-
+        
         describe("enumerateObjectInstances", () => {
             var v: powerbi.IVisual;
 
@@ -639,8 +424,8 @@ module powerbitests {
                 var dataView = new WaterfallDataBuilder().build();
 
                 v.onDataChanged({ dataViews: [dataView] });
-
-                verifyLabels();
+                var format = valueFormatter.getFormatString(dataView.categorical.values[0].source, waterfallChartProps.general.formatString);
+                verifyLabels(format);
             });
 
             it("should include sentiment colors with empty data", () => {
@@ -658,22 +443,22 @@ module powerbitests {
             });
 
             function verifyColors() {
-                var objects = v.enumerateObjectInstances({ objectName: "sentimentColors" });
+                var objects = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: "sentimentColors" });
 
-                expect(objects.length).toBe(1);
-                expect(objects[0].properties["increaseFill"]).toBeDefined();
-                expect(objects[0].properties["decreaseFill"]).toBeDefined();
-                expect(objects[0].properties["totalFill"]).toBeDefined();
+                expect(objects.instances.length).toBe(1);
+                expect(objects.instances[0].properties["increaseFill"]).toBeDefined();
+                expect(objects.instances[0].properties["decreaseFill"]).toBeDefined();
+                expect(objects.instances[0].properties["totalFill"]).toBeDefined();
             };
-            
-            function verifyLabels() {
-                var objects = v.enumerateObjectInstances({ objectName: "labels" });
-                var defaultLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
 
-                expect(objects.length).toBe(1);
-                expect(objects[0].properties).toBeDefined();
+            function verifyLabels(format?: string) {
+                var objects = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: "labels" });
+                var defaultLabelSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings(undefined, undefined, format);
 
-                var properties = objects[0].properties;
+                expect(objects.instances.length).toBe(1);
+                expect(objects.instances[0].properties).toBeDefined();
+
+                var properties = objects.instances[0].properties;
 
                 expect(properties["color"]).toBe(defaultLabelSettings.labelColor);
                 expect(properties["show"]).toBe(false);
@@ -690,7 +475,7 @@ module powerbitests {
             beforeEach(() => {
                 visualBuilder = new WaterfallVisualBuilder();
                 dataBuilder = new WaterfallDataBuilder();
-                v = visualBuilder.build();
+                v = visualBuilder.build(true);
             });
 
             it('should select right data', (done) => {
@@ -735,7 +520,7 @@ module powerbitests {
                     (<any>rects.first()).d3Click(0, 0);
 
                     var clearCatcher = $('.clearCatcher');
-                    (<any>$(clearCatcher[1])).d3Click(0, 0); 
+                    (<any>$(clearCatcher[0])).d3Click(0, 0); 
 
                     expect(visualBuilder.host.onSelect).toHaveBeenCalledWith(
                         {
@@ -820,6 +605,112 @@ module powerbitests {
                     done();
                 }, DefaultWaitForRender);
             });
+            
+            it("should draw data labels when enabled", (done) => {
+                var dataView = new WaterfallDataBuilder().withDataLabels().build();
+
+                v.onDataChanged({ dataViews: [dataView] });
+
+                setTimeout(() => {
+                    expect($(".labelGraphicsContext")).toBeInDOM();
+                    expect($(".labelGraphicsContext .label").length).toBe(7);
+
+                    done();
+                }, DefaultWaitForRender);
+            });
+        });
+
+        describe("label data point creation", () => {
+            let v: powerbi.IVisual;
+
+            beforeEach(() => {
+                v = new WaterfallVisualBuilder().build();
+            });
+
+            it("Label data points have correct text", () => {
+                let dataView = new WaterfallDataBuilder().withDataLabels().build();
+                v.onDataChanged({ dataViews: [dataView] });
+
+                let labelDataPoints = callCreateLabelDataPoints(v);
+                expect(labelDataPoints[0].text).toEqual("100");
+                expect(labelDataPoints[1].text).toEqual("-200");
+                expect(labelDataPoints[2].text).toEqual("0");
+                expect(labelDataPoints[3].text).toEqual("300");
+                expect(labelDataPoints[4].text).toEqual("0");
+                expect(labelDataPoints[5].text).toEqual("0");
+                expect(labelDataPoints[6].text).toEqual("200");
+            });
+
+            it("Label data points have correct default fill", () => {
+                let dataView = new WaterfallDataBuilder().withDataLabels().build();
+                v.onDataChanged({ dataViews: [dataView] });
+
+                let labelDataPoints = callCreateLabelDataPoints(v);
+                expect(labelDataPoints[0].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[1].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[2].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[3].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[4].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[5].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[6].outsideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultLabelColor);
+                expect(labelDataPoints[0].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[1].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[2].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[3].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[4].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[5].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[6].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            });
+
+            it("Label data points have correct fill", () => {
+                let labelColor = "#007700";
+                let dataView = new WaterfallDataBuilder().withDataLabels(labelColor).build();
+                v.onDataChanged({ dataViews: [dataView] });
+
+                let labelDataPoints = callCreateLabelDataPoints(v);
+                expect(labelDataPoints[0].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[1].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[2].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[3].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[4].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[5].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[6].outsideFill).toEqual(labelColor);
+                expect(labelDataPoints[0].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[1].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[2].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[3].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[4].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[5].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+                expect(labelDataPoints[6].insideFill).toEqual(powerbi.visuals.NewDataLabelUtils.defaultInsideLabelColor);
+            });
+            
+            it("Label data points have correct display units", () => {
+                let dataView = new WaterfallDataBuilder().withDataLabels(undefined, 1000, 1).build();
+                v.onDataChanged({ dataViews: [dataView] });
+
+                let labelDataPoints = callCreateLabelDataPoints(v);
+                expect(labelDataPoints[0].text).toEqual("0.1K");
+                expect(labelDataPoints[1].text).toEqual("-0.2K");
+                expect(labelDataPoints[2].text).toEqual("0.0K");
+                expect(labelDataPoints[3].text).toEqual("0.3K");
+                expect(labelDataPoints[4].text).toEqual("0.0K");
+                expect(labelDataPoints[5].text).toEqual("0.0K");
+                expect(labelDataPoints[6].text).toEqual("0.2K");
+            });
+
+            it("Label data points have correct precision", () => {
+                let dataView = new WaterfallDataBuilder().withDataLabels(undefined, undefined, 2).build();
+                v.onDataChanged({ dataViews: [dataView] });
+
+                let labelDataPoints = callCreateLabelDataPoints(v);
+                expect(labelDataPoints[0].text).toEqual("100.00");
+                expect(labelDataPoints[1].text).toEqual("-200.00");
+                expect(labelDataPoints[2].text).toEqual("0.00");
+                expect(labelDataPoints[3].text).toEqual("300.00");
+                expect(labelDataPoints[4].text).toEqual("0.00");
+                expect(labelDataPoints[5].text).toEqual("0.00");
+                expect(labelDataPoints[6].text).toEqual("200.00");
+            });
         });
 
         function getFillColor(element: JQuery): string {
@@ -834,13 +725,13 @@ module powerbitests {
             return $(".waterfallChart .mainGraphicsContext line.waterfall-connector");
         }
 
-        function getDataLabels(): JQuery {
-            return $('.waterfallChart .labels .data-labels');
-        }
-
         function getTicks(axis: string): JQuery {
             // axis should be either 'x' or 'y'.
             return $('.waterfallChart .axisGraphicsContext .' + axis + '.axis .tick');
+        }
+
+        function callCreateLabelDataPoints(v: powerbi.IVisual): powerbi.LabelDataPoint[] {
+            return (<any>v).layers[0].createLabelDataPoints();
         }
     });
 
@@ -872,6 +763,9 @@ module powerbitests {
         private _dataLabelSettings: powerbi.visuals.VisualDataLabelsSettings = powerbi.visuals.dataLabelUtils.getDefaultLabelSettings();
         public get dataLabelSettings(): powerbi.visuals.VisualDataLabelsSettings { return this._dataLabelSettings; }
 
+        private _objects: powerbi.DataViewObjects;
+        public get objects(): powerbi.DataViewObjects { return this._objects; }
+
         private _sentimentColors: powerbi.visuals.WaterfallChartSentimentColors = {
             increaseFill: <powerbi.Fill> {
                 solid: { color: "#FF0000" }
@@ -888,7 +782,8 @@ module powerbitests {
         public build(): powerbi.DataView {
             return <powerbi.DataView> {
                 metadata: {
-                    columns: [this._categoryColumn, this._measureColumn]
+                    columns: [this._categoryColumn, this._measureColumn],
+                    objects: this._objects,
                 },
                 categorical: {
                     categories: [{
@@ -919,6 +814,20 @@ module powerbitests {
 
             return this;
         }
+
+        public withDataLabels(color?: string, labelDisplayUnits?: number, labelPrecision?: number): WaterfallDataBuilder {
+            if (!this._objects) {
+                this._objects = {};
+            }
+            this._objects["labels"] = <powerbi.visuals.DataLabelObject> {
+                show: true,
+                color: { solid: { color: color } },
+                labelDisplayUnits: labelDisplayUnits,
+                labelPosition: undefined,
+                labelPrecision: labelPrecision,
+            };
+            return this;
+        };
     }
 
     class WaterfallVisualBuilder {

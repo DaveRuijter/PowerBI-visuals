@@ -36,7 +36,7 @@ module jsCommon {
      * Map loading logic.
      */
     var MSMapcontrolLoaded = false;
-	var WaitForMSMapLoad: JQueryDeferred<void> = null;
+    var WaitForMSMapLoad: JQueryDeferred<void> = null;
 
     var PowerViewPackage: IDependency = {
         javaScriptFiles: [
@@ -73,7 +73,7 @@ module jsCommon {
 	}
 
 	export function waitForMapControlLoaded(): JQueryPromise<void> {
-		var task: JQueryDeferred<void>;
+		let task: JQueryDeferred<void>;
 		if (!MSMapcontrolLoaded) {
 			task = WaitForMSMapLoad = $.Deferred<void>();
 		} else {

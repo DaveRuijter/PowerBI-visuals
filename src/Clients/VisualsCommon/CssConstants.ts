@@ -27,11 +27,22 @@
 /// <reference path="_references.ts"/>
 
 module jsCommon {
-
     /**
      * CSS constants.
      */
     export module CssConstants {
+        export interface ClassAndSelector {
+            class: string;
+            selector: string;
+        }
+
+        export function createClassAndSelector(className: string): ClassAndSelector {
+            return {
+                class: className,
+                selector: '.' + className,
+            };
+        }
+
         export const styleAttribute = 'style';
         export const pixelUnits = 'px';
 

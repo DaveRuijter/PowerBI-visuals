@@ -75,6 +75,7 @@ module jsCommon {
         export const hrefAttribute = 'href';
         export const targetAttribute = 'target';
         export const blankValue = '_blank';
+        export const selfValue = '_self';
         export const classAttribute = 'class';
         export const titleAttribute = 'title';
         export const srcAttribute = 'src';
