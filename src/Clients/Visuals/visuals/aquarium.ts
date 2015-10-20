@@ -349,14 +349,16 @@ module powerbi.visuals {
                             this.selectFish(fishy);
                         }
 
-                        d3.event.stopPropagation();                        
+                        d3.event.stopPropagation();
+                    })
+                    .on('mousemove.fish', () => {
+                        fishy.paused = true;
+                    })
+                    .on('mouseout.fish', () => {
+                        fishy.paused = false;
                     });
-                TooltipManager.addTooltip(fishy.body, (tooltipEvent: TooltipEvent) => {
-                    //pause the fish so it's easier to hover - this would be better as an event on tooltip destroy, but there is not one at this stage                   
-                    fishy.paused = true;
-                    setTimeout(() => { fishy.paused = false; }, 5000); 
-                    return fishy.tooltip;
-                });
+
+                TooltipManager.addTooltip(fishy.body, (tooltipEvent: TooltipEvent) => fishy.tooltip);
             }
             
             //otherwise just update positions
