@@ -236,7 +236,7 @@ module powerbi.visuals {
                     //there might be null values which need to be ignored
                     if (!isNaN(value)) {
                         //create a unique identifier per series
-                        var label = catDv.categories[0].values[series];
+                        var label = catDv.categories[0].values[row];
                         var fishId = label + ", series " + series + "_" + row;
                         var labelColour = colors.getColorByIndex(row).value;                                                
                         var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(aquariumProps.general.formatString, catDv, label, value, null, null, series, row);
