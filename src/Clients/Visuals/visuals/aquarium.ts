@@ -405,6 +405,10 @@ module powerbi.visuals {
             if (!viewport)
                 return;
 
+            //protect against being smaller than our draw box (if we have header enabled and we make the box stupidly small)
+            if (!(viewport.height > 0 && viewport.width > 0))
+                return;
+
             this.svg
                 .attr({
                     'height': viewport.height,
