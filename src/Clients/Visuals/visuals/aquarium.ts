@@ -274,8 +274,8 @@ module powerbi.visuals {
                 };
             }
             fishy.tooltip = tooltipInfo;
-            fishy.size = value * 0.3;                          
-            fishy.speed = value * (fishy.speed < 0 ? -1 : 1); //don't change their direction            
+            fishy.size = value * 0.3;
+            fishy.speed = Math.abs(value) * (fishy.speed < 0 ? -1 : 1); //don't change their direction            
             if (fishy.size < 0) fishy.speed /= 2; // #ded
         }
          
