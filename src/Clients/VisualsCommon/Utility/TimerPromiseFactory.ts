@@ -49,7 +49,7 @@ module jsCommon {
             debug.assertValue(delayInMs, 'delayInMs');
             debug.assert(delayInMs >= 0, 'delayInMs must be a positive value.');
 
-            var deferred = $.Deferred<void>();
+            let deferred = $.Deferred<void>();
 
             window.setTimeout(
                 () => deferred.resolve(),

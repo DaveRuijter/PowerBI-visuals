@@ -53,7 +53,7 @@ module powerbi {
         }
 
         public getDetails(resourceProvider: IStringResourceProvider): ErrorDetails {
-            var details: ErrorDetails = {
+            let details: ErrorDetails = {
                 message: resourceProvider.get('ClientError_UnknownClientErrorValue'),
                 additionalErrorInfo: [{ errorInfoKey: resourceProvider.get('ClientError_UnknownClientErrorKey'), errorInfoValue: resourceProvider.get('ClientError_UnknownClientErrorValue'), }],
             };
@@ -87,7 +87,7 @@ module powerbi {
 
         public getDetails(resourceProvider: IStringResourceProvider): ErrorDetails {
             // Use a general error message for a HTTP request failure, since we currently do not know of any specifc error cases at this point in time.
-            var details: ErrorDetails = {
+            let details: ErrorDetails = {
                 message: null,
                 additionalErrorInfo: [
                     { errorInfoKey: resourceProvider.get('DsrError_Key'), errorInfoValue: resourceProvider.get('DsrError_UnknownErrorValue')},
@@ -107,7 +107,7 @@ module powerbi {
         }
 
         public getDetails(resourceProvider: IStringResourceProvider): ErrorDetails {
-            var details: ErrorDetails = {
+            let details: ErrorDetails = {
                 message: '',
                 additionalErrorInfo: [],
             };

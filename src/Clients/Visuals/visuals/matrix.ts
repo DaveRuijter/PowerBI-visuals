@@ -50,6 +50,12 @@ module powerbi.visuals {
          * Undefined for outermost nodes (children of the one root node).
          */
         parent?: MatrixVisualNode;
+
+        /**
+         * queryName of the node.
+         * If the node is not a leaf, the value is undefined.
+         */
+        queryName?: string;
     }
 
     export interface MatrixCornerItem {
@@ -59,7 +65,8 @@ module powerbi.visuals {
     }
 
     export interface MatrixVisualBodyItem {
-        content: any;
+        textContent?: string;
+        domContent?: JQuery;
         isSubtotal: boolean;
     }
     
@@ -78,6 +85,7 @@ module powerbi.visuals {
     export interface MatrixDataViewObject extends DataViewObject {
         rowSubtotals: boolean;
         columnSubtotals: boolean;
+        autoSizeColumnWidth: boolean;
     }
 
     export interface IMatrixHierarchyNavigator extends controls.ITablixHierarchyNavigator, MatrixDataAdapter {
@@ -139,7 +147,7 @@ module powerbi.visuals {
          * Returns the depth of a hierarchy.
          */
         public getDepth(hierarchy: MatrixVisualNode[]): number {
-            var matrixHierarchy = this.getMatrixHierarchy(hierarchy);
+            let matrixHierarchy = this.getMatrixHierarchy(hierarchy);
 
             if (matrixHierarchy)
                 return Math.max(matrixHierarchy.levels.length, 1);
@@ -152,7 +160,7 @@ module powerbi.visuals {
          * Returns the leaf count of a hierarchy.
          */
         public getLeafCount(hierarchy: MatrixVisualNode[]): number {
-            var matrixHierarchy = this.getMatrixHierarchy(hierarchy);
+            let matrixHierarchy = this.getMatrixHierarchy(hierarchy);
             if (matrixHierarchy)
                 return matrixHierarchy.leafNodes.length;
 
@@ -164,7 +172,7 @@ module powerbi.visuals {
          * Returns the leaf member of a hierarchy at a specified index.
          */
         public getLeafAt(hierarchy: MatrixVisualNode[], index: number): MatrixVisualNode {
-            var matrixHierarchy = this.getMatrixHierarchy(hierarchy);
+            let matrixHierarchy = this.getMatrixHierarchy(hierarchy);
             if (matrixHierarchy)
                 return matrixHierarchy.leafNodes[index];
 
@@ -270,8 +278,8 @@ module powerbi.visuals {
         public getIntersection(rowItem: MatrixVisualNode, columnItem: MatrixVisualNode): MatrixVisualBodyItem {
             debug.assertValue(rowItem, 'rowItem');
             debug.assertValue(columnItem, 'columnItem');
-
-            var isSubtotalItem = rowItem.isSubtotal === true || columnItem.isSubtotal === true;
+            var TablixUtils = controls.internal.TablixUtils;
+            let isSubtotalItem = rowItem.isSubtotal === true || columnItem.isSubtotal === true;
 
             if (!rowItem.values)
                 return {
@@ -279,18 +287,24 @@ module powerbi.visuals {
                     isSubtotal: isSubtotalItem,
                 };
 
-            var intersection = <DataViewMatrixNodeValue>(rowItem.values[columnItem.leafIndex]);
+            let intersection = <DataViewMatrixNodeValue>(rowItem.values[columnItem.leafIndex]);
             if (!intersection)
                 return {
-                    content: '',
                     isSubtotal: isSubtotalItem,
                 };
 
-            var formatString = valueFormatter.getFormatString(this.matrix.valueSources[intersection.valueSourceIndex ? intersection.valueSourceIndex : 0], Matrix.formatStringProp);
-            var formattedValue = this.formatter(intersection.value, formatString);
+            let valueSource = this.matrix.valueSources[intersection.valueSourceIndex || 0];
+            let formatString = valueFormatter.getFormatString(valueSource, Matrix.formatStringProp);
+            let formattedValue = this.formatter(intersection.value, formatString);
+
+            if (TablixUtils.isValidStatusGraphic(valueSource.kpiStatusGraphic, formattedValue))
+                return {
+                    domContent: TablixUtils.createKpiDom(valueSource.kpiStatusGraphic, intersection.value),
+                    isSubtotal: isSubtotalItem,
+                };
 
             return {
-                content: formattedValue,
+                textContent: formattedValue,
                 isSubtotal: isSubtotalItem,
             };
         }
@@ -302,11 +316,11 @@ module powerbi.visuals {
             debug.assert(rowLevel >= 0, 'rowLevel');
             debug.assert(columnLevel >= 0, 'columnLevel');
 
-            var columnLevels = this.columnHierarchy.levels;
-            var rowLevels = this.rowHierarchy.levels;
+            let columnLevels = this.columnHierarchy.levels;
+            let rowLevels = this.rowHierarchy.levels;
 
             if (columnLevel === columnLevels.length - 1 || columnLevels.length === 0) {
-                var levelSource = rowLevels[rowLevel];
+                let levelSource = rowLevels[rowLevel];
                 if (levelSource)
                     return {
                         metadata: levelSource.sources[0],
@@ -316,7 +330,7 @@ module powerbi.visuals {
             }
 
             if (rowLevel === rowLevels.length - 1) {
-                var levelSource = columnLevels[columnLevel];
+                let levelSource = columnLevels[columnLevel];
                 if (levelSource)
                     return {
                         metadata: levelSource.sources[0],
@@ -343,6 +357,14 @@ module powerbi.visuals {
         public cornerCellItemEquals(item1: any, item2: any): boolean {
             return (item1 === item2);
         }
+
+        public getMatrixColumnHierarchy(): MatrixHierarchy {
+            return this.columnHierarchy;
+        }
+
+        public getMatrixRowHierarchy(): MatrixHierarchy {
+            return this.rowHierarchy;
+        }
         
         /**
          * Implementation for MatrixDataAdapter interface.
@@ -367,7 +389,7 @@ module powerbi.visuals {
         }
 
         private static wrapMatrixHierarchy(hierarchy: DataViewHierarchy): MatrixHierarchy {
-            var matrixHierarchy = Prototype.inherit<MatrixHierarchy>(hierarchy);
+            let matrixHierarchy = Prototype.inherit<MatrixHierarchy>(hierarchy);
             matrixHierarchy.leafNodes = [];
 
             return matrixHierarchy;
@@ -382,9 +404,9 @@ module powerbi.visuals {
         }
 
         private updateRecursive(hierarchy: MatrixHierarchy, nodes: MatrixVisualNode[], parent: MatrixVisualNode, cache: MatrixVisualNode[]): void {
-            var level: DataViewHierarchyLevel;
-            for (var i = 0, ilen = nodes.length; i < ilen; i++) {
-                var node = nodes[i];
+            let level: DataViewHierarchyLevel;
+            for (let i = 0, ilen = nodes.length; i < ilen; i++) {
+                let node = nodes[i];
                 if (parent)
                     node.parent = parent;
 
@@ -392,10 +414,11 @@ module powerbi.visuals {
                     level = hierarchy.levels[node.level];
 
                 if (level) {
-                    var source = level.sources[node.levelSourceIndex ? node.levelSourceIndex : 0];
-                    var formatString = valueFormatter.getFormatString(source, Matrix.formatStringProp);
+                    let source = level.sources[node.levelSourceIndex ? node.levelSourceIndex : 0];
+                    let formatString = valueFormatter.getFormatString(source, Matrix.formatStringProp);
                     if (formatString)
                         node.name = this.formatter(node.value, formatString);
+                    node.queryName = source.queryName;
                 }
 
                 node.index = i;
@@ -410,17 +433,17 @@ module powerbi.visuals {
         }
 
         private static updateStaticColumnHeaders(columnHierarchy: MatrixHierarchy): void {
-            var columnLeafNodes = columnHierarchy.leafNodes;
+            let columnLeafNodes = columnHierarchy.leafNodes;
             if (columnLeafNodes && columnLeafNodes.length > 0) {
-                var columnLeafSources = columnHierarchy.levels[columnLeafNodes[0].level].sources;
+                let columnLeafSources = columnHierarchy.levels[columnLeafNodes[0].level].sources;
 
-                for (var i = 0, ilen = columnLeafNodes.length; i < ilen; i++) {
-                    var columnLeafNode = columnLeafNodes[i];
+                for (let i = 0, ilen = columnLeafNodes.length; i < ilen; i++) {
+                    let columnLeafNode = columnLeafNodes[i];
 
                     // Static leaf may need to get label from it's definition
                     if (!columnLeafNode.identity && columnLeafNode.value === undefined) {
                         // We make distincion between null and undefined. Null can be considered as legit value, undefined means we need to fall back to metadata
-                        var source = columnLeafSources[columnLeafNode.levelSourceIndex ? columnLeafNode.levelSourceIndex : 0];
+                        let source = columnLeafSources[columnLeafNode.levelSourceIndex ? columnLeafNode.levelSourceIndex : 0];
                         if (source)
                             columnLeafNode.name = source.displayName;
                     }
@@ -429,11 +452,11 @@ module powerbi.visuals {
         }
 
         private getMatrixHierarchy(rootNodes: MatrixVisualNode[]): MatrixHierarchy {
-            var rowHierarchyRootNodes = this.rowHierarchy.root.children;
+            let rowHierarchyRootNodes = this.rowHierarchy.root.children;
             if (rowHierarchyRootNodes && rootNodes === rowHierarchyRootNodes)
                 return this.rowHierarchy;
 
-            var columnHierarchyRootNodes = this.columnHierarchy.root.children;
+            let columnHierarchyRootNodes = this.columnHierarchy.root.children;
             if (columnHierarchyRootNodes && rootNodes === columnHierarchyRootNodes)
                 return this.columnHierarchy;
 
@@ -480,9 +503,9 @@ module powerbi.visuals {
          * Row Header.
          */
         public bindRowHeader(item: MatrixVisualNode, cell: controls.ITablixCell): void {
-            var styleClasses: string;
+            let styleClasses: string;
 
-            var isLeaf = this.hierarchyNavigator && this.hierarchyNavigator.isLeaf(item);
+            let isLeaf = this.hierarchyNavigator && this.hierarchyNavigator.isLeaf(item);
             if (isLeaf) {
                 if (!item.identity) {
                     if (item.level === 0)
@@ -517,14 +540,14 @@ module powerbi.visuals {
          * Column Header.
          */
         public bindColumnHeader(item: MatrixVisualNode, cell: controls.ITablixCell): void {
-            var styleClasses: string;
-            var overwriteTotalLabel = false;
+            let styleClasses: string;
+            let overwriteTotalLabel = false;
 
-            var isLeaf = this.hierarchyNavigator && this.hierarchyNavigator.isLeaf(item);
+            let isLeaf = this.hierarchyNavigator && this.hierarchyNavigator.isLeaf(item);
             if (isLeaf) {
                 styleClasses = MatrixBinder.columnHeaderLeafClassName;
 
-                var sortableHeaderColumnMetadata = this.getSortableHeaderColumnMetadata(item);
+                let sortableHeaderColumnMetadata = this.getSortableHeaderColumnMetadata(item);
                 if (sortableHeaderColumnMetadata) {
                     this.registerColumnHeaderClickHandler(sortableHeaderColumnMetadata, cell);
                 }
@@ -552,7 +575,7 @@ module powerbi.visuals {
             cell.extension.clearContainerStyle();
             cell.extension.contentHost.textContent = '';
 
-            var sortableHeaderColumnMetadata = this.getSortableHeaderColumnMetadata(item);
+            let sortableHeaderColumnMetadata = this.getSortableHeaderColumnMetadata(item);
             if (sortableHeaderColumnMetadata) {
                 this.unregisterColumnHeaderClickHandler(cell);
             }
@@ -562,13 +585,16 @@ module powerbi.visuals {
          * Body Cell.
          */
         public bindBodyCell(item: MatrixVisualBodyItem, cell: controls.ITablixCell): void {
-            var styleClasses = MatrixBinder.bodyCellClassName;
+            let styleClasses = MatrixBinder.bodyCellClassName;
 
             if (item.isSubtotal)
                 styleClasses += ' ' + MatrixBinder.totalClassName;
 
             cell.extension.setContainerStyle(styleClasses);
-            cell.extension.contentHost.textContent = item.content;
+            if (item.textContent)
+                cell.extension.contentHost.textContent = item.textContent;
+            else if (!_.isEmpty(item.domContent))
+                $(cell.extension.contentHost).append(item.domContent);
         }
 
         public unbindBodyCell(item: MatrixVisualBodyItem, cell: controls.ITablixCell): void {
@@ -578,7 +604,7 @@ module powerbi.visuals {
 
         private registerColumnHeaderClickHandler(columnMetadata: DataViewMetadataColumn, cell: controls.ITablixCell) {
             if (this.options.onColumnHeaderClick) {
-                var handler = (e: MouseEvent) => {
+                let handler = (e: MouseEvent) => {
                     this.options.onColumnHeaderClick(columnMetadata.queryName ? columnMetadata.queryName : columnMetadata.displayName);
                 };
                 cell.extension.registerClickHandler(handler);
@@ -595,11 +621,11 @@ module powerbi.visuals {
          * Corner Cell.
          */
         public bindCornerCell(item: MatrixCornerItem, cell: controls.ITablixCell): void {
-            var styleClasses: string;
+            let styleClasses: string;
 
             if (item.isColumnHeaderLeaf) {
                 styleClasses = MatrixBinder.columnHeaderLeafClassName;
-                var cornerHeaderMetadata = this.getSortableCornerColumnMetadata(item);
+                let cornerHeaderMetadata = this.getSortableCornerColumnMetadata(item);
                 if (cornerHeaderMetadata)
                     this.registerColumnHeaderClickHandler(cornerHeaderMetadata, cell);
             }
@@ -651,12 +677,12 @@ module powerbi.visuals {
         }
 
         public getCellContent(item: MatrixVisualBodyItem): string {
-            return item.content;
+            return item.textContent || '';
         }
 
         public hasRowGroups(): boolean {
             // Figure out whether we have a static row header, i.e., not row groups
-            var dataView = this.hierarchyNavigator.getDataViewMatrix();
+            let dataView = this.hierarchyNavigator.getDataViewMatrix();
 
             if (!dataView || !dataView.rows || !dataView.rows.levels || dataView.rows.levels.length === 0)
                 return false;
@@ -682,7 +708,7 @@ module powerbi.visuals {
                 return;
             }
 
-            var value = MatrixBinder.getNodeLabel(item);
+            let value = MatrixBinder.getNodeLabel(item);
             if (!value) {
                 // just to maintain the height of the row in case all realized cells are nulls
                 cell.extension.contentHost.innerHTML = MatrixBinder.nonBreakingSpace;
@@ -691,6 +717,8 @@ module powerbi.visuals {
 
             if (metadata && UrlHelper.isValidUrl(metadata, value)) {
                 controls.internal.TablixUtils.appendATagToBodyCell(item.value, cell);
+            } else if (metadata && UrlHelper.isValidImage(metadata, value)) {
+                controls.internal.TablixUtils.appendImgTagToBodyCell(item.value, cell);
             }
             else
                 cell.extension.contentHost.textContent = value;
@@ -712,7 +740,7 @@ module powerbi.visuals {
             if (!this.hierarchyNavigator || !item)
                 return;
 
-            var dataView = this.hierarchyNavigator.getDataViewMatrix();
+            let dataView = this.hierarchyNavigator.getDataViewMatrix();
 
             if (!dataView || !dataView.rows)
                 return;
@@ -724,7 +752,7 @@ module powerbi.visuals {
             if (!this.hierarchyNavigator || !item)
                 return;
 
-            var dataView = this.hierarchyNavigator.getDataViewMatrix();
+            let dataView = this.hierarchyNavigator.getDataViewMatrix();
             if (!dataView || !dataView.columns)
                 return;
 
@@ -735,7 +763,7 @@ module powerbi.visuals {
             if (!hierarchy || !hierarchy.levels || hierarchy.levels.length < level)
                 return;
 
-            var levelInfo = hierarchy.levels[level];
+            let levelInfo = hierarchy.levels[level];
             if (!levelInfo || !levelInfo.sources || levelInfo.sources.length === 0)
                 return;
 
@@ -750,23 +778,23 @@ module powerbi.visuals {
          */
         private getSortableHeaderColumnMetadata(item: MatrixVisualNode): DataViewMetadataColumn {
 
-            var dataView = this.hierarchyNavigator.getDataViewMatrix();
+            let dataView = this.hierarchyNavigator.getDataViewMatrix();
 
             // If there are no row groups, sorting is not supported (as it does not make sense).
             if (!dataView.rows || !dataView.rows.levels || dataView.rows.levels.length === 0)
                 return null;
 
             // Note that the measures establish a level as well, so need to subtract 1
-            var columnGroupCount = dataView.columns ? dataView.columns.levels.length - 1 : 0;
+            let columnGroupCount = dataView.columns ? dataView.columns.levels.length - 1 : 0;
 
-            var valueIndex: number = -1;
+            let valueIndex: number = -1;
             if (columnGroupCount === 0) {
                 // Matrices without column groups, support sorting on all columns (which are then measure columns).
                 valueIndex = item.levelSourceIndex;
             }
             else if (item.isSubtotal) {
                 // Matrices with column groups support sorting only on the column grand total.
-                var isMultiMeasure: boolean = dataView.valueSources && dataView.valueSources.length > 1;
+                let isMultiMeasure: boolean = dataView.valueSources && dataView.valueSources.length > 1;
 
                 if (isMultiMeasure) {
                     // In the multi-measure case we need to check if the parent's level is 0 in order
@@ -794,9 +822,14 @@ module powerbi.visuals {
             return null;
         }
     }
+    
+    
 
     export class Matrix implements IVisual {
         public static formatStringProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'formatString' };
+        public static rowSubtotals: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'rowSubtotals' };
+        public static columnSubtotals: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'columnSubtotals' };
+        public static autoSizeProp: DataViewObjectPropertyIdentifier = { objectName: 'general', propertyName: 'autoSizeColumnWidth' };
         private static preferredLoadMoreThreshold: number = 0.8;
         
         /**
@@ -816,16 +849,17 @@ module powerbi.visuals {
         private tablixControl: controls.TablixControl;
         private lastAllowHeaderResize: boolean;
         private waitingForSort: boolean;
+        private columnWidthManager: controls.TablixColumnWidthManager;
 
         public static customizeQuery(options: CustomizeQueryOptions): void {
-            var dataViewMapping = options.dataViewMappings[0];
+            let dataViewMapping = options.dataViewMappings[0];
             if (!dataViewMapping || !dataViewMapping.matrix || !dataViewMapping.metadata)
                 return;
 
-            var dataViewMatrix: data.CompiledDataViewMatrixMapping = <data.CompiledDataViewMatrixMapping>dataViewMapping.matrix;
+            let dataViewMatrix: data.CompiledDataViewMatrixMapping = <data.CompiledDataViewMatrixMapping>dataViewMapping.matrix;
 
-            var objects: MatrixDataViewObjects = <MatrixDataViewObjects>dataViewMapping.metadata.objects;
-            dataViewMatrix.rows.for.in.subtotalType = Matrix.shouldShowRowSubtotals(objects) ? data.CompiledSubtotalType.After : data.CompiledSubtotalType.None;
+            let objects: MatrixDataViewObjects = <MatrixDataViewObjects>dataViewMapping.metadata.objects;
+            (<data.CompiledDataViewRoleForMappingWithReduction>dataViewMatrix.rows).for.in.subtotalType = Matrix.shouldShowRowSubtotals(objects) ? data.CompiledSubtotalType.After : data.CompiledSubtotalType.None;
             dataViewMatrix.columns.for.in.subtotalType = Matrix.shouldShowColumnSubtotals(objects) ? data.CompiledSubtotalType.After : data.CompiledSubtotalType.None;
         }
 
@@ -850,10 +884,24 @@ module powerbi.visuals {
             this.updateViewport(finalViewport);
         }
 
+        /*
+        Public for testing
+        */
+        public getColumnWidthManager(): controls.TablixColumnWidthManager {
+            return this.columnWidthManager;
+        }
+
         public onDataChanged(options: VisualDataChangedOptions): void {
             debug.assertValue(options, 'options');
 
-            var previousDataView = this.dataView;
+            // To avoid OnDataChanged being called every time resize occurs or the auto-size property switch is flipped.
+            if (this.columnWidthManager && this.columnWidthManager.suppressOnDataChangedNotification) {
+                // Reset flag for cases when cross-filter/cross-higlight happens right after. We do need onDataChanged call to go through
+                this.columnWidthManager.suppressOnDataChangedNotification = false;
+                return;
+            }
+
+            let previousDataView = this.dataView;
             if (options.dataViews && options.dataViews.length > 0) {
                 this.dataView = options.dataViews[0];
 
@@ -861,12 +909,37 @@ module powerbi.visuals {
                     this.hierarchyNavigator.updateRows();
                     this.refreshControl(false);
                 } else {
+                    this.createOrUpdateHierarchyNavigatorAndControl();
+                    this.populateColumnWidths();
                     this.updateInternal(this.dataView, previousDataView);
                 }
             }
 
             this.waitingForData = false;
             this.waitingForSort = false;
+        }
+
+        private populateColumnWidths(): void {
+            let columnHierarchy: MatrixHierarchy = (<MatrixHierarchyNavigator>this.hierarchyNavigator).getMatrixColumnHierarchy();
+            if (!this.columnWidthManager) 
+                this.columnWidthManager = new controls.TablixColumnWidthManager(this.dataView, true /* isMatrix */, columnHierarchy.leafNodes);
+            else 
+                this.columnWidthManager.updateDataView(this.dataView, columnHierarchy.leafNodes);
+
+            this.columnWidthManager.deserializeTablixColumnWidths();
+            if (this.columnWidthManager.persistColumnWidthsOnHost())
+                this.persistColumnWidths(this.columnWidthManager.getVisualObjectInstancesToPersist());
+        }
+
+        public columnWidthChanged(index: number, width: number): void {
+            this.columnWidthManager.columnWidthChanged(index, width);
+            this.persistColumnWidths(this.columnWidthManager.getVisualObjectInstancesToPersist());
+        }
+
+        private persistColumnWidths(objectInstances: VisualObjectInstance[]): void {
+            this.hostServices.persistProperties({
+                merge: objectInstances
+            });
         }
 
         private updateViewport(newViewport: IViewport) {
@@ -881,7 +954,7 @@ module powerbi.visuals {
         }
 
         private refreshControl(clear: boolean) {
-            if (this.element.visible() || this.getLayoutKind() === controls.TablixLayoutKind.DashboardTile) {
+            if (visibilityHelper.partiallyVisible(this.element) || this.getLayoutKind() === controls.TablixLayoutKind.DashboardTile) {
                 this.tablixControl.refresh(clear);
             }
         }
@@ -890,25 +963,40 @@ module powerbi.visuals {
             return this.isInteractive ? controls.TablixLayoutKind.Canvas : controls.TablixLayoutKind.DashboardTile;
         }
 
-        private createControl(matrixNavigator: IMatrixHierarchyNavigator): controls.TablixControl {
-            var layoutKind = this.getLayoutKind();
+        private createOrUpdateHierarchyNavigatorAndControl(): void {
+            if (!this.tablixControl) {
+                let matrixNavigator = createMatrixHierarchyNavigator(this.dataView.matrix, this.formatter);
+                this.hierarchyNavigator = matrixNavigator;
 
-            var matrixBinderOptions: MatrixBinderOptions = {
+                // Create the control
+                this.tablixControl = this.createControl(matrixNavigator);
+            }
+            else {
+                this.hierarchyNavigator.update(this.dataView.matrix);
+            }
+        }
+
+        private createControl(matrixNavigator: IMatrixHierarchyNavigator): controls.TablixControl {
+            let layoutKind = this.getLayoutKind();
+
+            let matrixBinderOptions: MatrixBinderOptions = {
                 onBindRowHeader: (item: MatrixVisualNode) => { this.onBindRowHeader(item); },
                 totalLabel: this.hostServices.getLocalizedString(Matrix.TotalLabel),
                 onColumnHeaderClick: (queryName: string) => this.onColumnHeaderClick(queryName),
             };
-            var matrixBinder = new MatrixBinder(this.hierarchyNavigator, matrixBinderOptions);
+            let matrixBinder = new MatrixBinder(this.hierarchyNavigator, matrixBinderOptions);
+            let columnWidthsCallback = () => this.columnWidthManager.getColumnWidths();
+            let columnWidthChangedCallback: ColumnWidthCallbackType = (i, w) => this.columnWidthChanged(i, w);
 
-            var layoutManager: controls.internal.TablixLayoutManager = layoutKind === controls.TablixLayoutKind.DashboardTile
+            let layoutManager: controls.internal.TablixLayoutManager = layoutKind === controls.TablixLayoutKind.DashboardTile
                 ? controls.internal.DashboardTablixLayoutManager.createLayoutManager(matrixBinder)
-                : controls.internal.CanvasTablixLayoutManager.createLayoutManager(matrixBinder);
+                : controls.internal.CanvasTablixLayoutManager.createLayoutManager(matrixBinder, columnWidthsCallback, columnWidthChangedCallback);
 
-            var tablixContainer = document.createElement('div');
+            let tablixContainer = document.createElement('div');
             tablixContainer.className = "tablixContainer";
             this.element.append(tablixContainer);
 
-            var tablixOptions: controls.TablixOptions = {
+            let tablixOptions: controls.TablixOptions = {
                 interactive: this.isInteractive,
                 enableTouchSupport: false,
             };
@@ -917,15 +1005,8 @@ module powerbi.visuals {
         }
 
         private updateInternal(dataView: DataView, previousDataView: DataView) {
-            if (!this.tablixControl) {
-                var matrixNavigator = createMatrixHierarchyNavigator(dataView.matrix, this.formatter);
-                this.hierarchyNavigator = matrixNavigator;
-
-                // Create the control
-                this.tablixControl = this.createControl(matrixNavigator);
-            }
-            else {
-                this.hierarchyNavigator.update(dataView.matrix);
+            if (this.getLayoutKind() === controls.TablixLayoutKind.DashboardTile) {
+                this.tablixControl.layoutManager.adjustContentSize(UrlHelper.hasImageColumn(dataView));
             }
 
             this.verifyHeaderResize();
@@ -933,12 +1014,15 @@ module powerbi.visuals {
             // Update models before the viewport to make sure column widths are computed correctly
             this.tablixControl.updateModels(/*resetScrollOffsets*/true, dataView.matrix.rows.root.children, dataView.matrix.columns.root.children);
             this.tablixControl.viewport = this.currentViewport;
-            var shouldClearControl = this.shouldClearControl(previousDataView, dataView);
+            let shouldClearControl = this.shouldClearControl(previousDataView, dataView);
 
             // We need the layout for the DIV to be done so that the control can measure items correctly.
             setTimeout(() => {
                 // Render
                 this.refreshControl(shouldClearControl);
+                this.columnWidthManager.persistAllColumnWidths(this.tablixControl.layoutManager.columnWidthsToPersist);
+                if (this.columnWidthManager.persistColumnWidthsOnHost())
+                    this.persistColumnWidths(this.columnWidthManager.getVisualObjectInstancesToPersist());
             }, 0);
         }
 
@@ -957,10 +1041,10 @@ module powerbi.visuals {
         }
 
         private onColumnHeaderClick(queryName: string) {
-            var sortDescriptors: SortableFieldDescriptor[] = [{
+            let sortDescriptors: SortableFieldDescriptor[] = [{
                 queryName: queryName,
             }];
-            var args: CustomSortEventArgs = {
+            let args: CustomSortEventArgs = {
                 sortDescriptors: sortDescriptors
             };
             this.waitingForSort = true;
@@ -974,8 +1058,8 @@ module powerbi.visuals {
             if (this.waitingForData || !this.hierarchyNavigator.isLeaf(item) || !this.dataView.metadata || !this.dataView.metadata.segment)
                 return false;
 
-            var leafCount = this.tablixControl.rowDimension.getItemsCount();
-            var loadMoreThreshold = leafCount * Matrix.preferredLoadMoreThreshold;
+            let leafCount = this.tablixControl.rowDimension.getItemsCount();
+            let loadMoreThreshold = leafCount * Matrix.preferredLoadMoreThreshold;
 
             return this.hierarchyNavigator.getLeafIndex(item) >= loadMoreThreshold;
         }
@@ -996,21 +1080,31 @@ module powerbi.visuals {
             return true;
         }
 
+        private shouldAutoSizeColumnWidth(objects: MatrixDataViewObjects): boolean {
+            if (objects && objects.general) {
+                return objects.general.autoSizeColumnWidth !== false;
+            }
+
+            // Auto adjust is turned on by default
+            return controls.AutoSizeColumnWidthDefault;
+        }
+
         private getMatrixDataViewObjects(): MatrixDataViewObjects {
             if (this.dataView && this.dataView.metadata && this.dataView.metadata.objects)
                 return <MatrixDataViewObjects>this.dataView.metadata.objects;
         }
 
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
-            var instances: VisualObjectInstance[] = [];
+            let instances: VisualObjectInstance[] = [];
             if (options.objectName === 'general') {
-                var objects = this.getMatrixDataViewObjects();
+                let objects = this.getMatrixDataViewObjects();
 
                 instances.push({
                     selector: null,
                     properties: {
                         rowSubtotals: Matrix.shouldShowRowSubtotals(objects),
-                        columnSubtotals: Matrix.shouldShowColumnSubtotals(objects)
+                        columnSubtotals: Matrix.shouldShowColumnSubtotals(objects),
+                        autoSizeColumnWidth: this.shouldAutoSizeColumnWidth(objects)
                     },
                     objectName: options.objectName
                 });
@@ -1023,7 +1117,7 @@ module powerbi.visuals {
         }
 
         private verifyHeaderResize() {
-            var currentAllowHeaderResize = this.shouldAllowHeaderResize();
+            let currentAllowHeaderResize = this.shouldAllowHeaderResize();
             if (currentAllowHeaderResize !== this.lastAllowHeaderResize) {
                 this.lastAllowHeaderResize = currentAllowHeaderResize;
                 this.tablixControl.layoutManager.setAllowHeaderResize(currentAllowHeaderResize);

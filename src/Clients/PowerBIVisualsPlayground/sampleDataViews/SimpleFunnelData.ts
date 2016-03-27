@@ -43,7 +43,7 @@ module powerbi.visuals.sampleDataViews {
 
         public getDataViews(): DataView[] {
 
-            let fieldExpr = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: "funnel", column: "country" });
+            let fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "funnel", name: "country" } });
 
             let categoryValues = ["Australia", "Canada", "France", "Germany", "United Kingdom", "United States"];
             let categoryIdentities = categoryValues.map(function (value) {

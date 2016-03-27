@@ -42,6 +42,13 @@ module powerbi.visuals {
                     totals: {
                         type: { bool: true },
                         displayName: data.createDisplayNameGetter('Visual_Totals')
+                    },
+                    autoSizeColumnWidth: {
+                        type: { bool: true },
+                        displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width')
+                    },
+                    columnWidth: {
+                        type: { numeric: true }
                     }
                 },
             }

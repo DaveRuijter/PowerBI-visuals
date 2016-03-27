@@ -34,6 +34,9 @@ module powerbi.data {
         visitColumnRef(expr: SQColumnRefExpr, arg: TArg): T;
         visitMeasureRef(expr: SQMeasureRefExpr, arg: TArg): T;
         visitAggr(expr: SQAggregationExpr, arg: TArg): T;
+        visitHierarchy(expr: SQHierarchyExpr, arg: TArg): T;
+        visitHierarchyLevel(expr: SQHierarchyLevelExpr, arg: TArg): T;
+        visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr, arg: TArg): T;
         visitAnd(expr: SQAndExpr, arg: TArg): T;
         visitBetween(expr: SQBetweenExpr, arg: TArg): T;
         visitIn(expr: SQInExpr, arg: TArg): T;
@@ -47,6 +50,8 @@ module powerbi.data {
         visitDateSpan(expr: SQDateSpanExpr, arg: TArg): T;
         visitDateAdd(expr: SQDateAddExpr, arg: TArg): T;
         visitNow(expr: SQNowExpr, arg: TArg): T;
+        visitDefaultValue(expr: SQDefaultValueExpr, arg: TArg): T;
+        visitAnyValue(expr: SQAnyValueExpr, arg: TArg): T;
     }
 
     export interface ISQExprVisitor<T> extends ISQExprVisitorWithArg<T, void> {
@@ -67,6 +72,18 @@ module powerbi.data {
         }
 
         public visitAggr(expr: SQAggregationExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitHierarchy(expr: SQHierarchyExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitHierarchyLevel(expr: SQHierarchyLevelExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr, arg: TArg): T {
             return this.visitDefault(expr, arg);
         }
 
@@ -122,6 +139,14 @@ module powerbi.data {
             return this.visitDefault(expr, arg);
         }
 
+        public visitDefaultValue(expr: SQDefaultValueExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
+        public visitAnyValue(expr: SQAnyValueExpr, arg: TArg): T {
+            return this.visitDefault(expr, arg);
+        }
+
         public visitDefault(expr: SQExpr, arg: TArg): T {
             return;
         }
@@ -147,6 +172,18 @@ module powerbi.data {
 
         public visitAggr(expr: SQAggregationExpr): void {
             expr.arg.accept(this);
+        } 
+
+        public visitHierarchy(expr: SQHierarchyExpr): void {
+            expr.arg.accept(this);
+        }
+
+        public visitHierarchyLevel(expr: SQHierarchyLevelExpr): void {
+            expr.arg.accept(this);
+        }
+
+        public visitPropertyVariationSource(expr: SQPropertyVariationSourceExpr): void {
+            expr.arg.accept(this);
         }
 
         public visitBetween(expr: SQBetweenExpr): void {
@@ -156,14 +193,14 @@ module powerbi.data {
         }
 
         public visitIn(expr: SQInExpr): void {
-            var args = expr.args;
-            for (var i = 0, len = args.length; i < len; i++)
+            let args = expr.args;
+            for (let i = 0, len = args.length; i < len; i++)
                 args[i].accept(this);
 
-            var values = expr.values;
-            for (var i = 0, len = values.length; i < len; i++) {
-                var valueTuple = values[i];
-                for (var j = 0, jlen = values.length; j < jlen; j++)
+            let values = expr.values;
+            for (let i = 0, len = values.length; i < len; i++) {
+                let valueTuple = values[i];
+                for (let j = 0, jlen = values.length; j < jlen; j++)
                     valueTuple[j].accept(this);
             }
         }
@@ -214,6 +251,14 @@ module powerbi.data {
         }
 
         public visitNow(expr: SQNowExpr): void {
+            this.visitDefault(expr);
+        }
+
+        public visitDefaultValue(expr: SQDefaultValueExpr): void {
+            this.visitDefault(expr);
+        }
+
+        public visitAnyValue(expr: SQAnyValueExpr): void {
             this.visitDefault(expr);
         }
 

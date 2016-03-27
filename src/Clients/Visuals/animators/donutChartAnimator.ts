@@ -52,14 +52,14 @@ module powerbi.visuals {
         }
 
         public animate(options: DonutChartAnimationOptions): DonutChartAnimationResult {
-            var result: DonutChartAnimationResult = {
+            let result: DonutChartAnimationResult = {
                 failed: true,
                 shapes: null,
                 highlightShapes: null,
             };
 
-            var viewModel = options.viewModel;
-            var previousViewModel = this.previousViewModel;
+            let viewModel = options.viewModel;
+            let previousViewModel = this.previousViewModel;
 
             if (!previousViewModel) {
                 // This is the initial drawing of the chart, which has no special animation for now.
@@ -79,9 +79,9 @@ module powerbi.visuals {
         }
 
         private animateNormalToHighlighted(options: DonutChartAnimationOptions): DonutChartAnimationResult {
-            var shapes = this.animateDefaultShapes(options);
+            let shapes = this.animateDefaultShapes(options);
 
-            var highlightShapes = options.graphicsContext.select('.slices')
+            let highlightShapes = options.graphicsContext.select('.slices')
                 .selectAll('path.slice-highlight')
                 .data(options.viewModel.dataPoints.filter((value: DonutArcDescriptor) => value.data.highlightRatio != null), (d: DonutArcDescriptor) => d.data.identity.getKey());
 
@@ -111,9 +111,9 @@ module powerbi.visuals {
         }
 
         private animateHighlightedToHighlighted(options: DonutChartAnimationOptions): DonutChartAnimationResult {
-            var shapes = this.animateDefaultShapes(options);
+            let shapes = this.animateDefaultShapes(options);
 
-            var highlightShapes = this.animateDefaultHighlightShapes(options);
+            let highlightShapes = this.animateDefaultHighlightShapes(options);
 
             DonutChart.drawDefaultCategoryLabels(options.graphicsContext, options.viewModel, options.layout, options.sliceWidthRatio, options.radius, options.viewport);
 
@@ -125,10 +125,10 @@ module powerbi.visuals {
         }
 
         private animateHighlightedToNormal(options: DonutChartAnimationOptions): DonutChartAnimationResult {
-            var hasSelection = options.interactivityService && (<WebInteractivityService>options.interactivityService).hasSelection();
-            var duration = this.animationDuration;
+            let hasSelection = options.interactivityService && options.interactivityService.hasSelection();
+            let duration = this.animationDuration;
 
-            var shapes = options.graphicsContext.select('.slices')
+            let shapes = options.graphicsContext.select('.slices')
                 .selectAll('path.slice')
                 .data(options.viewModel.dataPoints, (d: DonutArcDescriptor) => d.data.identity.getKey());
 
@@ -153,7 +153,7 @@ module powerbi.visuals {
             shapes.exit()
                 .remove();
 
-            var highlightShapes = options.graphicsContext.select('.slices')
+            let highlightShapes = options.graphicsContext.select('.slices')
                 .selectAll('path.slice-highlight')
                 .data(options.viewModel.dataPoints.filter((value: DonutArcDescriptor) => value.data.highlightRatio != null), (d: DonutArcDescriptor) => d.data.identity.getKey());
 
@@ -183,7 +183,7 @@ module powerbi.visuals {
         }
 
         private animateDefaultShapes(options: DonutChartAnimationOptions): D3.UpdateSelection {
-            var shapes = options.graphicsContext.select('.slices')
+            let shapes = options.graphicsContext.select('.slices')
                 .selectAll('path.slice')
                 .data(options.viewModel.dataPoints, (d: DonutArcDescriptor) => d.data.identity.getKey());
 
@@ -206,7 +206,7 @@ module powerbi.visuals {
         }
 
         private animateDefaultHighlightShapes(options: DonutChartAnimationOptions): D3.UpdateSelection {
-            var highlightShapes = options.graphicsContext.select('.slices')
+            let highlightShapes = options.graphicsContext.select('.slices')
                 .selectAll('path.slice-highlight')
                 .data(options.viewModel.dataPoints.filter((value: DonutArcDescriptor) => value.data.highlightRatio != null), (d: DonutArcDescriptor) => d.data.identity.getKey());
 

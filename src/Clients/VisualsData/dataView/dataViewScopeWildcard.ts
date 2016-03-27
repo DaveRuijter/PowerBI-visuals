@@ -37,7 +37,7 @@ module powerbi.data {
 
     export module DataViewScopeWildcard {
         export function matches(wildcard: DataViewScopeWildcard, instance: DataViewScopeIdentity): boolean {
-            var instanceExprs = ScopeIdentityKeyExtractor.run(instance.expr);
+            let instanceExprs = ScopeIdentityKeyExtractor.run(instance.expr);
             if (!instanceExprs)
                 return false;
 

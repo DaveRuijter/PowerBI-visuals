@@ -38,28 +38,28 @@ module powerbi.data {
         export function apply(dataView: DataView): DataView {
             debug.assertValue(dataView, 'dataView');
 
-            var categorical = dataView.categorical;
+            let categorical = dataView.categorical;
             if (!categorical)
                 return null;
 
-            var categories = categorical.categories;
+            let categories = categorical.categories;
             if (!categories || categories.length !== 1)
                 return null;
 
-            var values = categorical.values;
+            let values = categorical.values;
             if (ArrayExtensions.isUndefinedOrEmpty(values) || values.source)
                 return null;
 
-            var category = categories[0],
+            let category = categories[0],
                 categoryIdentities = category.identity,
                 categoryValues = category.values,
                 pivotedColumns: DataViewMetadataColumn[] = [],
                 pivotedValues: DataViewValueColumn[] = [];
-            for (var rowIdx = 0, rowCount = categoryValues.length; rowIdx < rowCount; rowIdx++) {
-                var categoryValue = categoryValues[rowIdx],
+            for (let rowIdx = 0, rowCount = categoryValues.length; rowIdx < rowCount; rowIdx++) {
+                let categoryValue = categoryValues[rowIdx],
                     categoryIdentity = categoryIdentities[rowIdx];
-                for (var colIdx = 0, colCount = values.length; colIdx < colCount; colIdx++) {
-                    var value = values[colIdx],
+                for (let colIdx = 0, colCount = values.length; colIdx < colCount; colIdx++) {
+                    let value = values[colIdx],
                         pivotedColumn = inherit(value.source);
 
                     // A value has a series group, which is not implemented for pivoting -- just give up.
@@ -67,7 +67,7 @@ module powerbi.data {
                         return null;
 
                     pivotedColumn.groupName = categoryValue;
-                    var pivotedValue: DataViewValueColumn = {
+                    let pivotedValue: DataViewValueColumn = {
                         source: pivotedColumn,
                         values: [value.values[rowIdx]],
                         identity: categoryIdentity,
@@ -76,7 +76,7 @@ module powerbi.data {
                         subtotal: value.subtotal
                     };
 
-                    var highlights = value.highlights;
+                    let highlights = value.highlights;
                     if (highlights) {
                         pivotedValue.highlights = [highlights[rowIdx]];
                     }
@@ -86,10 +86,10 @@ module powerbi.data {
                 }
             }
 
-            var pivotedMetadata = inherit(dataView.metadata);
+            let pivotedMetadata = inherit(dataView.metadata);
             pivotedMetadata.columns = pivotedColumns;
 
-            var values = DataViewTransform.createValueColumns(pivotedValues, category.identityFields, category.source);
+            values = DataViewTransform.createValueColumns(pivotedValues, category.identityFields, category.source);
             return {
                 metadata: pivotedMetadata,
                 categorical: {

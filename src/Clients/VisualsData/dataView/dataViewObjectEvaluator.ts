@@ -29,8 +29,8 @@
 module powerbi.data {
     /** Responsible for evaluating object property expressions to be applied at various scopes in a DataView. */
     export module DataViewObjectEvaluator {
-        var colorValueType: ValueType = ValueType.fromDescriptor({ formatting: { color: true } });
-        var numericType: ValueType = ValueType.fromDescriptor({ numeric: true });
+        let colorValueType: ValueType = ValueType.fromDescriptor({ formatting: { color: true } });
+        let numericType: ValueType = ValueType.fromDescriptor({ numeric: true });
 
         export function run(
             objectDescriptor: DataViewObjectDescriptor,
@@ -41,16 +41,16 @@ module powerbi.data {
             if (!objectDescriptor)
                 return;
 
-            var object: DataViewObject,
+            let object: DataViewObject,
                 propertyDescriptors = objectDescriptor.properties;
-            for (var propertyName in propertyDefinitions) {
-                var propertyDefinition = propertyDefinitions[propertyName],
+            for (let propertyName in propertyDefinitions) {
+                let propertyDefinition = propertyDefinitions[propertyName],
                     propertyDescriptor = propertyDescriptors[propertyName];
 
                 if (!propertyDescriptor)
                     continue;
 
-                var propertyValue = evaluateProperty(propertyDescriptor, propertyDefinition);
+                let propertyValue = evaluateProperty(propertyDescriptor, propertyDefinition);
                 if (propertyValue === undefined)
                     continue;
 
@@ -69,16 +69,16 @@ module powerbi.data {
             debug.assertValue(propertyDescriptor, 'propertyDescriptor');
             debug.assertValue(propertyDefinition, 'propertyDefinition');
 
-            var value = evaluateValue(<any>propertyDefinition, ValueType.fromDescriptor(propertyDescriptor.type));
+            let value = evaluateValue(<any>propertyDefinition, ValueType.fromDescriptor(propertyDescriptor.type));
             if (value !== undefined || (propertyDefinition instanceof RuleEvaluation))
                 return value;
 
-            var structuralType = <StructuralTypeDescriptor>propertyDescriptor.type;
-            var valueFill = evaluateFill(<FillDefinition>propertyDefinition, structuralType);
+            let structuralType = <StructuralTypeDescriptor>propertyDescriptor.type;
+            let valueFill = evaluateFill(<FillDefinition>propertyDefinition, structuralType);
             if (valueFill)
                 return valueFill;
 
-            var valueFillRule = evaluateFillRule(<FillRuleDefinition>propertyDefinition, structuralType);
+            let valueFillRule = evaluateFillRule(<FillRuleDefinition>propertyDefinition, structuralType);
             if (valueFillRule)
                 return valueFillRule;
 
@@ -86,7 +86,7 @@ module powerbi.data {
         }
 
         function evaluateFill(fillDefn: FillDefinition, type: StructuralTypeDescriptor) {
-            var fillType = type.fill;
+            let fillType = type.fill;
             if (!fillType)
                 return;
 
@@ -104,7 +104,7 @@ module powerbi.data {
                 return;
 
             if (fillRuleDefn.linearGradient2) {
-                var linearGradient2 = fillRuleDefn.linearGradient2;
+                let linearGradient2 = fillRuleDefn.linearGradient2;
                 return {
                     linearGradient2: {
                         min: evaluateColorStop(linearGradient2.min),
@@ -114,7 +114,7 @@ module powerbi.data {
             }
 
             if (fillRuleDefn.linearGradient3) {
-                var linearGradient3 = fillRuleDefn.linearGradient3;
+                let linearGradient3 = fillRuleDefn.linearGradient3;
                 return {
                     linearGradient3: {
                         min: evaluateColorStop(linearGradient3.min),
@@ -128,12 +128,12 @@ module powerbi.data {
         function evaluateColorStop(colorStop: RuleColorStopDefinition): RuleColorStop {
             debug.assertValue(colorStop, 'colorStop');
 
-            var step: RuleColorStop = {
+            let step: RuleColorStop = {
                 color: evaluateValue(colorStop.color, colorValueType),
             };
 
-            var value = evaluateValue(colorStop.value, numericType);
-            if (value)
+            let value = evaluateValue(colorStop.value, numericType);
+            if (value != null)
                 step.value = value;
 
             return step;

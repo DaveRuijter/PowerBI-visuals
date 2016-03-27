@@ -105,7 +105,7 @@ module powerbi.visuals.controls {
          * @param e Event recieved from touch manager.
          */
         public touchEvent(e: TouchUtils.TouchEvent): void {
-            var args: any[] = [];
+            let args: any[] = [];
 
             args[0] = this._tablixControl;
             args[1] = e.dx;
@@ -197,7 +197,7 @@ module powerbi.visuals.controls {
          * @see: IPixelToItem
          */
         public getPixelToItem(x: number, y: number, dx: number, dy: number, down: boolean): TouchUtils.TouchEvent {
-            var event: TouchUtils.TouchEvent = new TouchUtils.TouchEvent(0, y * this._averageSize, down,
+            let event: TouchUtils.TouchEvent = new TouchUtils.TouchEvent(0, y * this._averageSize, down,
                                                                                    0, -dy * this._averageSize);
             return event;
         }
@@ -208,7 +208,7 @@ module powerbi.visuals.controls {
          * @param e Event recieved from touch manager.
          */
         public touchEvent(e: TouchUtils.TouchEvent): void {
-            var args: any[] = [];
+            let args: any[] = [];
 
             args[0] = this._tablixControl;
             args[1] = e.dx;
@@ -306,7 +306,7 @@ module powerbi.visuals.controls {
          * @param height Height of area to listen for events.
          */
         public resize(x: number, y: number, width: number, height: number) {
-            var dimension = this._dimension;
+            let dimension = this._dimension;
 
             dimension.x = x;
             dimension.y = y;
@@ -327,7 +327,7 @@ module powerbi.visuals.controls {
          * @param e Event recieved from touch manager.
          */
         public touchEvent(e: TouchUtils.TouchEvent): void {
-            var args: any[] = [this._tablixControl, e.dx, e.dy];
+            let args: any[] = [this._tablixControl, e.dx, e.dy];
 
             if (this._handlers) {
                 fire([this._handlers], args);

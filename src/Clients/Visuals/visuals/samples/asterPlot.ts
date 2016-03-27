@@ -27,7 +27,10 @@
 /// <reference path="../../_references.ts"/>
 
 module powerbi.visuals.samples {
-        import SelectionManager = utility.SelectionManager;
+    import SelectionManager = utility.SelectionManager;
+    import ClassAndSelector = jsCommon.CssConstants.ClassAndSelector;
+    import createClassAndSelector = jsCommon.CssConstants.createClassAndSelector;
+
     export interface AsterDatapoint {
         color: string;
         sliceHeight: number;
@@ -50,13 +53,18 @@ module powerbi.visuals.samples {
                 },
             ],
             dataViewMappings: [{
-                categories: {
-                    for: { in: 'Category' },
-                    dataReductionAlgorithm: { top: {} }
-                },
-                values: {
-                    select: [{ bind: { to: 'Y' } }]
-                },
+                conditions: [
+                    { 'Category': { max: 1 }, 'Y': { max: 2 } }
+                ],
+                categorical: {
+                    categories: {
+                        for: { in: 'Category' },
+                        dataReductionAlgorithm: { top: {} }
+                    },
+                    values: {
+                        select: [{ bind: { to: 'Y' } }]
+                    },
+                }
             }],
             objects: {
                 general: {
@@ -92,16 +100,16 @@ module powerbi.visuals.samples {
             }
         };
 
-        private static VisualClassName = 'asterPlot';
-        private static AsterSlice: ClassAndSelector = {
-            class: 'asterSlice',
-            selector: '.asterSlice'
+        private static properties = {
+            formatString: { objectName: 'general', propertyName: 'formatString' },
+            labelFill: { objectName: 'label', propertyName: 'fill' },
+            showLine: { objectName: 'outerLine', propertyName: 'show' },
+            lineThickness: { objectName: 'outerLine', propertyName: 'thickness' },
         };
 
-        private static OuterLine: ClassAndSelector = {
-            class: 'outerLine',
-            selector: '.outerLine'
-        };
+        private static VisualClassName = 'asterPlot';
+        private static AsterSlice: ClassAndSelector = createClassAndSelector('asterSlice');
+        private static OuterLine: ClassAndSelector = createClassAndSelector('outerLine');
 
         private svg: D3.Selection;
         private mainGroupElement: D3.Selection;
@@ -111,11 +119,18 @@ module powerbi.visuals.samples {
         private dataView: DataView;
 
         public static converter(dataView: DataView, colors: IDataColorPalette): AsterDatapoint[] {
+            if (!dataView.categorical
+                || !dataView.categorical.categories
+                || dataView.categorical.categories.length !== 1)
+                return;
             var catDv: DataViewCategorical = dataView.categorical;
             var cat = catDv.categories[0];
             var catValues = cat.values;
             var values = catDv.values;
             var dataPoints: AsterDatapoint[] = [];
+
+            if (!catValues || catValues.length < 1 || !values || values.length < 1)
+                return dataPoints;
 
             var formatStringProp = <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'formatString' };
             var categorySourceFormatString = valueFormatter.getFormatString(cat.source, formatStringProp);
@@ -125,18 +140,20 @@ module powerbi.visuals.samples {
 
                 var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(
                     formatStringProp,
-                    catDv.categories, formattedCategoryValue,
-                    values,
+                    catDv,
+                    formattedCategoryValue,
                     values[0].values[i],
+                    null,
                     null,
                     0);
 
                 if (values.length > 1) {
                     var toolTip = TooltipBuilder.createTooltipInfo(
                         formatStringProp,
-                        catDv.categories, formattedCategoryValue,
-                        values,
+                        catDv,
+                        formattedCategoryValue,
                         values[1].values[i],
+                        null,
                         null,
                         1)[1];
                     if (toolTip) {
@@ -171,9 +188,7 @@ module powerbi.visuals.samples {
 
         public update(options: VisualUpdateOptions) {
             if (!options.dataViews || !options.dataViews[0]) return; // or clear the view, display an error, etc.
-            
-            var dataView = this.dataView = options.dataViews[0];
-            var dataPoints = AsterPlot.converter(dataView, this.colors);
+
             var duration = options.suppressAnimations ? 0 : AnimatorCommon.MinervaAnimationDuration;
             var viewport = options.viewport;
 
@@ -184,30 +199,35 @@ module powerbi.visuals.samples {
                 })
                 .on('click', () => this.selectionManager.clear().then(() => selection.style('opacity', 1)));
 
-            var width = viewport.width;
-            var height = viewport.height;
+            var width = viewport.width - 20;
+            var height = viewport.height - 20;
             var radius = Math.min(width, height) / 2;
             var innerRadius = 0.3 * radius;
 
             var mainGroup = this.mainGroupElement;
 
-            mainGroup.attr('transform', SVGUtil.translate(width / 2, height / 2));
+            mainGroup.attr('transform', SVGUtil.translate((width + 10) / 2, (height + 10) / 2));
+
+            var dataView = this.dataView = options.dataViews[0];
+            var dataPoints = AsterPlot.converter(dataView, this.colors);
+            if (!dataPoints)
+                return;
 
             var maxScore = d3.max(dataPoints, d => d.sliceHeight);
             var totalWeight = d3.sum(dataPoints, d => d.sliceWidth);
 
             var pie = d3.layout.pie()
                 .sort(null)
-                .value(d => d.sliceWidth / totalWeight);
+                .value(d => (d && d.sliceWidth ? d.sliceWidth : 1) / totalWeight);
 
             var arc = d3.svg.arc()
                 .innerRadius(innerRadius)
-                .outerRadius(d => (radius - innerRadius) * (d.data.sliceHeight / maxScore) + innerRadius);
+                .outerRadius(d => (radius - innerRadius) * (d && d.data && d.data.sliceHeight ? d.data.sliceHeight : 1) / maxScore + innerRadius + 1);
 
             var selectionManager = this.selectionManager;
 
             var selection = mainGroup.selectAll(AsterPlot.AsterSlice.selector)
-                .data(pie(dataPoints));
+                .data(pie(dataPoints), (d, idx) => dataPoints[idx] ? dataPoints[idx].selector.getKey() : idx);
 
             selection.enter()
                 .append('path')
@@ -286,40 +306,16 @@ module powerbi.visuals.samples {
         }
 
         private getShowOuterline(dataView: DataView): boolean {
-            if (dataView && dataView.metadata.objects) {
-                var outerLine = dataView.metadata.objects['outerLine'];
-                if (outerLine) {
-                    return <boolean>outerLine['show'];
-                }
-            }
-
-            return false;
+            return dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, AsterPlot.properties.showLine, false);
         }
 
         private getOuterThickness(dataView: DataView): number {
-            if (dataView && dataView.metadata.objects) {
-                var outerLine: DataViewObject = dataView.metadata.objects['outerLine'];
-                if (outerLine) {
-                    var thickness = <number>outerLine['thickness'];
-                    if (thickness !== undefined) {
-                        return thickness;
-                    }
-                }
-            }
-
-            return 1;
+            return dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, AsterPlot.properties.lineThickness, 1);
         }
 
         // This extracts fill color of the label from the DataView
         private getLabelFill(dataView: DataView): Fill {
-            if (dataView && dataView.metadata.objects) {
-                var label = dataView.metadata.objects['label'];
-                if (label) {
-                    return <Fill>label['fill'];
-                }
-            }
-
-            return { solid: { color: '#333' } };
+            return dataView.metadata && DataViewObjects.getValue(dataView.metadata.objects, AsterPlot.properties.labelFill, { solid: { color: '#333' } });
         }
         
         // This function retruns the values to be displayed in the property pane for each object.

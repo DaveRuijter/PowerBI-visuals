@@ -863,6 +863,8 @@ module powerbitests {
                 axisLabel: "",
                 isCategoryAxis: true,
                 xLabelMaxWidth: 20,
+                outerPadding: 10,
+                categoryThickness: 25,
             };
 
             return axisProperties;
@@ -874,10 +876,21 @@ module powerbitests {
             showOnRight: boolean = false,
             renderXAxis: boolean = false,
             renderYAxes: boolean = false,
-            renderY2Axis: boolean = false) {
+            renderY2Axis: boolean = false,
+            categoryThickness: number = undefined,
+            outerPadding: number = undefined) {
 
             this.xAxisProperties.willLabelsFit = !rotateX;
             this.xAxisProperties.willLabelsWordBreak = wordBreak;
+
+            if (categoryThickness != null) {
+                this.xAxisProperties.categoryThickness = categoryThickness;
+                this.xAxisProperties.xLabelMaxWidth = categoryThickness * 0.9;
+                this.xAxisProperties.outerPadding = categoryThickness * 0.5;
+            }
+            // scalar line chart sets outer padding to zero since it isn't drawing rectangles
+            if (outerPadding != null)
+                this.xAxisProperties.outerPadding = outerPadding;
 
             var margins = AxisHelper.getTickLabelMargins(
                 this.viewPort,
@@ -901,6 +914,10 @@ module powerbitests {
         var axisHelperTickLabelBuilder: AxisHelperTickLabelBuilder =
             new AxisHelperTickLabelBuilder();
 
+        beforeEach(() => {
+            powerbi.TextMeasurementService.removeSpanElement();
+        });
+
         it("Dual y-axes", () => {
             var margins = axisHelperTickLabelBuilder.buildTickLabelMargins(false, false, false, true, true, true);
 
@@ -922,7 +939,7 @@ module powerbitests {
 
             expect(margins.xMax).toBe(10);
             expect(powerbitests.helpers.isInRange(margins.yLeft, 11, 12)).toBe(true);
-            expect(margins.yRight).toBe(0);
+            expect(margins.yRight).toBe(2);
         });
 
         it("Switch the y-axes", () => {
@@ -937,7 +954,7 @@ module powerbitests {
             var margins = axisHelperTickLabelBuilder.buildTickLabelMargins(true, false, true, true, true, false);
 
             expect(margins.xMax).toBe(25);
-            expect(margins.yLeft).toBe(0);
+            expect(margins.yLeft).toBe(7);
             // 11 for Mac OS and 12 for Windows
             expect(powerbitests.helpers.isInRange(margins.yRight, 11, 12)).toBe(true);
         });
@@ -975,7 +992,16 @@ module powerbitests {
 
             expect(margins.xMax).toBe(10);
             expect(margins.yLeft).toBe(12);
-            expect(powerbitests.helpers.isInRange(margins.yRight, 11, 14)).toBe(true);
+            expect(powerbitests.helpers.isInRange(margins.yRight, 23, 27)).toBe(true);
+        });
+
+        it("xOverflowRight, line chart, small overhang, disable the secondary axis", () => {
+            var localTickLabelBuilder = new AxisHelperTickLabelBuilder(undefined, ['Cars', 'Trucks', 'Boats']);
+            var margins = localTickLabelBuilder.buildTickLabelMargins(false, false, false, true, true, false, null, 0 /*scalar line chart*/);
+
+            expect(margins.xMax).toBe(10);
+            expect(margins.yLeft).toBe(12);
+            expect(powerbitests.helpers.isInRange(margins.yRight, 12, 14)).toBe(true);
         });
 
         it("xOverflowRight, disable both Y axes", () => {
@@ -984,7 +1010,7 @@ module powerbitests {
 
             expect(margins.xMax).toBe(10);
             expect(margins.yLeft).toBe(0);
-            expect(powerbitests.helpers.isInRange(margins.yRight, 11, 14)).toBe(true);
+            expect(powerbitests.helpers.isInRange(margins.yRight, 23, 27)).toBe(true);
         });
 
         it("xOverflowRight, with rotate, disable both Y axes", () => {

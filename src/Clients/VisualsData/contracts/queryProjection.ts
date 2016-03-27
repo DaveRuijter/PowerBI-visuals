@@ -63,7 +63,7 @@ module powerbi.data {
         }
 
         public set activeProjectionQueryRef(value: string) {
-            var queryRefs = this.items.map(val => val.queryRef);
+            let queryRefs = this.items.map(val => val.queryRef);
             if (!_.contains(queryRefs, value))
                 return;
             this._activeProjectionRef = value;
@@ -79,7 +79,7 @@ module powerbi.data {
         export function clone(roles: QueryProjectionsByRole): QueryProjectionsByRole {
             debug.assertValue(roles, 'roles');
 
-            var clonedRoles: QueryProjectionsByRole = {};
+            let clonedRoles: QueryProjectionsByRole = {};
 
             for (let roleName in roles)
                 clonedRoles[roleName] = roles[roleName].clone();

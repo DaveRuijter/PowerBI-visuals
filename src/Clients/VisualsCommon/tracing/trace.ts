@@ -99,7 +99,7 @@ module jsCommon {
         export function removeListener(listener: ITraceListener): void {
             debug.assertValue(listener, 'listener');
 
-            var index = listeners.indexOf(listener);
+            let index = listeners.indexOf(listener);
             if (index >= 0)
                 listeners.splice(index, 1);
         }
@@ -116,8 +116,8 @@ module jsCommon {
             if (lastTraceIndex < 0)
                 return;
 
-            var result = new Array<TraceItem>(lastTraceIndex+1);
-            for (var i = 0; i <= lastTraceIndex; i++)
+            let result = new Array<TraceItem>(lastTraceIndex+1);
+            for (let i = 0; i <= lastTraceIndex; i++)
                 result[i] = traces[i];
 
             return result;
@@ -140,7 +140,7 @@ module jsCommon {
 
             traces[++lastTraceIndex] = trace;
 
-            for (var i = 0, len = listeners.length; i < len; i++)
+            for (let i = 0, len = listeners.length; i < len; i++)
                 listeners[i].logTrace(trace);
         }
     }

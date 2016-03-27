@@ -261,7 +261,7 @@ module powerbi.visuals.controls.TouchUtils {
          * EXAMPLE: dx -> from # of pixels to the right to # of columns moved to the right.
          */
         public addTouchRegion(region: Rectangle, handler: ITouchHandler, converter: IPixelToItem): void {
-            var item: ITouchHandlerSet = <ITouchHandlerSet> {
+            let item: ITouchHandlerSet = <ITouchHandlerSet> {
                 lastPoint: new TouchEvent(0, 0, false),
                 handler: handler,
                 region: region,
@@ -275,11 +275,11 @@ module powerbi.visuals.controls.TouchUtils {
          * Sends a mouse up event to all regions with their last event as a mouse down event.
          */
         public upAllTouches(): void {
-            var eventPoint: TouchEvent;
-            var length: number;
+            let eventPoint: TouchEvent;
+            let length: number;
 
             length = this._touchList.length;
-            for (var i = 0; i < length; i++) {
+            for (let i = 0; i < length; i++) {
                 if (this._touchList[i].lastPoint.isMouseDown) {
                     eventPoint = this._touchList[i].converter.getPixelToItem(this._touchList[i].lastPoint.x,
                                                                              this._touchList[i].lastPoint.y,
@@ -295,16 +295,16 @@ module powerbi.visuals.controls.TouchUtils {
         }
 
         public touchEvent(e: TouchEvent): void {
-            var list: ITouchHandlerSet[];
-            var length: number;
+            let list: ITouchHandlerSet[];
+            let length: number;
 
-            var x: number = 0;
-            var y: number = 0;
-            var dx: number = 0;
-            var dy: number = 0;
-            var angle: number = 0;
+            let x: number = 0;
+            let y: number = 0;
+            let dx: number = 0;
+            let dy: number = 0;
+            let angle: number = 0;
 
-            var eventPoint: TouchEvent = null;
+            let eventPoint: TouchEvent = null;
 
             //assume there are already regions in the middle of a drag event and get those regions
             list = this._getActive();
@@ -321,7 +321,7 @@ module powerbi.visuals.controls.TouchUtils {
 
             //go through the list
             length = list.length;
-            for (var i = 0; i < length; i++) {
+            for (let i = 0; i < length; i++) {
                 x = e.x - list[i].region.point.x;
                 y = e.y - list[i].region.point.y;
 
@@ -404,11 +404,11 @@ module powerbi.visuals.controls.TouchUtils {
          * @return Array of regions that contain the event point.
          */
         private _findRegions(e: TouchEvent): ITouchHandlerSet[] {
-            var list: ITouchHandlerSet[] = [];
-            var length: number;
+            let list: ITouchHandlerSet[] = [];
+            let length: number;
 
             length = this._touchList.length;
-            for (var i = 0; i < length; i++) {
+            for (let i = 0; i < length; i++) {
                 if (this._touchList[i].region.contains(new Point(e.x, e.y))) {
                     list = list.concat([this._touchList[i]]);
                 }
@@ -421,11 +421,11 @@ module powerbi.visuals.controls.TouchUtils {
          * @return Array of regions that contain a mouse down event. (see ITouchHandlerSet.lastPoint).
          */
         private _getActive(): ITouchHandlerSet[] {
-            var list: ITouchHandlerSet[] = [];
-            var length: number;
+            let list: ITouchHandlerSet[] = [];
+            let length: number;
 
             length = this._touchList.length;
-            for (var i = 0; i < length; i++) {
+            for (let i = 0; i < length; i++) {
                 if (this._touchList[i].lastPoint.isMouseDown) {
                     list = list.concat([this._touchList[i]]);
                 }
@@ -503,9 +503,9 @@ module powerbi.visuals.controls.TouchUtils {
         }
 
         private getXYByClient(event: MouseEvent): Point {
-            var rect: any = this._rect;
-            var x: number = rect.left;
-            var y: number = rect.top;
+            let rect: any = this._rect;
+            let x: number = rect.left;
+            let y: number = rect.top;
 
             // Fix for Safari
             if (window["scrollX"] !== undefined) {
@@ -513,7 +513,7 @@ module powerbi.visuals.controls.TouchUtils {
                 y += window["scrollY"];
             }
 
-            var point: Point = new Point(0, 0);
+            let point: Point = new Point(0, 0);
             point.offset(event.pageX - x, event.pageY - y);
 
             return point;
@@ -567,10 +567,10 @@ module powerbi.visuals.controls.TouchUtils {
         }
         
         public onTouchMouseMove(e: MouseEvent): void {
-            var event: TouchEvent;
-            var point: Point;
+            let event: TouchEvent;
+            let point: Point;
 
-            var validMouseDragEvent: boolean = (this._rect !== null) && (e.which !== MouseButton.NoClick);
+            let validMouseDragEvent: boolean = (this._rect !== null) && (e.which !== MouseButton.NoClick);
 
             // Ignore events that are not part of a drag event
             if (!validMouseDragEvent)

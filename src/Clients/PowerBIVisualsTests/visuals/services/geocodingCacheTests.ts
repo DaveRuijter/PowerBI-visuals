@@ -74,5 +74,19 @@ module powerbitests {
 
             expect(newCache.getCoordinates(washingtonQuery)).toEqual(washingtonCoord);
         });
+
+        it('Doesnt crash on null coordinate', () => {
+            var tinyCache = createGeocodingCache(1, 1);
+            tinyCache['geocodeCache']['null'] = null;
+            var washingtonQuery = new GeocodeQuery("Washington", "State");
+            var washingtonCoord = { latitude: 10, longitude: 10 };
+            tinyCache.registerCoordinates(washingtonQuery, washingtonCoord);
+            var utahQuery = new GeocodeQuery("Utah", "State");
+            var utahCoord = { latitude: 15, longitude: 15 };
+            tinyCache.registerCoordinates(utahQuery, utahCoord);
+            var newYorkQuery = new GeocodeQuery("New York", "State");
+            var newYorkCoords = { latitude: 20, longitude: 20 };
+            tinyCache.registerCoordinates(newYorkQuery, newYorkCoords);
+        });
     });
 }

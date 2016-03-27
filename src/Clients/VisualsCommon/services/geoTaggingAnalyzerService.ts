@@ -260,7 +260,7 @@ module powerbi {
         }
 
         private isPostalCode(fieldRefName: string): boolean {
-            var result =
+            let result =
                 (GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
                     this.GeotaggingString_Post,
                     this.GeotaggingString_Zip])
@@ -274,8 +274,8 @@ module powerbi {
 
             //Check again for strings without whitespace
             if (!result) {
-                var whiteSpaceRegex = /\s+/;
-                var fieldNameWithoutWhitespace = fieldRefName.replace(whiteSpaceRegex, "");
+                let whiteSpaceRegex = /\s+/;
+                let fieldNameWithoutWhitespace = fieldRefName.replace(whiteSpaceRegex, "");
                 result = GeoTaggingAnalyzerService.hasMatches(fieldNameWithoutWhitespace, [
                     this.GeotaggingString_PostalCode.replace(whiteSpaceRegex, ''),
                     this.GeotaggingString_PostalCodes.replace(whiteSpaceRegex, ''),
@@ -288,17 +288,13 @@ module powerbi {
         }
 
         private isLongitude(fieldRefName: string): boolean {
-            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
-                this.GeotaggingString_Longitude,
-                this.GeotaggingString_Longitude_Short
-            ]);
+            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Longitude])
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Longitude_Short], true /* useStrict */);
         }
 
         private isLatitude(fieldRefName: string): boolean {
-            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
-                this.GeotaggingString_Latitude,
-                this.GeotaggingString_Latitude_Short
-            ]);
+            return GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Latitude])
+                || GeoTaggingAnalyzerService.hasMatches(fieldRefName, [this.GeotaggingString_Latitude_Short], true /* useStrict */);
         }
 
         private isTerritory(fieldRefName: string): boolean {
@@ -308,24 +304,28 @@ module powerbi {
             ]);
         }
 
-        private static hasMatches(fieldName: string, possibleMatches: string[]): boolean {
-            var nonWordRegex = /\W/;
-            var value = fieldName.toLowerCase();
-
-            for (var i = 0, len = possibleMatches.length; i < len; i++) {
-                var possibleMatch = possibleMatches[i].toLowerCase();
-                var indexofpossibleMatch = value.indexOf(possibleMatch);
-                if (indexofpossibleMatch > -1) {
-                    let wordEndFlag, wordBeginFlag: boolean;
-                    wordEndFlag = wordBeginFlag = true;
-                    if (indexofpossibleMatch - 1 > 0)
-                        wordBeginFlag = nonWordRegex.test(value[indexofpossibleMatch - 1]);
-                    if (indexofpossibleMatch + possibleMatch.length < value.length)
-                        wordEndFlag = nonWordRegex.test(value[indexofpossibleMatch + possibleMatch.length]);
-                    if (wordBeginFlag && wordEndFlag)
+        private static hasMatches(fieldName: string, possibleMatches: string[], useStrict?: boolean): boolean {
+            let nonWordRegex = /\W/;
+            let value = fieldName.toLowerCase();
+            for (let i = 0, len = possibleMatches.length; i < len; i++) {
+                let possibleMatch = possibleMatches[i].toLowerCase();
+                if (!useStrict) {
+                    if (value.indexOf(possibleMatch) > -1)
                         return true;
                 }
-
+                else {
+                    let indexofpossibleMatch = value.indexOf(possibleMatch);
+                    if (indexofpossibleMatch > -1) {
+                        let wordEndFlag, wordBeginFlag: boolean;
+                        wordEndFlag = wordBeginFlag = true;
+                        if (indexofpossibleMatch - 1 > 0)
+                            wordBeginFlag = nonWordRegex.test(value[indexofpossibleMatch - 1]);
+                        if (indexofpossibleMatch + possibleMatch.length < value.length)
+                            wordEndFlag = nonWordRegex.test(value[indexofpossibleMatch + possibleMatch.length]);
+                        if (wordBeginFlag && wordEndFlag)
+                            return true;
+                    }
+                }
             }
             return false;
         }
@@ -416,7 +416,7 @@ module powerbi {
         }
 
         private isEnglishPostalCode(fieldRefName: string): boolean {
-            var result =
+            let result =
                 (GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
                     EnglishBackup.GeotaggingString_Post,
                     EnglishBackup.GeotaggingString_Zip])
@@ -430,7 +430,7 @@ module powerbi {
 
             //Check again for strings without whitespace
             if (!result) {
-                var whiteSpaceRegexPattern = new RegExp('\s');
+                let whiteSpaceRegexPattern = new RegExp('\s');
                 result = GeoTaggingAnalyzerService.hasMatches(fieldRefName, [
                     EnglishBackup.GeotaggingString_PostalCode.replace(whiteSpaceRegexPattern, ''),
                     EnglishBackup.GeotaggingString_PostalCodes.replace(whiteSpaceRegexPattern, ''),

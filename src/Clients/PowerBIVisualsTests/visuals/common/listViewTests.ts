@@ -62,46 +62,20 @@ module powerbitests {
             }, DefaultWaitForRender);
         });
 
-        it("Create SVG List View Correctly", (done) => {
-            listViewBuilder.buildSvgListView();
-
-            setTimeout(() => {
-                var itemCount = listViewBuilder.element.find(".item").length;
-                expect(itemCount).toBeGreaterThan(0);
-                expect(itemCount).toBeLessThan(9); // Some should be virtualized, so shouldn"t show all 9 items
-                done();
-            }, DefaultWaitForRender);
-        });
-
         it("Scroll to last to check if items come in view HTML", (done) => {
             listViewBuilder.isSpy = true;
             listViewBuilder.buildHtmlListView();
-
-            var lastElem = listViewBuilder.element.find(".item").last().text();
-
-            expect(lastElem).not.toEqual("-->Sachin-->Patney");
-            listViewBuilder.element.scrollTop(1000);
             setTimeout(() => {
-                var lastElem2 = listViewBuilder.element.find(".item").last().text();
-                expect(lastElem2).toEqual("-->Sachin-->Patney");
-                expect(listViewBuilder.spy).toHaveBeenCalled();
-                done();
-            }, DefaultWaitForRender);
-        });
+                var lastElem = listViewBuilder.element.find(".item").last().text();
 
-        it("Scroll to last to check if items come in view SVG", (done) => {
-            listViewBuilder.isSpy = true;
-            listViewBuilder.buildSvgListView();
-
-            var lastElem = listViewBuilder.element.find(".item").last().text();
-
-            expect(lastElem).not.toEqual("-->Sachin-->Patney");
-            listViewBuilder.element.scrollTop(1000);
-            setTimeout(() => {
-                var lastElem2 = listViewBuilder.element.find(".item").last().text();
-                expect(lastElem2).toEqual("-->Sachin-->Patney");
-                expect(listViewBuilder.spy).toHaveBeenCalled();
-                done();
+                expect(lastElem).not.toEqual("-->Sachin-->Patney");
+                listViewBuilder.element.scrollTop(1000);
+                setTimeout(() => {
+                    var lastElem2 = listViewBuilder.element.find(".item").last().text();
+                    expect(lastElem2).toEqual("-->Sachin-->Patney");
+                    expect(listViewBuilder.spy).toHaveBeenCalled();
+                    done();
+                }, DefaultWaitForRender);
             }, DefaultWaitForRender);
         });
 
@@ -118,22 +92,24 @@ module powerbitests {
             ];
 
             listViewBuilder.buildHtmlListView();
-
-            listViewBuilder.element.scrollTop(1000);
-           
             setTimeout(() => {
-                expect(listViewBuilder.element.find(".scrollRegion").first().parent().scrollTop()).toBe(40);
+                listViewBuilder.element.scrollTop(1000);
+           
+                setTimeout(() => {
+                    expect(listViewBuilder.element.find(".scrollRegion").first().parent().scrollTop()).toBe(40);
 
-                listViewBuilder.render(true, false);
-
-                expect(listViewBuilder.element.find(".scrollRegion").first().parent().scrollTop()).toBe(40);
+                    listViewBuilder.render(true, false);
+                    setTimeout(() => {
+                        expect(listViewBuilder.element.find(".scrollRegion").first().parent().scrollTop()).toBe(40);
                 
-                listViewBuilder.render(true, true);
+                        listViewBuilder.render(true, true);
 
-                expect(listViewBuilder.element.find(".scrollRegion").first().parent().scrollTop()).toBe(0);
+                        expect(listViewBuilder.element.find(".scrollRegion").first().parent().scrollTop()).toBe(0);
 
-                done();
-            }, DefaultWaitForRender);
+                        done();
+                    }, DefaultWaitForRender);
+                }, DefaultWaitForRender);
+            }, 30);
         });
     });
 
@@ -209,33 +185,6 @@ module powerbitests {
             this.createOptions(rowEnter, rowUpdate);
         }
         
-        private buildSvgListViewOptions() {
-            var rowEnterSVG = (rowSelection: D3.Selection) => {
-                rowSelection
-                    .append("g")
-                    .style("height", "30px")
-                    .classed("item", true)
-                    .selectAll("g")
-                    .data(d => {
-                    return d.children;
-                })
-                    .enter()
-                    .append("span")
-                    .classed("column", true);
-            };
-
-            var rowUpdateSVG = (rowSelection: D3.Selection) => {
-                rowSelection
-                    .selectAll(".item")
-                    .selectAll(".column")
-                    .text(d => {
-                    return "-->" + d.name;
-                });
-            };
-
-            this.createOptions(rowEnterSVG, rowUpdateSVG);
-        }
-
         private createOptions(rowEnter, rowUpdate) {
             this.options = {
                 enter: rowEnter,
@@ -244,6 +193,7 @@ module powerbitests {
                 loadMoreData: () => { },
                 baseContainer: d3.select(this.element.get(0)),
                 rowHeight: 30,
+                scrollEnabled: true,
                 viewport: { height: this.height, width: this.width }
             };
         }
@@ -269,7 +219,7 @@ module powerbitests {
         }
 
         private createListView() {
-            this._listView = ListViewFactory.createHTMLListView(this.options);
+            this._listView = this._listView = ListViewFactory.createListView(this.options);
         }
 
         private setSpy() {
@@ -286,16 +236,11 @@ module powerbitests {
         }
 
         public render(sizeChanged: boolean = true, resetScrollPosition?: boolean) {
-            this._listView.data(this.nestedData, d => d.id).render(sizeChanged, resetScrollPosition);
+            this._listView.data(this.nestedData, d => d.id, resetScrollPosition).render();
         }
 
         public buildHtmlListView() {
             this.buildHtmlListViewOptions();
-            this.build();
-        }
-
-        public buildSvgListView() {
-            this.buildSvgListViewOptions();
             this.build();
         }
     }

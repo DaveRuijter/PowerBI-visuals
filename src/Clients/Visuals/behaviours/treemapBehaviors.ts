@@ -30,16 +30,44 @@ module powerbi.visuals {
     export interface TreemapBehaviorOptions {
         shapes: D3.Selection;
         highlightShapes: D3.Selection;
-        labels: D3.Selection;
+        majorLabels: D3.Selection;
+        minorLabels: D3.Selection;
         nodes: TreemapNode[];
         hasHighlights: boolean;
     }
 
-    export class TreemapWebBehavior {
-        public select(hasSelection: boolean, datapoints: D3.Selection, hasHighlights: boolean) {
-            datapoints
+    export class TreemapWebBehavior implements IInteractiveBehavior {
+        private shapes: D3.Selection;
+        private highlightShapes: D3.Selection;
+        private hasHighlights: boolean;
+
+        public bindEvents(options: TreemapBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            let shapes = this.shapes = options.shapes;
+            let highlightShapes = this.highlightShapes = options.highlightShapes;
+            let majorLabels = options.majorLabels;
+            let minorLabels = options.minorLabels;
+            this.hasHighlights = options.hasHighlights;
+
+            let clickHandler = (d: TreemapNode) => {
+                selectionHandler.handleSelection(d, d3.event.ctrlKey);
+            };
+
+            shapes.on('click', clickHandler);
+            highlightShapes.on('click', clickHandler);
+            if (majorLabels)
+                majorLabels.on('click', clickHandler);
+            if (minorLabels)
+                minorLabels.on('click', clickHandler);
+        }
+
+        public renderSelection(hasSelection: boolean): void {
+            let hasHighlights = this.hasHighlights;
+            this.shapes
                 .style("fill", (d: TreemapNode) => Treemap.getFill(d, /* isHighlightRect */ false))
                 .style("fill-opacity", (d: TreemapNode) => Treemap.getFillOpacity(d, hasSelection, !d.selected && hasHighlights, /* isHighlightRect */ false));
+            this.highlightShapes
+                .style("fill", (d: TreemapNode) => Treemap.getFill(d, /* isHighlightRect */ true))
+                .style("fill-opacity", (d: TreemapNode) => Treemap.getFillOpacity(d, hasSelection, !d.selected && hasHighlights, /* isHighlightRect */ true));
         }
     }
 }

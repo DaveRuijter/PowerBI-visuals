@@ -68,7 +68,16 @@ module powerbi.visuals {
                         type: { bool: true }
                     },
                 },
-            }
+            },
+            wordWrap: {
+                displayName: data.createDisplayNameGetter('Visual_WordWrap'),
+                properties: {
+                    show: {
+                        displayName: data.createDisplayNameGetter('Visual_Show'),
+                        type: { bool: true }
+                    },
+                },
+            },
         },
         dataViewMappings: [{
             conditions: [
@@ -87,6 +96,9 @@ module powerbi.visuals {
             color: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'color' },
             labelPrecision: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'labelPrecision' },
             labelDisplayUnits: <DataViewObjectPropertyIdentifier>{ objectName: 'labels', propertyName: 'labelDisplayUnits' },
+        },
+        wordWrap: {
+            show: <DataViewObjectPropertyIdentifier>{ objectName: 'wordWrap', propertyName: 'show' },
         },
     };
 

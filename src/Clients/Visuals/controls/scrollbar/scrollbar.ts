@@ -32,8 +32,8 @@ module powerbi.visuals.controls {
 
     export function fire(eventHandlers, eventArgs) {
         if (eventHandlers) {
-            for (var i = 0; i < eventHandlers.length; i++) {
-                var h = eventHandlers[i];
+            for (let i = 0; i < eventHandlers.length; i++) {
+                let h = eventHandlers[i];
                 h(eventArgs);
             }
         }
@@ -60,7 +60,7 @@ module powerbi.visuals.controls {
             this._direction = direction;
             this._timerHandle = undefined;
             this.createView();
-            var that = this;
+            let that = this;
             this._element.addEventListener("mousedown", function (e) { that.onMouseDown(<MouseEvent>e); });
             $(this._element).addClass(UNSELECTABLE_CLASS_NAME);
             $(this._svg).addClass(UNSELECTABLE_CLASS_NAME);
@@ -74,14 +74,14 @@ module powerbi.visuals.controls {
 
         // Methods
         private createView(): void {
-            var svgns = "http://www.w3.org/2000/svg";
+            let svgns = "http://www.w3.org/2000/svg";
 
             this._polygon = <SVGElement>document.createElementNS(svgns, "polygon");
             this._polygon.setAttributeNS(null, "points", "3,3 6,3 13,8 6,13 3,13 10,8");
             this._polygon.setAttributeNS(null, "fill", ScrollbarButton.ARROW_COLOR);
 
             this._svg = <HTMLElement>document.createElementNS(svgns, "svg");
-            var svgStyle = this._svg.style;
+            let svgStyle = this._svg.style;
             svgStyle.position = "absolute";
             svgStyle.left = "0px";
             svgStyle.top = "0px";
@@ -95,11 +95,11 @@ module powerbi.visuals.controls {
         }
 
         private onMouseDown(event: MouseEvent): void {
-            var that = this;
+            let that = this;
             clearTimeout(this._timerHandle);
             if (!this._mouseUpWrapper) {
                 event.cancelBubble = true;
-                var that = this;
+                let that = this;
                 this._mouseUpWrapper = function (event) { that.onMouseUp(event); };
                 Scrollbar.addDocumentMouseUpEvent(this._mouseUpWrapper);
             }
@@ -118,10 +118,10 @@ module powerbi.visuals.controls {
         }
 
         public arrange(width: number, height: number, angle: number): void {
-            var size = Math.min(width, height);
-            var scale = size / 16;
-            var x = (width - size) / 2;
-            var y = (height - size) / 2;
+            let size = Math.min(width, height);
+            let scale = size / 16;
+            let x = (width - size) / 2;
+            let y = (height - size) / 2;
             this._polygon.setAttributeNS(null, "transform", "translate(" + x + ", " + y + ") scale(" + scale + ") rotate(" + angle + ",8,8)");
             this._svg.setAttributeNS(null, "width", width + "px");
             this._svg.setAttributeNS(null, "height", height + "px");
@@ -186,7 +186,7 @@ module powerbi.visuals.controls {
 
         constructor(parentElement: HTMLElement) {
             this.createView(parentElement);
-            var that = this;
+            let that = this;
             this._element.addEventListener("mousedown", function (e) { that.onBackgroundMouseDown(<MouseEvent>e); });
             this._middleBar.addEventListener("mousedown", function (e) { that.onMiddleBarMouseDown(<MouseEvent>e); });
             this._timerHandle = undefined;
@@ -350,7 +350,7 @@ module powerbi.visuals.controls {
                     this._offsetTouchPrevPos = this._offsetTouchStartPos = this._getMouseOffset(e);
                 }
 
-                var delta = this._getOffsetTouchDelta(e);
+                let delta = this._getOffsetTouchDelta(e);
                 if (delta !== 0) {
                     this.scrollBy(-delta / this._getRunningSize(false) * this.viewSize);
                     this._offsetTouchPrevPos = this._getMouseOffset(e);
@@ -365,7 +365,7 @@ module powerbi.visuals.controls {
         public onTouchMouseUp(e: MouseEvent, bubble?: boolean) {
             if (this._touchStarted) {
                 if (this._offsetTouchStartPos) {
-                    var end = this._getMouseOffset(e);
+                    let end = this._getMouseOffset(e);
                     if (!bubble && (Math.abs(this._offsetTouchStartPos.x - end.x) > 3 || Math.abs(this._offsetTouchStartPos.y - end.y) > 3)) {
                         if (e.preventDefault)
                             e.preventDefault();
@@ -400,7 +400,7 @@ module powerbi.visuals.controls {
         }
 
         private scrollTo(pos: number): void {
-            var viewMin = Math.min(this.max - this.viewSize, Math.max(this.min, pos));
+            let viewMin = Math.min(this.max - this.viewSize, Math.max(this.min, pos));
             if (viewMin !== this.viewMin) {
                 this.viewMin = viewMin;
                 fire(this._onscroll, null);
@@ -422,7 +422,7 @@ module powerbi.visuals.controls {
         }
 
         private scroll(event: MouseEvent): void {
-            var delta: number = this._getOffsetDelta(event) / this._getRunningSize(true) * (this.max - this.min);
+            let delta: number = this._getOffsetDelta(event) / this._getRunningSize(true) * (this.max - this.min);
 
             if (delta < 0) {
                 if (this._getScreenMousePos(event) >= this._screenMaxMousePos) {
@@ -510,7 +510,7 @@ module powerbi.visuals.controls {
         }
 
         private onHoldBackgroundMouseDown(event: MouseEvent): void {
-            var holdDelay = this._timerHandle ?
+            let holdDelay = this._timerHandle ?
                 Scrollbar.ScrollbarBackgroundMousedownHoldDelay :
                 Scrollbar.ScrollbarBackgroundFirstTimeMousedownHoldDelay;
             this._timerHandle = setTimeout(() => {
@@ -519,7 +519,7 @@ module powerbi.visuals.controls {
         }
 
         private onBackgroundMouseDown(event: MouseEvent): void {
-            var that = this;
+            let that = this;
             clearTimeout(this._timerHandle);
             if (!this._backgroundMouseUpWrapper) {
                 event.cancelBubble = true;
@@ -550,7 +550,7 @@ module powerbi.visuals.controls {
             this._screenMinMousePos = this._getScreenMousePos(event) - (this._getScreenContextualLeft(this._middleBar) - this._getScreenContextualRight(this._minButton.element));
             this._screenMaxMousePos = this._getScreenMousePos(event) + (this._getScreenContextualLeft(this._maxButton.element) - this._getScreenContextualRight(this._middleBar));
             this._screenToOffsetScale = HTMLElementUtils.getAccumulatedScale(this.element) * this.getPinchZoomY();
-            var that = this;
+            let that = this;
             this._middleBarMouseMoveWrapper = function (e) { that.onMiddleBarMouseMove(e); };
             Scrollbar.addDocumentMouseMoveEvent(this._middleBarMouseMoveWrapper);
             this._middleBarMouseUpWrapper = function (e) { that.onMiddleBarMouseUp(e); };
@@ -664,8 +664,8 @@ module powerbi.visuals.controls {
 
         public refresh(): void {
             this.arrange();
-            var runningSize = this.actualWidth - this.actualButtonWidth * 2 - 2;
-            var barSize = this.viewSize / (this.max - this.min) * runningSize;
+            let runningSize = this.actualWidth - this.actualButtonWidth * 2 - 2;
+            let barSize = this.viewSize / (this.max - this.min) * runningSize;
             if (barSize < this.MIN_BAR_SIZE) {
                 runningSize -= this.MIN_BAR_SIZE - barSize;
                 barSize = this.MIN_BAR_SIZE;
@@ -675,7 +675,7 @@ module powerbi.visuals.controls {
                 barSize = 0;
             }
             barSize = Math.min(barSize, runningSize);
-            var barPos = this.viewMin / (this.max - this.min) * runningSize;
+            let barPos = this.viewMin / (this.max - this.min) * runningSize;
             HTMLElementUtils.setElementWidth(this.middleBar, barSize);
             HTMLElementUtils.setElementHeight(this.middleBar, this.actualHeight);
             HTMLElementUtils.setElementLeft(this.middleBar, this.actualButtonWidth + 1 + barPos);
@@ -695,9 +695,9 @@ module powerbi.visuals.controls {
         }
 
         public _scrollByPage(event: MouseEvent): void {
-            var left = this.middleBar.offsetLeft;
-            var right = left + this.middleBar.offsetWidth;
-            var x = (event.offsetX === undefined) ? event.layerX : event.offsetX;
+            let left = this.middleBar.offsetLeft;
+            let right = left + this.middleBar.offsetWidth;
+            let x = (event.offsetX === undefined) ? event.layerX : event.offsetX;
             if (x > right) {
                 this.scrollPageDown();
             } else if (x < left) {
@@ -706,11 +706,11 @@ module powerbi.visuals.controls {
         }
 
         public _getRunningSize(net: boolean): number {
-            var result = this.actualWidth;
+            let result = this.actualWidth;
             if (net) {
-                var barMinPos = this.actualButtonWidth + 1;
+                let barMinPos = this.actualButtonWidth + 1;
                 result -= barMinPos * 2;
-                var barSize = result * (this.viewSize / (this.max - this.min));
+                let barSize = result * (this.viewSize / (this.max - this.min));
                 if (barSize < this.MIN_BAR_SIZE)
                     result -= this.MIN_BAR_SIZE - barSize;
             }
@@ -767,8 +767,8 @@ module powerbi.visuals.controls {
 
         public refresh(): void {
             this.arrange();
-            var runningSize = this.actualHeight - this.actualButtonHeight * 2 - 2;
-            var barSize = this.viewSize / (this.max - this.min) * runningSize;
+            let runningSize = this.actualHeight - this.actualButtonHeight * 2 - 2;
+            let barSize = this.viewSize / (this.max - this.min) * runningSize;
             if (barSize < this.MIN_BAR_SIZE) {
                 runningSize -= this.MIN_BAR_SIZE - barSize;
                 barSize = this.MIN_BAR_SIZE;
@@ -777,7 +777,7 @@ module powerbi.visuals.controls {
                 runningSize = 0;
                 barSize = 0;
             }
-            var barPos = this.viewMin / (this.max - this.min) * runningSize;
+            let barPos = this.viewMin / (this.max - this.min) * runningSize;
             HTMLElementUtils.setElementWidth(this.middleBar, this.actualWidth);
             HTMLElementUtils.setElementHeight(this.middleBar, barSize);
             HTMLElementUtils.setElementTop(this.middleBar, this.actualButtonHeight + 1 + barPos);
@@ -797,9 +797,9 @@ module powerbi.visuals.controls {
         }
 
         public _scrollByPage(event: MouseEvent): void {
-            var top = this.middleBar.offsetTop;
-            var bottom = top + this.middleBar.offsetHeight;
-            var y = (event.offsetY === undefined) ? event.layerY : event.offsetY;
+            let top = this.middleBar.offsetTop;
+            let bottom = top + this.middleBar.offsetHeight;
+            let y = (event.offsetY === undefined) ? event.layerY : event.offsetY;
             if (y > bottom) {
                 this.scrollPageDown();
             } else if (y < top) {
@@ -808,11 +808,11 @@ module powerbi.visuals.controls {
         }
 
         public _getRunningSize(net: boolean): number {
-            var result = this.actualHeight;
+            let result = this.actualHeight;
             if (net) {
-                var barMinPos = this.actualButtonHeight + 1;
+                let barMinPos = this.actualButtonHeight + 1;
                 result -= barMinPos * 2;
-                var barSize = result * (this.viewSize / (this.max - this.min));
+                let barSize = result * (this.viewSize / (this.max - this.min));
                 if (barSize < this.MIN_BAR_SIZE)
                     result -= this.MIN_BAR_SIZE - barSize;
             }

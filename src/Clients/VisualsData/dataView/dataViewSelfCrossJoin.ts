@@ -38,7 +38,7 @@ module powerbi.data {
 
             if (!dataView.categorical)
                 return;
-            var dataViewCategorical = dataView.categorical;
+            let dataViewCategorical = dataView.categorical;
             if (!dataViewCategorical.categories || dataViewCategorical.categories.length !== 1)
                 return;
             if (dataViewCategorical.values && dataViewCategorical.values.source)
@@ -55,18 +55,18 @@ module powerbi.data {
             dataViewMetadata = Prototype.inherit(dataViewMetadata);
             dataViewMetadata.columns = [];
 
-            var valuesArray: DataViewValueColumn[] = dataViewCategorical.values
+            let valuesArray: DataViewValueColumn[] = dataViewCategorical.values
                 ? dataViewCategorical.values.grouped()[0].values
                 : [];
 
-            var category = dataViewCategorical.categories[0],
+            let category = dataViewCategorical.categories[0],
                 categoryValues = category.values,
                 categoryLength = categoryValues.length;
 
             if (categoryLength === 0)
                 return;
 
-            var categoryIdentities = category.identity,
+            let categoryIdentities = category.identity,
                 crossJoinedValuesArray: DataViewValueColumn[] = [],
                 nullValuesArray: any[] = createNullValues(categoryLength);
 
@@ -74,19 +74,19 @@ module powerbi.data {
 
             dataViewMetadata.columns.push(category.source);
 
-            for (var i = 0; i < categoryLength; i++) {
-                var identity = categoryIdentities[i],
+            for (let i = 0; i < categoryLength; i++) {
+                let identity = categoryIdentities[i],
                     categoryValue = categoryValues[i];
 
-                for (var j = 0, jlen = valuesArray.length; j < jlen; j++) {
-                    var originalValueColumn = valuesArray[j],
+                for (let j = 0, jlen = valuesArray.length; j < jlen; j++) {
+                    let originalValueColumn = valuesArray[j],
                         originalHighlightValues = originalValueColumn.highlights;
 
-                    var crossJoinedValueColumnSource = Prototype.inherit(originalValueColumn.source);
+                    let crossJoinedValueColumnSource = Prototype.inherit(originalValueColumn.source);
                     crossJoinedValueColumnSource.groupName = categoryValue;
                     dataViewMetadata.columns.push(crossJoinedValueColumnSource);
 
-                    var crossJoinedValueColumn: DataViewValueColumn = {
+                    let crossJoinedValueColumn: DataViewValueColumn = {
                         source: crossJoinedValueColumnSource,
                         identity: identity,
                         values: inheritArrayWithValue(nullValuesArray, originalValueColumn.values, i),
@@ -99,7 +99,7 @@ module powerbi.data {
                 }
             }
 
-            var crossJoinedValues = DataViewTransform.createValueColumns(crossJoinedValuesArray, category.identityFields, category.source);
+            let crossJoinedValues = DataViewTransform.createValueColumns(crossJoinedValuesArray, category.identityFields, category.source);
 
             return {
                 metadata: dataViewMetadata,
@@ -113,14 +113,14 @@ module powerbi.data {
         function createNullValues(length: number): any[] {
             debug.assertValue(length, 'length');
 
-            var array = new Array(length);
-            for (var i = 0; i < length; i++)
+            let array = new Array(length);
+            for (let i = 0; i < length; i++)
                 array[i] = null;
             return array;
         }
 
         function inheritArrayWithValue(nullValues: any[], original: any[], index: number): any[] {
-            var inherited = Prototype.inherit(nullValues);
+            let inherited = Prototype.inherit(nullValues);
             inherited[index] = original[index];
 
             return inherited;

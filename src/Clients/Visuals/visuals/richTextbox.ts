@@ -79,10 +79,6 @@ module powerbi.visuals {
             this.readOnly = (this.host.getViewMode() === ViewMode.View);
             this.paragraphs = [];
             this.refreshView();
-
-            // Ensure focus is in the editor when the visual is first created
-            if (this.editor)
-                this.editor.focusWhenLoaded();
         }
 
         public onResizing(viewport: IViewport): void {
@@ -92,11 +88,11 @@ module powerbi.visuals {
 
         public onDataChanged(options: VisualDataChangedOptions): void {
             debug.assertValue(options, 'options');
-            var dataViews = options.dataViews;
+            let dataViews = options.dataViews;
 
             this.paragraphs = [];
             if (dataViews && dataViews.length > 0) {
-                var objects = <TextboxDataViewObjects>dataViews[0].metadata.objects;
+                let objects = <TextboxDataViewObjects>dataViews[0].metadata.objects;
 
                 if (objects && objects.general)
                     this.paragraphs = objects.general.paragraphs;
@@ -106,6 +102,14 @@ module powerbi.visuals {
         }
 
         public destroy(): void {
+        }
+
+        public focus(): boolean {
+            if (!this.editor)
+                return;
+
+            this.editor.focus();
+            return true;
         }
 
         public onViewModeChanged(viewMode: ViewMode): void {
@@ -157,10 +161,10 @@ module powerbi.visuals {
             if (!this.editor)
                 return;
 
-            var contents: quill.Delta = this.editor.getContents();
+            let contents: quill.Delta = this.editor.getContents();
             this.paragraphs = RichTextbox.convertDeltaToParagraphs(contents);
 
-            var changes: VisualObjectInstance[] = [{
+            let changes: VisualObjectInstance[] = [{
                 objectName: 'general',
                 properties: {
                     paragraphs: this.paragraphs
@@ -177,17 +181,17 @@ module powerbi.visuals {
         }
 
         private static convertDeltaToParagraphs(contents: quill.Delta): ParagraphContext[] {
-            var paragraphs: ParagraphContext[] = [];
-            var paragraph: ParagraphContext = { textRuns: [] };
+            let paragraphs: ParagraphContext[] = [];
+            let paragraph: ParagraphContext = { textRuns: [] };
 
-            for (var i = 0, len = contents.ops.length; i < len; i++) {
-                var insertOp = <quill.InsertOp>contents.ops[i];
+            for (let i = 0, len = contents.ops.length; i < len; i++) {
+                let insertOp = <quill.InsertOp>contents.ops[i];
                 debug.assertValue(insertOp, "operation should be an insert");
 
                 if (typeof insertOp.insert === "string") {
                     // string insert values represent text.
-                    var text = <string>insertOp.insert;
-                    var attributes: quill.FormatAttributes = insertOp.attributes;
+                    let text = <string>insertOp.insert;
+                    let attributes: quill.FormatAttributes = insertOp.attributes;
 
                     if (attributes && attributes.align) {
                         // Sometimes horizontal alignment is set after the first "insert" of the paragraph, which is likely a bug
@@ -199,9 +203,9 @@ module powerbi.visuals {
                     }
 
                     // Quill gives us back text runs that may have \n's in them. We want to create a new paragraph for each \n we see.
-                    var start = 0;
-                    var end = 0;
-                    var newParagraph: boolean;
+                    let start = 0;
+                    let end = 0;
+                    let newParagraph: boolean;
                     do {
                         end = text.indexOf('\n', start);
                         if (end < 0) {
@@ -213,13 +217,13 @@ module powerbi.visuals {
                         }
 
                         if (end - start > 0) {
-                            var span = text.substring(start, end);
-                            var textRun: TextRunContext = { value: span };
+                            let span = text.substring(start, end);
+                            let textRun: TextRunContext = { value: span };
                             if (attributes) {
                                 if (attributes.link !== undefined)
                                     textRun.url = attributes.link;
 
-                                var textStyle = RichTextbox.convertFormatAttributesToTextStyle(attributes);
+                                let textStyle = RichTextbox.convertFormatAttributesToTextStyle(attributes);
                                 if (textStyle)
                                     textRun.textStyle = textStyle;
                             }
@@ -255,25 +259,25 @@ module powerbi.visuals {
         }
 
         private static convertParagraphsToHtml(paragraphs: ParagraphContext[]): JQuery {
-            var $paragraphs: JQuery = $();
+            let $paragraphs: JQuery = $();
 
-            for (var paragraphIndex = 0, len = paragraphs.length; paragraphIndex < len; ++paragraphIndex) {
-                var paragraphDef = paragraphs[paragraphIndex];
-                var isParagraphEmpty = true;
+            for (let paragraphIndex = 0, len = paragraphs.length; paragraphIndex < len; ++paragraphIndex) {
+                let paragraphDef = paragraphs[paragraphIndex];
+                let isParagraphEmpty = true;
 
-                var $paragraph = $('<div>');
+                let $paragraph = $('<div>');
 
                 if (paragraphDef.horizontalTextAlignment)
                     $paragraph.css('text-align', paragraphDef.horizontalTextAlignment);
 
-                for (var textRunIndex = 0, jlen = paragraphDef.textRuns.length; textRunIndex < jlen; ++textRunIndex) {
-                    var textRunDef = paragraphDef.textRuns[textRunIndex];
+                for (let textRunIndex = 0, jlen = paragraphDef.textRuns.length; textRunIndex < jlen; ++textRunIndex) {
+                    let textRunDef = paragraphDef.textRuns[textRunIndex];
 
-                    var $textRun = $('<span>');
+                    let $textRun = $('<span>');
 
-                    var styleDef = textRunDef.textStyle;
+                    let styleDef = textRunDef.textStyle;
                     if (styleDef) {
-                        var css = {};
+                        let css = {};
                         if (styleDef.fontFamily) {
                             css['font-family'] = RichText.getFontFamily(styleDef.fontFamily);
                         }
@@ -297,12 +301,12 @@ module powerbi.visuals {
                         $textRun.css(css);
                     }
 
-                    var text = textRunDef.value;
+                    let text = textRunDef.value;
                     if (!jsCommon.StringExtensions.isNullOrEmpty(text))
                         isParagraphEmpty = false;
 
                     if (textRunDef.url !== undefined) {
-                        var $link = $('<a>')
+                        let $link = $('<a>')
                             .attr('href', textRunDef.url)
                             .attr('target', '_blank')
                             .text(text);
@@ -327,19 +331,19 @@ module powerbi.visuals {
         }
 
         private static convertParagraphsToOps(paragraphs: ParagraphContext[]): quill.Op[] {
-            var ops: quill.InsertOp[] = [];
+            let ops: quill.InsertOp[] = [];
 
-            for (var paragraphIndex = 0, len = paragraphs.length; paragraphIndex < len; ++paragraphIndex) {
-                var paragraphDef = paragraphs[paragraphIndex];
+            for (let paragraphIndex = 0, len = paragraphs.length; paragraphIndex < len; ++paragraphIndex) {
+                let paragraphDef = paragraphs[paragraphIndex];
 
-                for (var textRunIndex = 0, jlen = paragraphDef.textRuns.length; textRunIndex < jlen; ++textRunIndex) {
-                    var textRunDef = paragraphDef.textRuns[textRunIndex];
-                    var formats: quill.FormatAttributes = {};
+                for (let textRunIndex = 0, jlen = paragraphDef.textRuns.length; textRunIndex < jlen; ++textRunIndex) {
+                    let textRunDef = paragraphDef.textRuns[textRunIndex];
+                    let formats: quill.FormatAttributes = {};
 
                     if (paragraphDef.horizontalTextAlignment)
                         formats.align = paragraphDef.horizontalTextAlignment;
 
-                    var styleDef = textRunDef.textStyle;
+                    let styleDef = textRunDef.textStyle;
                     if (styleDef) {
                         if (styleDef.fontFamily) {
                             formats.font = RichText.getFontFamily(styleDef.fontFamily);
@@ -354,12 +358,12 @@ module powerbi.visuals {
                         formats.underline = (styleDef.textDecoration === 'underline');
                     }
 
-                    var text = textRunDef.value;
+                    let text = textRunDef.value;
 
                     if (textRunDef.url)
                         formats.link = textRunDef.url;
 
-                    var op: quill.InsertOp = {
+                    let op: quill.InsertOp = {
                         insert: text,
                         attributes: formats,
                     };
@@ -380,7 +384,7 @@ module powerbi.visuals {
         }
 
         private static convertFormatAttributesToTextStyle(attributes: quill.FormatAttributes): TextRunStyle {
-            var style: TextRunStyle = {};
+            let style: TextRunStyle = {};
 
             // NOTE: Align is taken care of when converting to paragraphs.
             if (attributes.bold) {
@@ -469,7 +473,7 @@ module powerbi.visuals {
         ].map((alignment) => <ListValueOption> { label: alignment, value: alignment.toLowerCase() });
 
         export function getFontFamily(font: string): string {
-            var family = fontMap[font];
+            let family = fontMap[font];
             return (family !== undefined) ? family : font;
         }
 
@@ -543,6 +547,11 @@ module powerbi.visuals {
                 }
             }
 
+            public addModule(name: any, options: any): any {
+                if (this.editor)
+                    return this.editor.addModule(name, options);
+            }
+
             public getElement(): JQuery {
                 return this.$container;
             }
@@ -572,7 +581,7 @@ module powerbi.visuals {
             }
 
             public setReadOnly(readOnly: boolean): void {
-                var readOnlyChanged = readOnly !== this.readOnly;
+                let readOnlyChanged = readOnly !== this.readOnly;
                 this.readOnly = readOnly;
 
                 if (this.initialized && readOnlyChanged) {
@@ -584,16 +593,16 @@ module powerbi.visuals {
                 if (this.editor == null)
                     return;
 
-                var text = this.editor.getText();
-                var urlRegex = /http[s]?:\/\/(\S)+/gi;
+                let text = this.editor.getText();
+                let urlRegex = /http[s]?:\/\/(\S)+/gi;
 
                 // Find and format all urls in the text
                 // TODO: This can be a bit expensive, maybe include a cap here for text with many urls?
-                var matches;
+                let matches;
                 while ((matches = urlRegex.exec(text)) !== null) {
-                    var url = matches[0];
-                    var start = matches.index;
-                    var end = urlRegex.lastIndex;
+                    let url = matches[0];
+                    let start = matches.index;
+                    let end = urlRegex.lastIndex;
 
                     // Remove existing link
                     this.editor.formatText(start, end, 'link', false, 'api');
@@ -616,11 +625,12 @@ module powerbi.visuals {
                     return this.editor.getSelection();
             }
 
-            public focusWhenLoaded(): void {
-                this.dependenciesLoaded.done(() => {
-                    if (this.editor)
-                        this.editor.focus();
-                });
+            public focus(): void {
+                if (!this.editor)
+                    return;
+
+                if ($(document.activeElement).closest(this.$container).length === 0)
+                    this.editor.focus();
             }
 
             public destroy(): void {
@@ -632,9 +642,46 @@ module powerbi.visuals {
                 this.editor = null;
             }
 
+            public getSelectionAtCursor(): quill.Range {
+                let text = this.getTextWithoutTrailingBreak();
+
+                // Ensure editor has focus before selection interactions
+                this.editor.focus();
+                
+                let selection = this.getSelection();
+                if (selection && selection.start === selection.end) {
+                    return jsCommon.WordBreaker.find(selection.start, text);
+                }
+
+                return selection;
+            }
+
+            public getWord() {
+                let selection = this.getSelectionAtCursor();
+                return this.getTextWithoutTrailingBreak().slice(selection.start, selection.end);
+            }
+
+            public insertLinkAtCursor(link: string, index: number): number {
+                let endIndex = index + link.length;
+                
+                this.editor.insertText(index, link, 'api');
+                this.editor.formatText(index, endIndex, 'link', link, 'api');
+                this.setSelection(index, endIndex);
+                return endIndex;
+            }
+
+            public getEditorContainer(): JQuery {
+                if (this.editor)
+                    return $(this.editor.container);
+            };
+
+            private getTextWithoutTrailingBreak(): string {
+                return this.editor.getText().slice(0, -1);
+            }
+
             private rebuildQuillEditor(): void {
                 // Preserve contents if we already have an editor.
-                var contents: quill.Delta = null;
+                let contents: quill.Delta = null;
                 if (this.editor) {
                     this.editor.removeAllListeners();
                     contents = this.editor.getContents();
@@ -649,13 +696,13 @@ module powerbi.visuals {
                         e.stopPropagation();
                 });
 
-                var $editorDiv = this.$editorDiv = $('<div>');
+                let $editorDiv = this.$editorDiv = $('<div>');
 
                 // HACK: Quill does not apply the correct default styling if you clear all the content and add new content.
                 $editorDiv.css('font-family', defaultFont);
                 $editorDiv.css('font-size', defaultFontSize);
 
-                var configs = {
+                let configs = {
                     readOnly: this.readOnly,
                     formats: ['bold', 'italic', 'underline', 'font', 'size', 'link', 'align', /* TODO: 'color', 'background' */],
                     styles: false,
@@ -664,9 +711,9 @@ module powerbi.visuals {
 
                 // If not readonly we add a toolbar and disable drag/resize
                 if (!this.readOnly) {
-                    var $toolbarDiv = this.$toolbarDiv;
+                    let $toolbarDiv = this.$toolbarDiv;
                     if (!$toolbarDiv) {
-                        this.$toolbarDiv = $toolbarDiv = Toolbar.buildToolbar(this.editor, this.localizationProvider);
+                        this.$toolbarDiv = $toolbarDiv = Toolbar.buildToolbar(this, this.localizationProvider);
                     }
 
                     $toolbarDiv.addClass('unselectable');
@@ -683,14 +730,14 @@ module powerbi.visuals {
                     this.setContents(contents);
 
                 // Throttle text-changed events to not more frequent than once per 200ms
-                var textChangeThrottler = new jsCommon.ThrottleUtility(QuillWrapper.textChangeThrottle);
+                let textChangeThrottler = new jsCommon.ThrottleUtility(QuillWrapper.textChangeThrottle);
                 this.editor.on('text-change', (delta, source) => {
                     if (source !== 'api')
                         textChangeThrottler.run(() => this.onTextChanged(delta, source));
                 });
 
                 // TODO: Actually, probably want something that continually defers until you stop typing, this is probably fine for now though.
-                var formatUrlThrottler = new jsCommon.ThrottleUtility(QuillWrapper.formatUrlThrottle);
+                let formatUrlThrottler = new jsCommon.ThrottleUtility(QuillWrapper.formatUrlThrottle);
                 this.editor.on('text-change', (delta, source) => {
                     if (source !== 'api')
                         formatUrlThrottler.run(() => this.formatUrls());
@@ -718,23 +765,19 @@ module powerbi.visuals {
                     causes a bug where the user must click twice when attempting to interact
                     with a <select> element. To prevent this issue we explicitly do not call
                     setSelection to blur if the user is changing focus to a <select> element.
+                    This issue is also present for link tooltips from the Quill module which
+                    will cause a blur onto the tooltip.
                 */
                 this.editor.root.addEventListener('blur', (event) => {
-                    var target: HTMLElement = <HTMLElement>(event.relatedTarget || document.activeElement);
+                    let target: HTMLElement = <HTMLElement>(event.relatedTarget || document.activeElement);
 
-                    if (target && target.tagName === 'SELECT') {
+                    if (target &&
+                        target.tagName === 'SELECT' || target.tagName === 'INPUT' || target.classList.contains('ql-editor')) {
                         return;
                     }
 
                     this.setSelection(null, null);
                 }, false);
-
-                try {
-                    this.editor.focus();
-                }
-                catch (e) {
-                    // IE can throw an exception in this case because of the way Quill sets the selected range internally, just ignore any exceptions here.
-                }
             }
 
             private onTextChanged(delta, source): void {
@@ -743,29 +786,31 @@ module powerbi.visuals {
         }
 
         module Toolbar {
-            let createSelector = (className: string): ClassAndSelector => {
+            const DefaultLinkInputValue = 'http://';
+
+            var createSelector = (className: string): ClassAndSelector => {
                 return {
                     class: className,
                     selector: '.' + className,
                 };
             };
 
-            export let selectors = {
+            export var selectors = {
                 linkTooltip: createSelector('ql-link-tooltip'),
                 toolbarUrlInput: createSelector('toolbar-url-input'),
             };
 
-            export function buildToolbar(editor: quill.Quill, localizationProvider: jsCommon.IStringResourceProvider) {
+            export function buildToolbar(quillWrapper: QuillWrapper, localizationProvider: jsCommon.IStringResourceProvider) {
                 // Module for adding custom hyperlinks
-                var linkTooltipTemplate = buildToolbarLinkInputTemplate(localizationProvider);
-                editor.addModule('link-tooltip', { template: linkTooltipTemplate });
+                let linkTooltipTemplate = buildToolbarLinkInputTemplate(localizationProvider);
+                quillWrapper.addModule('link-tooltip', { template: linkTooltipTemplate });
 
-                var toolbarLinkInput: JQuery = buildToolbarLinkInput(editor, getTooltip('Link', localizationProvider), localizationProvider.get('RichTextbox_Link_DefaultText'));
+                let toolbarLinkInput: JQuery = buildToolbarLinkInput(quillWrapper, getTooltip('Link', localizationProvider), localizationProvider.get('RichTextbox_Link_DefaultText'));
 
-                var fontPicker = picker(getTooltip('Font', localizationProvider), fonts, 'font', defaultFont,
+                let fontPicker = picker(getTooltip('Font', localizationProvider), fonts, 'font', defaultFont,
                     // Show the fonts in their own font face.
                     ($option, option) => { $option.css('font-family', option.value); return $option; }
-                    );
+                );
 
                 let $container = div()
                     .addClass('toolbar ql-toolbar')
@@ -789,7 +834,7 @@ module powerbi.visuals {
 
                 // Prevent mousedown from triggering subsequent blur on editor
                 $container.on('mousedown', (event) => {
-                    var target = <HTMLElement>(event.target || document.activeElement);
+                    let target = <HTMLElement>(event.target || document.activeElement);
                     if (target.tagName !== 'INPUT' && target.tagName !== 'SELECT')
                         event.preventDefault();
                 });
@@ -802,7 +847,7 @@ module powerbi.visuals {
                 // NOTE: The 'change' event is not raised when the value of the SELECT element is changed programatically,
                 // and Quill uses it's own, non-JQuery, method to hook up to the 'change' event, therefore, we need to dispatch
                 // this event manually on the SELECT element.
-                var evt = document.createEvent('UIEvent');
+                let evt = document.createEvent('UIEvent');
                 evt.initUIEvent('change', false, false, null, 0);
                 $select.get(0).dispatchEvent(evt);
             }
@@ -847,18 +892,18 @@ module powerbi.visuals {
             }
 
             function toggleGroup(title: string, list: ListValueOption[], format: string, defaultValue: string, localizationProvider: jsCommon.IStringResourceProvider): JQuery {
-                var tooltip = getTooltip(title, localizationProvider);
-                var $group = span()
+                let tooltip = getTooltip(title, localizationProvider);
+                let $group = span()
                     .attr('title', tooltip)
                     .addClass('ql-toggle-group');
 
                 // Hidden selector that Quill will use to hook up change listeners.
-                var $select = selector(tooltip, list, defaultValue)
+                let $select = selector(tooltip, list, defaultValue)
                     .addClass('ql-picker ql-' + format)
                     .css('display', 'none');
 
-                var $buttons = list.map((option) => {
-                    var $button = formatButton(getTooltip(option.label, localizationProvider))
+                let $buttons = list.map((option) => {
+                    let $button = formatButton(getTooltip(option.label, localizationProvider))
                         .attr('data-value', option.value)
                         .click((e) => setSelectValue($select, option.value));
                     return $button;
@@ -866,8 +911,8 @@ module powerbi.visuals {
 
                 // Quill will change the value of the selector when the text selection changes, so we need to set the state of the buttons to match.
                 $select.change((e) => {
-                    var newValue = $select.val();
-                    for (var i = 0; i < $buttons.length; i++) {
+                    let newValue = $select.val();
+                    for (let i = 0; i < $buttons.length; i++) {
                         $buttons[i].toggleClass('ql-active', $buttons[i].attr('data-value') === newValue);
                     }
                 });
@@ -879,19 +924,19 @@ module powerbi.visuals {
             }
 
             function picker(tooltip: string, list: ListValueOption[], format: string, defaultValue: string, optionModifier?: (JQuery, ListValueOption) => JQuery): JQuery {
-                var $selector = selector(tooltip, list, defaultValue, optionModifier)
+                let $selector = selector(tooltip, list, defaultValue, optionModifier)
                     .addClass('ql-picker ql-' + format);
 
                 return $selector;
             }
 
             function selector(tooltip: string, list: ListValueOption[], defaultValue?: string, optionModifier?: (JQuery, ListValueOption) => JQuery): JQuery {
-                var $selector = $('<select>')
+                let $selector = $('<select>')
                     .attr('title', tooltip);
 
-                for (var i = 0; i < list.length; i++) {
-                    var option = list[i];
-                    var $option = $('<option>')
+                for (let i = 0; i < list.length; i++) {
+                    let option = list[i];
+                    let $option = $('<option>')
                         .attr('value', option.value)
                         .text(option.label);
 
@@ -924,9 +969,15 @@ module powerbi.visuals {
                 return localizationProvider.get('RichTextbox_' + name + '_ToolTip');
             }
 
-            function buildToolbarLinkInput(editor: quill.Quill, buttonTooltip: string, defaultLinkText: string): JQuery {
+            function clearLinkInput(linkTooltip: JQuery): void {
+                linkTooltip.removeClass('editing');
+                linkTooltip.removeClass('blank-editing');
+                linkTooltip.find('.input').val(DefaultLinkInputValue);
+            }
+
+            function buildToolbarLinkInput(quillWrapper: QuillWrapper, buttonTooltip: string, defaultLinkText: string): JQuery {
                 // Pull out link tooltip
-                let linkTooltip = $(editor.container).find(Toolbar.selectors.linkTooltip.selector);
+                let linkTooltip = quillWrapper.getEditorContainer().find(Toolbar.selectors.linkTooltip.selector);
 
                 // Append link tooltip to a new toolbar format group
                 let toolbarLinkInput: JQuery = formatGroup()
@@ -934,39 +985,59 @@ module powerbi.visuals {
                     .append(formatButton(buttonTooltip, 'link').append('<div>'))
                     .append(linkTooltip);
 
-                // Remove editing class when we blur input field unless we are clicking 'Done'
+                // Special case for blank selection (no text near cursor) when enter key or done button clicked
+                toolbarLinkInput.on('keydown mousedown', (event: JQueryEventObject) => {
+                    if (event.keyCode === jsCommon.DOMConstants.enterKeyCode || (<HTMLElement>event.target).classList.contains('done')) {
+                        if (!linkTooltip.hasClass('blank-editing'))
+                            return true;
+
+                        // Only perform these steps if tooltip was not in editing mode (special case for blank)
+                        let link = toolbarLinkInput.find('.input').val();
+                        let selection = quillWrapper.getSelectionAtCursor();
+                        let word = quillWrapper.getWord();
+                        if (!word) {
+                            // Insert the input text as a link
+                            let endCursor = quillWrapper.insertLinkAtCursor(link, selection.start);
+                            clearLinkInput(linkTooltip);
+                            quillWrapper.setSelection(endCursor, endCursor);
+                            return false;
+                        }
+                    }
+                });
+
                 toolbarLinkInput.find('.input').blur((event: JQueryEventObject) => {
                     let blurTarget = event.relatedTarget;
-                    if (blurTarget && !blurTarget.classList.contains('done'))
-                        linkTooltip.removeClass('editing');
+                    // Remove editing class from insert link tooltip (to hide via CSS)
+                    // only when we are not blurring to the 'done' button (tab from input field)
+                    if (blurTarget === null || blurTarget && !blurTarget.classList.contains('done'))
+                        clearLinkInput(linkTooltip);
                 });
 
                 toolbarLinkInput.find('.ql-link div')
-                // Handle click on button before Quill removes link (default behavior)
                     .click((event: JQueryEventObject) => {
+                        // Handle click on button before Quill removes link (default behavior)
                         let target = (<HTMLElement>event.target).parentElement;
                         if (target && target.classList.contains('ql-active')) {
                             toolbarLinkInput.find('.change')[0].click();
                             return false;
                         }
+
+                        // If blank selection (no text near cursor), special case for link button
+                        let word = quillWrapper.getWord();
+                        if (!word) {
+                            linkTooltip.addClass('editing blank-editing');
+                            toolbarLinkInput.find('.input')
+                                .val(DefaultLinkInputValue)
+                                .focus();
+                            return false;
+                        }
                     })
-                // Properly set selection before we handle the click
                     .mousedown((event: JQueryEventObject) => {
+                        // Properly set selection before we handle the click
                         let linkButton = (<HTMLElement>event.target).parentElement;
                         if (linkButton && !linkButton.classList.contains('ql-active')) {
-                            // Adding a new link, check for word breaking
-                            let text = editor.getText().slice(0, -1);
-                            if (text.length === 0) {
-                                let linkText = defaultLinkText;
-                                editor.setText(linkText, 'api');
-                                text = linkText;
-                            }
-
-                            let selection = editor.getSelection();
-                            if (selection && selection.start === selection.end) {
-                                let result = jsCommon.WordBreaker.find(selection.start, text);
-                                editor.setSelection(result.start, result.end);
-                            }
+                            let selection = quillWrapper.getSelectionAtCursor();
+                            quillWrapper.setSelection(selection.start, selection.end);
                         }
                     });
 

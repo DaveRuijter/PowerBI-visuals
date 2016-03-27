@@ -35,9 +35,40 @@ module powerbi.data {
         public canEdit: boolean;
 
         public findProperty(entityName: string, propertyName: string): ConceptualProperty {
-            var entity = this.entities.withName(entityName);
-            if (entity)
-                return entity.properties.withName(propertyName);
+            let entity = this.entities.withName(entityName);
+            if (!entity || _.isEmpty(entity.properties))
+                return;
+
+            return entity.properties.withName(propertyName);
+        }
+
+        public findHierarchy(entityName: string, name: string): ConceptualHierarchy {
+            let entity = this.entities.withName(entityName);
+            if (!entity || _.isEmpty(entity.hierarchies))
+                return;
+
+            return entity.hierarchies.withName(name);
+        }
+
+        /**
+        * Returns the first property of the entity whose kpi is tied to kpiProperty
+        */
+        public findPropertyWithKpi(entityName: string, kpiProperty: ConceptualProperty): ConceptualProperty {
+            debug.assertValue(kpiProperty, 'kpiProperty');
+
+            let entity = this.entities.withName(entityName);
+            if (!entity || _.isEmpty(entity.properties))
+                return;
+
+            for (let prop of entity.properties) {
+                if (prop &&
+                    prop.measure &&
+                    prop.measure.kpi &&
+                    (prop.measure.kpi.status === kpiProperty || prop.measure.kpi.goal === kpiProperty))
+                    return prop;
+            }
+
+            return;
         }
     }
 
@@ -49,14 +80,16 @@ module powerbi.data {
 
     export interface ConceptualEntity {
         name: string;
-        hidden?: boolean;
+        visibility?: ConceptualVisibility;
         calculated?: boolean;
         queryable?: ConceptualQueryableState;
         properties: jsCommon.ArrayNamedItems<ConceptualProperty>;
         hierarchies: jsCommon.ArrayNamedItems<ConceptualHierarchy>;
+        navigationProperties: jsCommon.ArrayNamedItems<ConceptualNavigationProperty>;
     }
 
     export interface ConceptualProperty {
+        displayName: string;
         name: string;
         type: ValueType;
         kind: ConceptualPropertyKind;
@@ -64,16 +97,37 @@ module powerbi.data {
         format?: string;
         column?: ConceptualColumn;
         queryable?: ConceptualQueryableState;
+        measure?: ConceptualMeasure;
+        kpi?: ConceptualProperty;
     }
 
     export interface ConceptualHierarchy {
         name: string;
         levels: jsCommon.ArrayNamedItems<ConceptualHierarchyLevel>;
+        hidden?: boolean;
     }
 
     export interface ConceptualHierarchyLevel {
         name: string;
         column: ConceptualProperty;
+        hidden?: boolean;
+    }
+
+    export interface ConceptualNavigationProperty {
+        name: string;
+        isActive: boolean;
+        sourceColumn?: ConceptualColumn;
+        targetEntity: ConceptualEntity;
+        sourceMultiplicity: ConceptualMultiplicity;
+        targetMultiplicity: ConceptualMultiplicity;
+    }
+
+    export interface ConceptualVariationSource {
+        name: string;
+        isDefault: boolean;
+        navigationProperty?: ConceptualNavigationProperty;
+        defaultHierarchy?: ConceptualHierarchy;
+        defaultProperty?: ConceptualProperty;
     }
 
     export interface ConceptualColumn {
@@ -81,20 +135,45 @@ module powerbi.data {
         keys?: jsCommon.ArrayNamedItems<ConceptualProperty>;
         idOnEntityKey?: boolean;
         calculated?: boolean;
+        defaultValue?: SQConstantExpr;
+        variations?: jsCommon.ArrayNamedItems<ConceptualVariationSource>;
     }
 
-    export enum ConceptualQueryableState {
+    export interface ConceptualMeasure {
+        kpi?: ConceptualPropertyKpi;
+    }
+
+    export interface ConceptualPropertyKpi {
+        statusGraphic: string;
+        status?: ConceptualProperty;
+        goal?: ConceptualProperty;
+    }
+
+    export const enum ConceptualVisibility {
+        Visible = 0,
+        Hidden = 1,
+        ShowAsVariationsOnly = 2,
+        IsPrivate = 4,
+    }
+
+    export const enum ConceptualQueryableState {
         Queryable = 0,
         Error = 1,
     }
 
-    export enum ConceptualPropertyKind {
+    export const enum ConceptualMultiplicity {
+        ZeroOrOne = 0,
+        One = 1,
+        Many = 2,
+    }
+
+    export const enum ConceptualPropertyKind {
         Column,
         Measure,
         Kpi,
     }
 
-    export enum ConceptualDefaultAggregate {
+    export const enum ConceptualDefaultAggregate {
         Default,
         None,
         Sum,

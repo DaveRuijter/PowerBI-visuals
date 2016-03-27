@@ -82,7 +82,11 @@ module powerbi.visuals {
                     outline: {
                         displayName: data.createDisplayNameGetter('Visual_Outline'),
                         type: { formatting: { outline: true } }
-                    }
+                    },
+                    textSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { numeric: true }
+                    },
                 }
             },
             Rows: {
@@ -99,7 +103,11 @@ module powerbi.visuals {
                     outline: {
                         displayName: data.createDisplayNameGetter('Visual_Outline'),
                         type: { formatting: { outline: true } }
-                    }
+                    },
+                    textSize: {
+                        displayName: data.createDisplayNameGetter('Visual_TextSize'),
+                        type: { numeric: true }
+                    },
                 }
             }
         },
@@ -120,6 +128,7 @@ module powerbi.visuals {
         suppressDefaultTitle: true,
     };
 
+    // TODO: Generate these from above, defining twice just introduces potential for error
     export var slicerProps = {
         general: {
             outlineColor: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'outlineColor' },
@@ -129,12 +138,14 @@ module powerbi.visuals {
             show: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'show' },
             fontColor: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'fontColor' },
             background: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'background' },
-            outline: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'outline' }
+            outline: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'outline' },
+            textSize: <DataViewObjectPropertyIdentifier>{ objectName: 'header', propertyName: 'textSize' },
         },
         Rows: {
             fontColor: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'fontColor' },
             background: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'background' },
-            outline: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'outline' }
+            outline: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'outline' },
+            textSize: <DataViewObjectPropertyIdentifier>{ objectName: 'Rows', propertyName: 'textSize' },
         },
         selectedPropertyIdentifier: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'selected' },
         filterPropertyIdentifier: <DataViewObjectPropertyIdentifier> { objectName: 'general', propertyName: 'filter' },

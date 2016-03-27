@@ -1,4 +1,4 @@
-﻿/*
+/*
 *  Power BI Visualizations
 *
 *  Copyright (c) Microsoft Corporation
@@ -48,7 +48,7 @@ module powerbi.visuals.sampleDataViews {
 
         public getDataViews(): DataView[] {
 
-            var fieldExpr = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: "table1", column: "country" });
+            var fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "table1", name: "country" } });
 
             var categoryValues = ["Australia", "Canada", "France", "Germany", "United Kingdom", "United States"];
             var categoryIdentities = categoryValues.map(function (value) {

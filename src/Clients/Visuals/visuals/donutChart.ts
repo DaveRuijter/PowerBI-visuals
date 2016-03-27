@@ -32,8 +32,9 @@ module powerbi.visuals {
         animator?: IDonutChartAnimator;
         isScrollable?: boolean;
         disableGeometricCulling?: boolean;
+        behavior?: DonutChartWebBehavior;
     }
-    
+
     /**
      * Used because data points used in D3 pie layouts are placed within a container with pie information.
      */
@@ -108,11 +109,11 @@ module powerbi.visuals {
             d: (d: DonutArcDescriptor) => string;
         };
     }
-    
+
     /**
      * Renders a donut chart.
      */
-    export class DonutChart implements IVisual, IInteractiveVisual {
+    export class DonutChart implements IVisual {
         private static ClassName = 'donutChart';
         private static InteractiveLegendClassName = 'donutLegend';
         private static InteractiveLegendArrowClassName = 'donutLegendArrow';
@@ -163,13 +164,14 @@ module powerbi.visuals {
         private interactivityState: InteractivityState;
         private chartRotationAnimationDuration: number;
         private interactivityService: IInteractivityService;
+        private behavior: DonutChartWebBehavior;
         private legend: ILegend;
         private hasSetData: boolean;
         private isScrollable: boolean;
         private disableGeometricCulling: boolean;
         private hostService: IVisualHostServices;
         private settings: DonutChartSettings;
-		
+
         /**
          * Note: Public for testing.
          */
@@ -181,6 +183,7 @@ module powerbi.visuals {
                 this.animator = options.animator;
                 this.isScrollable = options.isScrollable ? options.isScrollable : false;
                 this.disableGeometricCulling = options.disableGeometricCulling ? options.disableGeometricCulling : false;
+                this.behavior = options.behavior;
             }
             if (this.sliceWidthRatio == null) {
                 this.sliceWidthRatio = DonutChart.defaultSliceWidthRatio;
@@ -188,15 +191,15 @@ module powerbi.visuals {
         }
 
         public static converter(dataView: DataView, colors: IDataColorPalette, defaultDataPointColor?: string, viewport?: IViewport, disableGeometricCulling?: boolean): DonutData {
-            var converter = new DonutChartConversion.DonutChartConverter(dataView, colors, defaultDataPointColor);
+            let converter = new DonutChartConversion.DonutChartConverter(dataView, colors, defaultDataPointColor);
             converter.convert();
-            var d3PieLayout = d3.layout.pie()
+            let d3PieLayout = d3.layout.pie()
                 .sort(null)
                 .value((d: DonutDataPoint) => {
                     return d.percentage;
                 });
-            var culledDataPoints = (!disableGeometricCulling && viewport) ? DonutChart.cullDataByViewport(converter.dataPoints, converter.maxValue, viewport) : converter.dataPoints;
-            var data: DonutData = {
+            let culledDataPoints = (!disableGeometricCulling && viewport) ? DonutChart.cullDataByViewport(converter.dataPoints, converter.maxValue, viewport) : converter.dataPoints;
+            let data: DonutData = {
                 dataPointsToDeprecate: culledDataPoints,
                 dataPoints: d3PieLayout(culledDataPoints),
                 unCulledDataPoints: converter.dataPoints,
@@ -214,7 +217,7 @@ module powerbi.visuals {
 
         public init(options: VisualInitOptions) {
             this.options = options;
-            var element = options.element;
+            let element = options.element;
             // Ensure viewport is empty on init
             element.empty();
             this.parentViewport = options.viewport;
@@ -241,9 +244,11 @@ module powerbi.visuals {
             this.colors = this.style.colorPalette.dataColors;
             this.radius = 0;
             this.isInteractive = options.interactivity && options.interactivity.isInteractiveLegend;
-            var donutChartSettings = this.settings;
+            let donutChartSettings = this.settings;
 
-            this.interactivityService = VisualInteractivityFactory.buildInteractivityService(options);
+            if (this.behavior) {
+                this.interactivityService = createInteractivityService(options.host);
+            }
             this.legend = createLegend(element, options.interactivity && options.interactivity.isInteractiveLegend, this.interactivityService, this.isScrollable);
 
             this.hostService = options.host;
@@ -252,7 +257,7 @@ module powerbi.visuals {
                 this.chartRotationAnimationDuration = (donutChartSettings && donutChartSettings.chartRotationAnimationDuration) ? donutChartSettings.chartRotationAnimationDuration : 0;
 
                 // Create interactive legend
-                var legendContainer = this.legendContainer = d3.select(element.get(0))
+                let legendContainer = this.legendContainer = d3.select(element.get(0))
                     .append('div')
                     .classed(DonutChart.InteractiveLegendClassName, true);
                 this.interactivityState = {
@@ -275,7 +280,8 @@ module powerbi.visuals {
                 .style('position', 'absolute')
                 .classed(DonutChart.ClassName, true);
 
-            this.clearCatcher = appendClearCatcher(this.svg);
+            if (this.behavior)
+                this.clearCatcher = appendClearCatcher(this.svg);
 
             this.mainGraphicsContext = this.svg.append('g');
             this.mainGraphicsContext.append("g")
@@ -293,13 +299,13 @@ module powerbi.visuals {
         public onDataChanged(options: VisualDataChangedOptions): void {
             debug.assertValue(options, 'options');
 
-            var dataViews = options.dataViews;
+            let dataViews = options.dataViews;
             if (dataViews && dataViews.length > 0 && dataViews[0].categorical) {
-                var dataViewMetadata = dataViews[0].metadata;
-                var showAllDataPoints = undefined;
-                var defaultDataPointColor = undefined;
+                let dataViewMetadata = dataViews[0].metadata;
+                let showAllDataPoints = undefined;
+                let defaultDataPointColor = undefined;
                 if (dataViewMetadata) {
-                    var objects: DataViewObjects = dataViewMetadata.objects;
+                    let objects: DataViewObjects = dataViewMetadata.objects;
 
                     if (objects) {
                         showAllDataPoints = DataViewObjects.getValue<boolean>(objects, donutChartProps.dataPoint.showAllDataPoints);
@@ -312,7 +318,6 @@ module powerbi.visuals {
                 this.data.defaultDataPointColor = defaultDataPointColor;
                 if (!(this.options.interactivity && this.options.interactivity.isInteractiveLegend))
                     this.renderLegend();
-
                 if (this.interactivityService)
                     this.interactivityService.applySelectionStateToData(this.data.dataPoints.map((d) => d.data));
             }
@@ -336,18 +341,14 @@ module powerbi.visuals {
             this.hasSetData = true;
 
             if (dataViews) {
-                var warnings = getInvalidValueWarnings(
+                let warnings = getInvalidValueWarnings(
                     dataViews,
                     false /*supportsNaN*/,
                     false /*supportsNegativeInfinity*/,
                     false /*supportsPositiveInfinity*/);
 
                 if (this.data.visibleGeometryCulled) {
-                    var cullWarning = new GeometryCulledWarning();
-                    if (!warnings)
-                        warnings = [cullWarning];
-                    else
-                        warnings.unshift(cullWarning);
+                    warnings.unshift(new GeometryCulledWarning());
                 }
 
                 if (warnings && warnings.length > 0)
@@ -356,7 +357,7 @@ module powerbi.visuals {
         }
 
         public onResizing(viewport: IViewport): void {
-            var duration = 0;
+            let duration = 0;
 
             this.parentViewport = viewport;
             if (this.currentViewport && (this.currentViewport.height === viewport.height && this.currentViewport.width === viewport.width))
@@ -365,7 +366,7 @@ module powerbi.visuals {
             if (this.hasSetData)
                 this.renderLegend();
             this.initViewportDependantProperties(duration);
-            var d3PieLayout = d3.layout.pie()
+            let d3PieLayout = d3.layout.pie()
                 .sort(null)
                 .value((d: DonutDataPoint) => {
                     return d.percentage;
@@ -379,37 +380,45 @@ module powerbi.visuals {
             this.previousRadius = this.radius;
         }
 
-        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
+        public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration {
+            let enumeration = new ObjectEnumerationBuilder();
             switch (options.objectName) {
                 case 'legend':
-                    return this.enumerateLegend();
+                    this.enumerateLegend(enumeration);
+                    break;
                 case 'dataPoint':
-                    return this.enumerateDataPoints();
+                    this.enumerateDataPoints(enumeration);
+                    break;
                 case 'labels':
-                    if (this.data)
-                        return dataLabelUtils.enumerateDataLabels(this.data.dataLabelsSettings, /*withPosition:*/ false, /*withPrecision:*/ true, /*withDisplayUnit:*/ true);
-                    else return dataLabelUtils.enumerateDataLabels(dataLabelUtils.getDefaultDonutLabelSettings(), /*withPosition:*/ false, /*withPrecision:*/ true, /*withDisplayUnit:*/ true);
+                    let labelSettingOptions: VisualDataLabelsSettingsOptions = {
+                        enumeration: enumeration,
+                        dataLabelsSettings: this.data ? this.data.dataLabelsSettings : dataLabelUtils.getDefaultDonutLabelSettings(),
+                        show: true,
+                        displayUnits: true,
+                        precision: true,
+                    };
+                    dataLabelUtils.enumerateDataLabels(labelSettingOptions);
                 case 'categoryLabels':
-                    return (this.data)
-                        ? dataLabelUtils.enumerateCategoryLabels(this.data.dataLabelsSettings, false, true)
-                        : dataLabelUtils.enumerateCategoryLabels(null, false, true);
+                    if (this.data)
+                        dataLabelUtils.enumerateCategoryLabels(enumeration, this.data.dataLabelsSettings, false, true);
+                    else
+                        dataLabelUtils.enumerateCategoryLabels(enumeration, null, false, true);
             }
+            return enumeration.complete();
         }
 
-        private enumerateDataPoints(): VisualObjectInstance[] {
-            var data = this.data;
+        private enumerateDataPoints(enumeration: ObjectEnumerationBuilder): void {
+            let data = this.data;
             if (!data)
                 return;
-            var instances: VisualObjectInstance[] = [];
 
-            instances.push({
+            enumeration.pushInstance({
                 objectName: 'dataPoint',
                 selector: null,
                 properties: {
                     defaultColor: { solid: { color: data.defaultDataPointColor || this.colors.getColorByIndex(0).value } }
                 },
-            },
-            {
+            }).pushInstance({
                 objectName: 'dataPoint',
                 selector: null,
                 properties: {
@@ -417,12 +426,12 @@ module powerbi.visuals {
                 },
             });
 
-            var dataPoints = data.dataPointsToEnumerate;
-            var dataPointsLength = dataPoints.length;
+            let dataPoints = data.dataPointsToEnumerate;
+            let dataPointsLength = dataPoints.length;
 
-            for (var i = 0; i < dataPointsLength; i++) {
-                var dataPoint = dataPoints[i];
-                instances.push({
+            for (let i = 0; i < dataPointsLength; i++) {
+                let dataPoint = dataPoints[i];
+                enumeration.pushInstance({
                     objectName: 'dataPoint',
                     displayName: dataPoint.label,
                     selector: ColorHelper.normalizeSelector(dataPoint.identity.getSelector()),
@@ -431,21 +440,20 @@ module powerbi.visuals {
                     },
                 });
             }
-            return instances;
         }
 
-        private enumerateLegend(): VisualObjectInstance[] {
-            var data = this.data;
+        private enumerateLegend(enumeration: ObjectEnumerationBuilder): ObjectEnumerationBuilder {
+            let data = this.data;
             if (!data)
                 return;
 
-            var legendObjectProperties: DataViewObjects = { legend: data.legendObjectProperties };
+            let legendObjectProperties: DataViewObjects = { legend: data.legendObjectProperties };
 
-            var show = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.show, this.legend.isVisible());
-            var showTitle = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.showTitle, true);
-            var titleText = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.titleText, this.data.legendData.title);
+            let show = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.show, this.legend.isVisible());
+            let showTitle = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.showTitle, true);
+            let titleText = DataViewObjects.getValue(legendObjectProperties, donutChartProps.legend.titleText, this.data.legendData.title);
 
-            return [{
+            enumeration.pushInstance({
                 selector: null,
                 objectName: 'legend',
                 properties: {
@@ -454,7 +462,7 @@ module powerbi.visuals {
                     showTitle: showTitle,
                     titleText: titleText
                 }
-            }];
+            });
         }
 
         public setInteractiveChosenSlice(sliceIndex: number): void {
@@ -462,9 +470,9 @@ module powerbi.visuals {
 
             this.interactivityState.lastChosenInteractiveSliceIndex = sliceIndex;
             this.interactivityState.interactiveChosenSliceFinishedSetting = false;
-            var viewport = this.currentViewport;
-            var moduledIndex = sliceIndex % this.data.dataPoints.length;
-            var angle = this.interactivityState.sliceAngles[moduledIndex];
+            let viewport = this.currentViewport;
+            let moduledIndex = sliceIndex % this.data.dataPoints.length;
+            let angle = this.interactivityState.sliceAngles[moduledIndex];
 
             this.svg.select('g')
                 .transition()
@@ -484,12 +492,12 @@ module powerbi.visuals {
         }
 
         private calculateRadius(): number {
-            var viewport = this.currentViewport;
+            let viewport = this.currentViewport;
             if (!this.isInteractive && this.data && (this.data.dataLabelsSettings.show || this.data.dataLabelsSettings.showCategory)) {
                 // if we have category or data labels, use a sigmoid to blend the desired denominator from 2 to 3.
                 // if we are taller than we are wide, we need to use a larger denominator to leave horizontal room for the labels.
-                var hw = viewport.height / viewport.width;
-                var denom = 2 + (1 / (1 + Math.exp(-5 * (hw - 1))));
+                let hw = viewport.height / viewport.width;
+                let denom = 2 + (1 / (1 + Math.exp(-5 * (hw - 1))));
                 return Math.min(viewport.height, viewport.width) / denom;
             }
 
@@ -500,13 +508,13 @@ module powerbi.visuals {
         private initViewportDependantProperties(duration: number = 0) {
             this.currentViewport.height = this.parentViewport.height;
             this.currentViewport.width = this.parentViewport.width;
-            var viewport = this.currentViewport;
+            let viewport = this.currentViewport;
 
             if (this.isInteractive) {
                 viewport.height -= DonutChart.InteractiveLegendContainerHeight; // leave space for the legend
             }
             else {
-                var legendMargins = this.legend.getMargins();
+                let legendMargins = this.legend.getMargins();
                 viewport.height -= legendMargins.height;
                 viewport.width -= legendMargins.width;
             }
@@ -529,7 +537,7 @@ module powerbi.visuals {
             }
 
             this.previousRadius = this.radius;
-            var radius = this.radius = this.calculateRadius();
+            let radius = this.radius = this.calculateRadius();
 
             this.arc = d3.svg.arc();
 
@@ -547,15 +555,15 @@ module powerbi.visuals {
         }
 
         private mergeDatasets(first: any[], second: any[]): any[] {
-            var secondSet = d3.set();
+            let secondSet = d3.set();
             second.forEach((d) => {
                 secondSet.add(d.identity ? d.identity.getKey() : d.data.identity.getKey());
             });
 
-            var onlyFirst = first.filter((d) => {
+            let onlyFirst = first.filter((d) => {
                 return !secondSet.has(d.identity ? d.identity.getKey() : d.data.identity.getKey());
             }).map((d) => {
-                var derived = Prototype.inherit(d);
+                let derived = Prototype.inherit(d);
                 derived.percentage === undefined ? derived.data.percentage = 0 : derived.percentage = 0;
                 return derived;
             });
@@ -564,16 +572,16 @@ module powerbi.visuals {
         }
 
         private updateInternal(data: DonutData, suppressAnimations: boolean, duration: number = 0) {
-            var viewport = this.currentViewport;
+            let viewport = this.currentViewport;
             duration = duration || AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
 
             if (this.animator) {
-                var layout = DonutChart.getLayout(this.radius, this.sliceWidthRatio, viewport);
-                var result: DonutChartAnimationResult;
-                var shapes: D3.UpdateSelection;
-                var highlightShapes: D3.UpdateSelection;
+                let layout = DonutChart.getLayout(this.radius, this.sliceWidthRatio, viewport);
+                let result: DonutChartAnimationResult;
+                let shapes: D3.UpdateSelection;
+                let highlightShapes: D3.UpdateSelection;
                 if (!suppressAnimations) {
-                    var animationOptions: DonutChartAnimationOptions = {
+                    let animationOptions: DonutChartAnimationOptions = {
                         viewModel: data,
                         colors: this.colors,
                         graphicsContext: this.mainGraphicsContext,
@@ -588,7 +596,7 @@ module powerbi.visuals {
                     highlightShapes = result.highlightShapes;
                 }
                 if (suppressAnimations || result.failed) {
-                    shapes = DonutChart.drawDefaultShapes(this.svg, data, layout, this.colors, this.radius, this.data.defaultDataPointColor);
+                    shapes = DonutChart.drawDefaultShapes(this.svg, data, layout, this.colors, this.radius, this.interactivityService && this.interactivityService.hasSelection(), this.data.defaultDataPointColor);
                     highlightShapes = DonutChart.drawDefaultHighlightShapes(this.svg, data, layout, this.colors, this.radius);
                     DonutChart.drawDefaultCategoryLabels(this.mainGraphicsContext, data, layout, this.sliceWidthRatio, this.radius, this.currentViewport);
                 }
@@ -607,43 +615,43 @@ module powerbi.visuals {
 
         private renderLegend(): void {
             if (!this.isInteractive) {
-                var legendObjectProperties = this.data.legendObjectProperties;
-                if (legendObjectProperties) {
-                    var legendData = this.data.legendData;
-                    LegendData.update(legendData, legendObjectProperties);
-                    var position = <string>legendObjectProperties[legendProps.position];
-                    if (position)
-                        this.legend.changeOrientation(LegendPosition[position]);
+            let legendObjectProperties = this.data.legendObjectProperties;
+            if (legendObjectProperties) {
+                let legendData = this.data.legendData;
+                LegendData.update(legendData, legendObjectProperties);
+                let position = <string>legendObjectProperties[legendProps.position];
+                if (position)
+                    this.legend.changeOrientation(LegendPosition[position]);
 
-                    this.legend.drawLegend(legendData, this.parentViewport);
-                } else {
-                    this.legend.changeOrientation(LegendPosition.Top);
-                    this.legend.drawLegend({ dataPoints: [] }, this.parentViewport);
-                }
+                this.legend.drawLegend(legendData, this.parentViewport);
+            } else {
+                this.legend.changeOrientation(LegendPosition.Top);
+                this.legend.drawLegend({ dataPoints: [] }, this.parentViewport);
             }
+        }
         }
 
         private addInteractiveLegendArrow(): void {
-            var arrowHeightOffset = 11;
-            var arrowWidthOffset = 33 / 2;
+            let arrowHeightOffset = 11;
+            let arrowWidthOffset = 33 / 2;
             if (!this.interactiveLegendArrow) {
-                var interactiveLegendArrow = this.svg.append('g');
+                let interactiveLegendArrow = this.svg.append('g');
                 interactiveLegendArrow.append('path')
                     .classed(DonutChart.InteractiveLegendArrowClassName, true)
                     .attr('d', 'M1.5,2.6C0.65,1.15,1.85,0,3,0l27,0c1.65,0,2.35,1.15,1.5,2.6L18,26.45c-0.8,1.45-2.15,1.45-2.95,0L1.95,2.6z');
                 this.interactiveLegendArrow = interactiveLegendArrow;
             }
-            var viewport = this.currentViewport;
+            let viewport = this.currentViewport;
             // Calculate the offsets from the legend container to the arrow.
-            var distanceBetweenLegendAndArrow = (viewport.height - 2 * this.radius) / 2 + arrowHeightOffset;
-            var middleOfChart = viewport.width / 2 - arrowWidthOffset;
+            let distanceBetweenLegendAndArrow = (viewport.height - 2 * this.radius) / 2 + arrowHeightOffset;
+            let middleOfChart = viewport.width / 2 - arrowWidthOffset;
 
             this.interactiveLegendArrow.attr('transform', SVGUtil.translate(middleOfChart, distanceBetweenLegendAndArrow));
         }
 
         private calculateSliceAngles(): void {
-            var angles: number[] = [];
-            var data = this.data.dataPoints;
+            let angles: number[] = [];
+            let data = this.data.dataPoints;
 
             if (data.length === 0) {
                 this.interactivityState.valueToAngleFactor = 0;
@@ -651,16 +659,16 @@ module powerbi.visuals {
                 return;
             }
 
-            var sum = 0;
-            for (var i = 0, ilen = data.length; i < ilen; i++) {
+            let sum = 0;
+            for (let i = 0, ilen = data.length; i < ilen; i++) {
                 sum += data[i].data.percentage; // value is an absolute number
             }
             debug.assert(sum !== 0, 'sum of slices values cannot be zero');
             this.interactivityState.valueToAngleFactor = 360 / sum; // Calculate the ratio between 360 and the sum to know the angles to rotate by
 
-            var currentAngle = 0;
-            for (var i = 0, ilen = data.length; i < ilen; i++) {
-                var relativeAngle = data[i].data.percentage * this.interactivityState.valueToAngleFactor;
+            let currentAngle = 0;
+            for (let i = 0, ilen = data.length; i < ilen; i++) {
+                let relativeAngle = data[i].data.percentage * this.interactivityState.valueToAngleFactor;
                 currentAngle += relativeAngle;
                 angles.push((relativeAngle / 2) - currentAngle);
             }
@@ -674,9 +682,9 @@ module powerbi.visuals {
                 this.assignInteractiveChartInteractions(slices);
             }
             else if (this.interactivityService) {
-                var behaviorOptions: DonutBehaviorOptions = {
+                let dataPoints = data.dataPoints.map((value: DonutArcDescriptor) => value.data);
+                let behaviorOptions: DonutBehaviorOptions = {
                     clearCatcher: this.clearCatcher,
-                    datapoints: data.dataPoints.map((value: DonutArcDescriptor) => value.data),
                     slices: slices,
                     highlightSlices: highlightSlices,
                     allowDrilldown: this.allowDrilldown,
@@ -685,28 +693,28 @@ module powerbi.visuals {
                     svg: this.svg,
                 };
 
-                this.interactivityService.apply(this, behaviorOptions);
+                this.interactivityService.bind(dataPoints, this.behavior, behaviorOptions);
             }
         }
 
         public setDrilldown(selection?: DonutDataPoint): void {
             if (selection) {
-                var d3PieLayout = d3.layout.pie()
+                let d3PieLayout = d3.layout.pie()
                     .sort(null)
                     .value((d: DonutDataPoint) => {
                         return d.percentage;
                     });
                 // Drill into the current selection.
-                var legendDataPoints: LegendDataPoint[] = [{ label: selection.label, color: selection.color, icon: LegendIcon.Box, identity: selection.identity, selected: selection.selected }];
-                var legendData: LegendData = { title: "", dataPoints: legendDataPoints };
-                var drilledDataPoints = d3PieLayout(selection.internalDataPoints);
+                let legendDataPoints: LegendDataPoint[] = [{ label: selection.label, color: selection.color, icon: LegendIcon.Box, identity: selection.identity, selected: selection.selected }];
+                let legendData: LegendData = { title: "", dataPoints: legendDataPoints };
+                let drilledDataPoints = d3PieLayout(selection.internalDataPoints);
                 this.updateInternal({
                     dataPointsToDeprecate: selection.internalDataPoints,
                     dataPoints: drilledDataPoints,
                     unCulledDataPoints: drilledDataPoints.map((value) => value.data),
                     legendData: legendData,
                     hasHighlights: false,
-                    dataLabelsSettings: this.data.dataLabelsSettings
+                    dataLabelsSettings: this.data.dataLabelsSettings,
                 }, false /* suppressAnimations */, DonutChart.DrillDownAnimationDuration);
             } else {
                 // Pop out of drill down to view the "outer" data.
@@ -715,10 +723,10 @@ module powerbi.visuals {
         }
 
         private assignInteractiveChartInteractions(slice: D3.Selection) {
-            var svg = this.svg;
+            let svg = this.svg;
 
             this.interactivityState.interactiveChosenSliceFinishedSetting = true;
-            var svgRect = svg.node().getBoundingClientRect();
+            let svgRect = svg.node().getBoundingClientRect();
             this.interactivityState.donutCenter = { x: svgRect.left + svgRect.width / 2, y: svgRect.top + svgRect.height / 2 }; // Center of the donut chart
             this.interactivityState.totalDragAngleDifference = 0;
             this.interactivityState.currentRotate = 0;
@@ -732,7 +740,7 @@ module powerbi.visuals {
             });
 
             // Set the drag events
-            var drag = d3.behavior.drag()
+            let drag = d3.behavior.drag()
                 .origin(Object)
                 .on('dragstart', () => this.interactiveDragStart())
                 .on('drag', () => this.interactiveDragMove())
@@ -746,16 +754,16 @@ module powerbi.visuals {
          * (meaning, when the center of the donut is at (0,0) coordinates).
          */
         private getAngleFromDragEvent(): number {
-            var interactivityState = this.interactivityState;
+            let interactivityState = this.interactivityState;
 
             // get pageX and pageY (coordinates of the drag event) according to event type
-            var pageX, pageY;
-            var sourceEvent = <any>d3.event.sourceEvent;
+            let pageX, pageY;
+            let sourceEvent = <any>d3.event.sourceEvent;
             // check if that's a touch event or not
             if (sourceEvent.type.toLowerCase().indexOf('touch') !== -1) {
                 if (sourceEvent.touches.length !== 1) return null; // in case there isn't a single touch - return null and do nothing.
                 // take the first, single, touch surface.
-                var touch = sourceEvent.touches[0];
+                let touch = sourceEvent.touches[0];
                 pageX = touch.pageX;
                 pageY = touch.pageY;
             } else {
@@ -764,9 +772,9 @@ module powerbi.visuals {
             }
 
             // Adjust the coordinates, putting the donut center as the (0,0) coordinates
-            var adjustedCoordinates = { x: pageX - interactivityState.donutCenter.x, y: -pageY + interactivityState.donutCenter.y };
+            let adjustedCoordinates = { x: pageX - interactivityState.donutCenter.x, y: -pageY + interactivityState.donutCenter.y };
             // Move to polar axis - take only the angle (theta), and convert to degrees
-            var angleToThePlane = Math.atan2(adjustedCoordinates.y, adjustedCoordinates.x) * 180 / Math.PI;
+            let angleToThePlane = Math.atan2(adjustedCoordinates.y, adjustedCoordinates.x) * 180 / Math.PI;
             return angleToThePlane;
         }
 
@@ -776,17 +784,17 @@ module powerbi.visuals {
         }
 
         private interactiveDragMove(): void {
-            var data = this.data.dataPoints;
-            var viewport = this.currentViewport;
+            let data = this.data.dataPoints;
+            let viewport = this.currentViewport;
 
-            var interactivityState = this.interactivityState;
+            let interactivityState = this.interactivityState;
 
             if (interactivityState.interactiveChosenSliceFinishedSetting === true) {
                 // get current angle from the drag event
-                var currentDragAngle = this.getAngleFromDragEvent();
+                let currentDragAngle = this.getAngleFromDragEvent();
                 if (!currentDragAngle) return; // if no angle was returned, do nothing
                 // compare it to the previous drag event angle
-                var angleDragDiff = interactivityState.previousDragAngle - currentDragAngle;
+                let angleDragDiff = interactivityState.previousDragAngle - currentDragAngle;
 
                 interactivityState.totalDragAngleDifference += angleDragDiff;
                 interactivityState.previousDragAngle = currentDragAngle;
@@ -798,13 +806,13 @@ module powerbi.visuals {
                 this.svg.select('g')
                     .attr('transform', SVGUtil.translateAndRotate(viewport.width / 2, viewport.height / 2, 0, 0, this.interactivityState.currentRotate));
 
-                var currentHigherLimit = data[0].data.percentage * interactivityState.valueToAngleFactor;
-                var currentAngle = interactivityState.currentRotate <= 0 ? (interactivityState.currentRotate * -1) % 360 : (360 - (interactivityState.currentRotate % 360));
+                let currentHigherLimit = data[0].data.percentage * interactivityState.valueToAngleFactor;
+                let currentAngle = interactivityState.currentRotate <= 0 ? (interactivityState.currentRotate * -1) % 360 : (360 - (interactivityState.currentRotate % 360));
 
                 interactivityState.currentIndexDrag = 0;
                 //consider making this  ++interactivityState.currentIndexDrag ? then you don't need the if statement, the interactivityState.currentIndexDrag +1 and interactivityState.currentIndexDrag++
                 // Check the current index according to the angle 
-                var dataLength = data.length;
+                let dataLength = data.length;
                 while ((interactivityState.currentIndexDrag < dataLength) && (currentAngle > currentHigherLimit)) {
                     if (interactivityState.currentIndexDrag < (dataLength - 1)) {
                         currentHigherLimit += (data[interactivityState.currentIndexDrag + 1].data.percentage * interactivityState.valueToAngleFactor);
@@ -833,21 +841,17 @@ module powerbi.visuals {
             }
         }
 
-        public accept(visitor: InteractivityVisitor, options: any): void {
-            visitor.visitDonutChart(options);
-        }
-
         private updateInternalToMove(data: DonutData, duration: number = 0) {
             // Cache for performance
-            var svg = this.svg;
-            var pie = this.pie;
-            var key = this.key;
-            var arc = this.arc;
-            var radius = this.radius;
-            var previousRadius = this.previousRadius;
-            var sliceWidthRatio = this.sliceWidthRatio;
+            let svg = this.svg;
+            let pie = this.pie;
+            let key = this.key;
+            let arc = this.arc;
+            let radius = this.radius;
+            let previousRadius = this.previousRadius;
+            let sliceWidthRatio = this.sliceWidthRatio;
 
-            var existingData = this.svg.select('.slices')
+            let existingData = this.svg.select('.slices')
                 .selectAll('path' + DonutChart.sliceClass.selector)
                 .data().map((d: DonutArcDescriptor) => d.data);
 
@@ -855,9 +859,9 @@ module powerbi.visuals {
                 existingData = data.dataPointsToDeprecate;
             }
 
-            var is = this.mergeDatasets(existingData, data.dataPointsToDeprecate);
+            let is = this.mergeDatasets(existingData, data.dataPointsToDeprecate);
 
-            var slice = svg.select('.slices')
+            let slice = svg.select('.slices')
                 .selectAll('path' + DonutChart.sliceClass.selector)
                 .data(pie(data.dataPointsToDeprecate), key);
 
@@ -870,14 +874,14 @@ module powerbi.visuals {
                 .selectAll('path' + DonutChart.sliceClass.selector)
                 .data(pie(is), key);
 
-            var innerRadius = radius * sliceWidthRatio;
+            let innerRadius = radius * sliceWidthRatio;
             slice
                 .style('fill', (d: DonutArcDescriptor) => d.data.color)
                 .style('fill-opacity', (d: DonutArcDescriptor) => ColumnUtil.getFillOpacity(d.data.selected, false, false, data.hasHighlights))
                 .style('stroke', 'white')
                 .transition().duration(duration)
                 .attrTween('d', function (d) {
-                    var i = d3.interpolate(this._current, d),
+                    let i = d3.interpolate(this._current, d),
                         k = d3.interpolate(previousRadius * DonutChart.InnerArcRadiusRatio
                             , radius * DonutChart.InnerArcRadiusRatio);
 
@@ -900,13 +904,13 @@ module powerbi.visuals {
 
             // For interactive chart, there shouldn't be slice labels (as you have the legend).
             if (!this.isInteractive) {
-                var layout = DonutChart.getLayout(radius, sliceWidthRatio, this.currentViewport);
+                let layout = DonutChart.getLayout(radius, sliceWidthRatio, this.currentViewport);
                 DonutChart.drawDefaultCategoryLabels(this.mainGraphicsContext, data, layout, sliceWidthRatio, radius, this.currentViewport);
             }
-
+            let highlightSlices = undefined;
             if (data.hasHighlights) {
                 // Draw partial highlight slices.
-                var highlightSlices = svg
+                highlightSlices = svg
                     .select('.slices')
                     .selectAll('path' + DonutChart.sliceHighlightClass.selector)
                     .data(pie(data.dataPointsToDeprecate), key);
@@ -923,7 +927,7 @@ module powerbi.visuals {
                     .style('stroke', 'white')
                     .transition().duration(duration)
                     .attrTween('d', function (d: DonutArcDescriptor) {
-                        var i = d3.interpolate(this._current, d),
+                        let i = d3.interpolate(this._current, d),
                             k = d3.interpolate(
                                 previousRadius * DonutChart.InnerArcRadiusRatio,
                                 DonutChart.getHighlightRadius(radius, sliceWidthRatio, d.data.highlightRatio));
@@ -967,10 +971,8 @@ module powerbi.visuals {
             }
         }
 
-        public static drawDefaultShapes(graphicsContext: D3.Selection, donutData: DonutData, layout: DonutLayout, colors: IDataColorPalette, radius: number, defaultColor?: string): D3.UpdateSelection {
-            var hasSelection = dataHasSelection(donutData.dataPoints.map(d => d.data));
-
-            var shapes = graphicsContext.select('.slices')
+        public static drawDefaultShapes(graphicsContext: D3.Selection, donutData: DonutData, layout: DonutLayout, colors: IDataColorPalette, radius: number, hasSelection: boolean, defaultColor?: string): D3.UpdateSelection {
+            let shapes = graphicsContext.select('.slices')
                 .selectAll('path' + DonutChart.sliceClass.selector)
                 .data(donutData.dataPoints, (d: DonutArcDescriptor) => d.data.identity.getKey());
 
@@ -990,7 +992,7 @@ module powerbi.visuals {
         }
 
         public static drawDefaultHighlightShapes(graphicsContext: D3.Selection, donutData: DonutData, layout: DonutLayout, colors: IDataColorPalette, radius: number): D3.UpdateSelection {
-            var shapes = graphicsContext.select('.slices')
+            let shapes = graphicsContext.select('.slices')
                 .selectAll('path' + DonutChart.sliceHighlightClass.selector)
                 .data(donutData.dataPoints.filter((value: DonutArcDescriptor) => value.data.highlightRatio != null), (d: DonutArcDescriptor) => d.data.identity.getKey());
 
@@ -1013,23 +1015,23 @@ module powerbi.visuals {
 
         public static drawDefaultCategoryLabels(graphicsContext: D3.Selection, donutData: DonutData, layout: DonutLayout, sliceWidthRatio: number, radius: number, viewport: IViewport): void {
             /** Multiplier to place the end point of the reference line at 0.05 * radius away from the outer edge of the donut/pie. */
-            var arc = d3.svg.arc()
+            let arc = d3.svg.arc()
                 .innerRadius(0)
                 .outerRadius(radius * DonutChart.InnerArcRadiusRatio);
-            var outerArc = d3.svg.arc()
+            let outerArc = d3.svg.arc()
                 .innerRadius(radius * DonutChart.OuterArcRadiusRatio)
                 .outerRadius(radius * DonutChart.OuterArcRadiusRatio);
 
             if (donutData.dataLabelsSettings.show || donutData.dataLabelsSettings.showCategory) {
 
-                var alternativeScale: number = null;
+                let alternativeScale: number = null;
 
                 if (donutData.dataLabelsSettings.show) {
                     //use the model format
                     if (donutData.dataLabelsSettings.displayUnits === 0)
                         alternativeScale = <number>d3.max(donutData.dataPoints, d => Math.abs(d.data.measure));
                 }
-                var labelLayout = dataLabelUtils.getDonutChartLabelLayout(donutData.dataLabelsSettings, radius, outerArc, viewport, alternativeScale);
+                let labelLayout = dataLabelUtils.getDonutChartLabelLayout(donutData.dataLabelsSettings, radius, outerArc, viewport, alternativeScale);
 
                 dataLabelUtils.drawDefaultLabelsForDonutChart(donutData.dataPoints, graphicsContext, labelLayout, viewport, radius, arc, outerArc);
             }
@@ -1043,10 +1045,10 @@ module powerbi.visuals {
         }
 
         public static getLayout(radius: number, sliceWidthRatio: number, viewport: IViewport): DonutLayout {
-            var innerRadius = radius * sliceWidthRatio;
-            var arc = d3.svg.arc().innerRadius(innerRadius);
-            var arcWithRadius = arc.outerRadius(radius * DonutChart.InnerArcRadiusRatio);
-            var fontSize = viewport.height < DonutChart.FontsizeThreshold ? DonutChart.SmallFontSize : DonutChart.NormalFontSize;
+            let innerRadius = radius * sliceWidthRatio;
+            let arc = d3.svg.arc().innerRadius(innerRadius);
+            let arcWithRadius = arc.outerRadius(radius * DonutChart.InnerArcRadiusRatio);
+            let fontSize = viewport.height < DonutChart.FontsizeThreshold ? DonutChart.SmallFontSize : DonutChart.NormalFontSize;
             return {
                 fontSize: fontSize,
                 shapeLayout: {
@@ -1056,13 +1058,13 @@ module powerbi.visuals {
                 },
                 highlightShapeLayout: {
                     d: (d: DonutArcDescriptor) => {
-                        var highlightArc = arc.outerRadius(DonutChart.getHighlightRadius(radius, sliceWidthRatio, d.data.highlightRatio));
+                        let highlightArc = arc.outerRadius(DonutChart.getHighlightRadius(radius, sliceWidthRatio, d.data.highlightRatio));
                         return highlightArc(d);
                     }
                 },
                 zeroShapeLayout: {
                     d: (d: DonutArcDescriptor) => {
-                        var zeroWithZeroRadius = arc.outerRadius(innerRadius || DonutChart.EffectiveZeroValue);
+                        let zeroWithZeroRadius = arc.outerRadius(innerRadius || DonutChart.EffectiveZeroValue);
                         return zeroWithZeroRadius(d);
                     }
                 },
@@ -1070,7 +1072,7 @@ module powerbi.visuals {
         }
 
         private static getHighlightRadius(radius: number, sliceWidthRatio: number, highlightRatio: number): number {
-            var innerRadius = radius * sliceWidthRatio;
+            let innerRadius = radius * sliceWidthRatio;
             return innerRadius + highlightRatio * radius * (DonutChart.InnerArcRadiusRatio - sliceWidthRatio);
         }
 
@@ -1089,13 +1091,13 @@ module powerbi.visuals {
             return culledDataPoints;
         }
     }
-    
+
     /**
-     * This class is an interactive legend for the Donut Chart.
+    * This class is an interactive legend for the Donut Chart. 
      * 
      * Features: It is scrollable indefinitely, using drag gesture
      * when you interact with it, it updates the donut chart itself.
-     */    
+    */
     class DonutChartInteractiveLegend {
 
         private static LegendContainerClassName = 'legend-container';
@@ -1149,14 +1151,14 @@ module powerbi.visuals {
                 this.legendContainer = this.legendContainerParent.append('div').classed(DonutChartInteractiveLegend.LegendContainerClassName, true);
             }
 
-            var legendItems = this.legendContainer.selectAll(DonutChartInteractiveLegend.LegendItemSelector).data(data);
-            var legendContainerWidth = this.legendContainerWidth = this.legendContainer.node().getBoundingClientRect().width;
-            var initialXOffset = legendContainerWidth / 2 - (legendContainerWidth * 0.4 / 2) + DonutChartInteractiveLegend.ItemMargin;
-            var currX = initialXOffset;
+            let legendItems = this.legendContainer.selectAll(DonutChartInteractiveLegend.LegendItemSelector).data(data);
+            let legendContainerWidth = this.legendContainerWidth = this.legendContainer.node().getBoundingClientRect().width;
+            let initialXOffset = legendContainerWidth / 2 - (legendContainerWidth * 0.4 / 2) + DonutChartInteractiveLegend.ItemMargin;
+            let currX = initialXOffset;
             this.currentXOffset = initialXOffset;
 
             // Given the legend item div, create the item values (category, percentage and measure) on top of it.
-            var createLegendItem = (itemDiv: JQuery, datum: DonutDataPoint) => {
+            let createLegendItem = (itemDiv: JQuery, datum: DonutDataPoint) => {
                 // position the legend item
                 itemDiv
                     .attr('data-legend-index', datum.index) // assign index for later use
@@ -1167,30 +1169,30 @@ module powerbi.visuals {
                     });
 
                 // Add the category, percentage and value
-                var itemCategory = valueFormatter.format(datum.label);
-                var itemValue = valueFormatter.format(datum.measure, datum.measureFormat);
-                var itemPercentage = valueFormatter.format(datum.percentage, '0.00 %;-0.00 %;0.00 %');
-                var itemColor = datum.color;
+                let itemCategory = valueFormatter.format(datum.label);
+                let itemValue = valueFormatter.format(datum.measure, datum.measureFormat);
+                let itemPercentage = valueFormatter.format(datum.percentage, '0.00 %;-0.00 %;0.00 %');
+                let itemColor = datum.color;
 
                 // Create basic spans for width calculations
-                var itemValueSpan = DonutChartInteractiveLegend.createBasicLegendItemSpan(DonutChartInteractiveLegend.LegendItemValueClassName, itemValue, 11);
-                var itemCategorySpan = DonutChartInteractiveLegend.createBasicLegendItemSpan(DonutChartInteractiveLegend.LegendItemCategoryClassName, itemCategory, 11);
-                var itemPercentageSpan = DonutChartInteractiveLegend.createBasicLegendItemSpan(DonutChartInteractiveLegend.LegendItemPercentageClassName, itemPercentage, 20);
+                let itemValueSpan = DonutChartInteractiveLegend.createBasicLegendItemSpan(DonutChartInteractiveLegend.LegendItemValueClassName, itemValue, 11);
+                let itemCategorySpan = DonutChartInteractiveLegend.createBasicLegendItemSpan(DonutChartInteractiveLegend.LegendItemCategoryClassName, itemCategory, 11);
+                let itemPercentageSpan = DonutChartInteractiveLegend.createBasicLegendItemSpan(DonutChartInteractiveLegend.LegendItemPercentageClassName, itemPercentage, 20);
 
                 // Calculate Legend Box size according to widths and set the width accordingly
-                var valueSpanWidth = DonutChartInteractiveLegend.spanWidth(itemValueSpan);
-                var categorySpanWidth = DonutChartInteractiveLegend.spanWidth(itemCategorySpan);
-                var precentageSpanWidth = DonutChartInteractiveLegend.spanWidth(itemPercentageSpan);
-                var currentLegendBoxWidth = DonutChartInteractiveLegend.legendBoxSize(valueSpanWidth, categorySpanWidth, precentageSpanWidth);
+                let valueSpanWidth = DonutChartInteractiveLegend.spanWidth(itemValueSpan);
+                let categorySpanWidth = DonutChartInteractiveLegend.spanWidth(itemCategorySpan);
+                let precentageSpanWidth = DonutChartInteractiveLegend.spanWidth(itemPercentageSpan);
+                let currentLegendBoxWidth = DonutChartInteractiveLegend.legendBoxSize(valueSpanWidth, categorySpanWidth, precentageSpanWidth);
                 itemDiv.css('width', currentLegendBoxWidth);
 
                 // Calculate margins so that all the spans will be placed in the middle
-                var getLeftValue = (spanWidth: number) => {
+                let getLeftValue = (spanWidth: number) => {
                     return currentLegendBoxWidth - spanWidth > 0 ? (currentLegendBoxWidth - spanWidth) / 2 : 0;
                 };
-                var marginLeftValue = getLeftValue(valueSpanWidth);
-                var marginLeftCategory = getLeftValue(categorySpanWidth);
-                var marginLeftPrecentage = getLeftValue(precentageSpanWidth);
+                let marginLeftValue = getLeftValue(valueSpanWidth);
+                let marginLeftCategory = getLeftValue(categorySpanWidth);
+                let marginLeftPrecentage = getLeftValue(precentageSpanWidth);
 
                 // Create the actual spans with the right styling and margins so it will be center aligned and add them
                 DonutChartInteractiveLegend.createLegendItemSpan(itemCategorySpan, marginLeftCategory);
@@ -1224,14 +1226,14 @@ module powerbi.visuals {
 
         public updateLegend(sliceIndex): void {
             if (this.currentNumberOfLegendItems <= 1) return; // If the number of labels is one no updates are needed
-            var legendContainerWidth = this.legendContainerWidth;
+            let legendContainerWidth = this.legendContainerWidth;
 
             this.currentIndex = sliceIndex;
             // "rearrange" legend items if needed, so we would have contnious endless scrolling
             this.updateLabelBlocks(sliceIndex);
-            var legendTransitionAnimationDuration = this.legendTransitionAnimationDuration;
+            let legendTransitionAnimationDuration = this.legendTransitionAnimationDuration;
             // Transform the legend so that the selected slice would be in the middle
-            var nextXOffset = (this.legendItemsPositions[sliceIndex].startX + (this.legendItemsPositions[sliceIndex].boxWidth / 2) - (legendContainerWidth / 2)) * (-1);
+            let nextXOffset = (this.legendItemsPositions[sliceIndex].startX + (this.legendItemsPositions[sliceIndex].boxWidth / 2) - (legendContainerWidth / 2)) * (-1);
             this.legendContainer
                 .transition()
                 .styleTween('-webkit-transform', (d: any, i: number, a: any) => {
@@ -1253,25 +1255,25 @@ module powerbi.visuals {
         }
 
         private assignInteractions() {
-            var currentDX = 0; // keep how much drag had happened
-            var hasChanged = false; // flag to indicate if we changed the "center" value in the legend. We only change it once per swipe.
+            let currentDX = 0; // keep how much drag had happened
+            let hasChanged = false; // flag to indicate if we changed the "center" value in the legend. We only change it once per swipe.
 
-            var dragStart = () => {
+            let dragStart = () => {
                 currentDX = 0; // start of drag gesture
                 hasChanged = false;
             };
 
-            var dragMove = () => {
+            let dragMove = () => {
                 currentDX += d3.event.dx;
                 // Detect if swipe occured and if the index already changed in this drag
                 if (hasChanged || Math.abs(currentDX) < DonutChartInteractiveLegend.MinimumSwipeDX) return;
 
-                var dragDirectionLeft = (currentDX < 0);
+                let dragDirectionLeft = (currentDX < 0);
                 this.dragLegend(dragDirectionLeft);
                 hasChanged = true;
             };
 
-            var drag = d3.behavior.drag()
+            let drag = d3.behavior.drag()
                 .origin(Object)
                 .on('drag', dragMove)
                 .on('dragstart', dragStart);
@@ -1303,28 +1305,28 @@ module powerbi.visuals {
         }
 
         private getCyclingCurrentIndex(dragDirectionLeft: boolean): number {
-            var dataLen = this.data.length;
-            var delta = dragDirectionLeft ? 1 : -1;
-            var newIndex = (this.currentIndex + delta) % (dataLen || 1); // modolu of negative number stays negative on javascript
+            let dataLen = this.data.length;
+            let delta = dragDirectionLeft ? 1 : -1;
+            let newIndex = (this.currentIndex + delta) % (dataLen || 1); // modolu of negative number stays negative on javascript
             return (newIndex < 0) ? newIndex + dataLen : newIndex;
         }
 
         private updateLegendItemsBlocks(rightSidedShift: boolean, numberOfLegendItemsBlocksToShift: number) {
-            var legendContainer$ = $(this.legendContainer[0]);
+            let legendContainer$ = $(this.legendContainer[0]);
 
             if (rightSidedShift) {
-                var smallestItem = legendContainer$.find('[data-legend-index=' + this.leftMostIndex + ']');
+                let smallestItem = legendContainer$.find('[data-legend-index=' + this.leftMostIndex + ']');
                 smallestItem.remove().insertAfter(legendContainer$.find('[data-legend-index=' + this.rightMostIndex + ']'));
-                var newX = this.legendItemsPositions[this.rightMostIndex].startX + this.legendItemsPositions[this.rightMostIndex].boxWidth + DonutChartInteractiveLegend.ItemMargin;
+                let newX = this.legendItemsPositions[this.rightMostIndex].startX + this.legendItemsPositions[this.rightMostIndex].boxWidth + DonutChartInteractiveLegend.ItemMargin;
                 this.legendItemsPositions[this.leftMostIndex].startX = newX;
                 smallestItem.css('left', newX);
 
                 this.rightMostIndex = this.leftMostIndex;
                 this.leftMostIndex = (this.leftMostIndex + 1) % this.data.length;
             } else {
-                var highestItem = legendContainer$.find('[data-legend-index=' + this.rightMostIndex + ']');
+                let highestItem = legendContainer$.find('[data-legend-index=' + this.rightMostIndex + ']');
                 highestItem.remove().insertBefore(legendContainer$.find('[data-legend-index=' + this.leftMostIndex + ']'));
-                var newX = this.legendItemsPositions[this.leftMostIndex].startX - this.legendItemsPositions[this.rightMostIndex].boxWidth - DonutChartInteractiveLegend.ItemMargin;
+                let newX = this.legendItemsPositions[this.leftMostIndex].startX - this.legendItemsPositions[this.rightMostIndex].boxWidth - DonutChartInteractiveLegend.ItemMargin;
                 this.legendItemsPositions[this.rightMostIndex].startX = newX;
                 highestItem.css('left', newX);
 
@@ -1392,7 +1394,7 @@ module powerbi.visuals {
 
         /** Caclulte entire legend box size according to its building spans */
         private static legendBoxSize(valueSpanWidth: number, categorySpanWidth: number, precentageSpanWidth: number): number {
-            var boxSize = valueSpanWidth > categorySpanWidth ? valueSpanWidth : categorySpanWidth;
+            let boxSize = valueSpanWidth > categorySpanWidth ? valueSpanWidth : categorySpanWidth;
             boxSize = boxSize > precentageSpanWidth ? boxSize : precentageSpanWidth;
             boxSize = boxSize > DonutChartInteractiveLegend.MaxLegendItemBoxSize ? DonutChartInteractiveLegend.MaxLegendItemBoxSize : (boxSize + 2);
             return boxSize;
@@ -1454,7 +1456,7 @@ module powerbi.visuals {
             public maxValue: number;
 
             public constructor(dataView: DataView, colors: IDataColorPalette, defaultDataPointColor?: string) {
-                var dataViewCategorical = dataView.categorical;
+                let dataViewCategorical = dataView.categorical;
                 this.dataViewCategorical = dataViewCategorical;
                 this.dataViewMetadata = dataView.metadata;
 
@@ -1463,7 +1465,7 @@ module powerbi.visuals {
                 this.maxValue = 0;
 
                 if (dataViewCategorical.categories && dataViewCategorical.categories.length > 0) {
-                    var category = dataViewCategorical.categories[0];
+                    let category = dataViewCategorical.categories[0];
                     this.categoryIdentities = category.identity;
                     this.categoryValues = category.values;
                     this.allCategoryObjects = category.objects;
@@ -1471,7 +1473,7 @@ module powerbi.visuals {
                     this.categoryFormatString = valueFormatter.getFormatString(category.source, donutChartProps.general.formatString);
                 }
 
-                var grouped = this.grouped = dataViewCategorical && dataViewCategorical.values ? dataViewCategorical.values.grouped() : undefined;
+                let grouped = this.grouped = dataViewCategorical && dataViewCategorical.values ? dataViewCategorical.values.grouped() : undefined;
                 this.isMultiMeasure = grouped && grouped.length > 0 && grouped[0].values && grouped[0].values.length > 1;
                 this.isSingleMeasure = grouped && grouped.length === 1 && grouped[0].values && grouped[0].values.length === 1;
 
@@ -1483,9 +1485,9 @@ module powerbi.visuals {
                 this.legendDataPoints = [];
                 this.dataLabelsSettings = null;
 
-                for (var seriesIndex = 0; seriesIndex < this.seriesCount; seriesIndex++) {
-                    var seriesData = dataViewCategorical.values[seriesIndex];
-                    for (var measureIndex = 0; measureIndex < seriesData.values.length; measureIndex++) {
+                for (let seriesIndex = 0; seriesIndex < this.seriesCount; seriesIndex++) {
+                    let seriesData = dataViewCategorical.values[seriesIndex];
+                    for (let measureIndex = 0; measureIndex < seriesData.values.length; measureIndex++) {
                         this.total += Math.abs(seriesData.values[measureIndex]);
                         this.highlightTotal += this.hasHighlights ? Math.abs(seriesData.highlights[measureIndex]) : 0;
                     }
@@ -1504,7 +1506,7 @@ module powerbi.visuals {
             }
 
             public convert(): void {
-                var convertedData: ConvertedDataPoint[];
+                let convertedData: ConvertedDataPoint[];
                 if (this.total !== 0) {
                     // If category exists, we render labels using category values. If not, we render labels
                     // using measure labels.
@@ -1527,9 +1529,9 @@ module powerbi.visuals {
                 }
 
                 // Check if any of the highlight values are > non-highlight values
-                var highlightsOverflow = false;
-                for (var i = 0, dataPointCount = convertedData.length; i < dataPointCount && !highlightsOverflow; i++) {
-                    var point = convertedData[i];
+                let highlightsOverflow = false;
+                for (let i = 0, dataPointCount = convertedData.length; i < dataPointCount && !highlightsOverflow; i++) {
+                    let point = convertedData[i];
                     if (Math.abs(point.highlightMeasureValue.measure) > Math.abs(point.measureValue.measure)) {
                         highlightsOverflow = true;
                     }
@@ -1538,27 +1540,27 @@ module powerbi.visuals {
                 // Create data labels settings
                 this.dataLabelsSettings = this.convertDataLableSettings();
 
-                var dataViewMetadata = this.dataViewMetadata;
+                let dataViewMetadata = this.dataViewMetadata;
                 if (dataViewMetadata) {
-                    var objects: DataViewObjects = dataViewMetadata.objects;
+                    let objects: DataViewObjects = dataViewMetadata.objects;
                     if (objects) {
                         this.legendObjectProperties = objects['legend'];
                     }
                 }
 
                 this.dataPoints = [];
-                var formatStringProp = donutChartProps.general.formatString;
+                let formatStringProp = donutChartProps.general.formatString;
 
-                for (var i = 0, dataPointCount = convertedData.length; i < dataPointCount; i++) {
-                    var point = convertedData[i];
+                for (let i = 0, dataPointCount = convertedData.length; i < dataPointCount; i++) {
+                    let point = convertedData[i];
 
                     // Normalize the values here and then handle tooltip value as infinity
                     let normalizedHighlight = DonutChartConverter.normalizedMeasureAndValue(point.highlightMeasureValue);
                     let normalizedNonHighlight = DonutChartConverter.normalizedMeasureAndValue(point.measureValue);
 
-                    var measure = normalizedNonHighlight.measure;
-                    var percentage = (this.total > 0) ? normalizedNonHighlight.value / this.total : 0.0;
-                    var highlightRatio = 0;
+                    let measure = normalizedNonHighlight.measure;
+                    let percentage = (this.total > 0) ? normalizedNonHighlight.value / this.total : 0.0;
+                    let highlightRatio = 0;
                     if (normalizedNonHighlight.value > this.maxValue)
                         this.maxValue = normalizedNonHighlight.value;
                     if (normalizedHighlight.value > this.maxValue)
@@ -1583,14 +1585,14 @@ module powerbi.visuals {
                     }
 
                     
-                    var categoryValue = point.categoryLabel;
-                    var categorical = this.dataViewCategorical;
-                    var valueIndex: number = categorical.categories ? null : i;
+                    let categoryValue = point.categoryLabel;
+                    let categorical = this.dataViewCategorical;
+                    let valueIndex: number = categorical.categories ? null : i;
                     valueIndex = point.seriesIndex !== undefined ? point.seriesIndex : valueIndex;
-                    var valuesMetadata = categorical.values[valueIndex].source;
-                    var value: number = point.measureValue.measure;
-                    var highlightedValue: number = this.hasHighlights && point.highlightMeasureValue.value !== 0 ? point.highlightMeasureValue.measure : undefined;
-                    var tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, valueIndex, i, highlightedValue);
+                    let valuesMetadata = categorical.values[valueIndex].source;
+                    let value: number = point.measureValue.measure;
+                    let highlightedValue: number = this.hasHighlights && point.highlightMeasureValue.value !== 0 ? point.highlightMeasureValue.measure : undefined;
+                    let tooltipInfo: TooltipDataItem[] = TooltipBuilder.createTooltipInfo(formatStringProp, categorical, categoryValue, value, null, null, valueIndex, i, highlightedValue);
 
                     this.dataPoints.push({
                         identity: point.identity,
@@ -1615,9 +1617,9 @@ module powerbi.visuals {
                 if (this.total !== 0) {
                     // If category exists, we render title using category source. If not, we render title
                     // using measure.
-                    var dvValuesSourceName = this.dataViewCategorical.values && this.dataViewCategorical.values.source
+                    let dvValuesSourceName = this.dataViewCategorical.values && this.dataViewCategorical.values.source
                         ? this.dataViewCategorical.values.source.displayName : "";
-                    var dvCategorySourceName = this.dataViewCategorical.categories && this.dataViewCategorical.categories.length > 0 && this.dataViewCategorical.categories[0].source
+                    let dvCategorySourceName = this.dataViewCategorical.categories && this.dataViewCategorical.categories.length > 0 && this.dataViewCategorical.categories[0].source
                         ? this.dataViewCategorical.categories[0].source.displayName : "";
                     if (this.categoryValues) {
                         return dvCategorySourceName;
@@ -1632,28 +1634,28 @@ module powerbi.visuals {
             }
 
             private convertCategoricalWithSlicing(): ConvertedDataPoint[] {
-                var dataViewCategorical = this.dataViewCategorical;
-                var formatStringProp = donutChartProps.general.formatString;
-                var dataPoints: ConvertedDataPoint[] = [];
+                let dataViewCategorical = this.dataViewCategorical;
+                let formatStringProp = donutChartProps.general.formatString;
+                let dataPoints: ConvertedDataPoint[] = [];
 
-                for (var categoryIndex = 0, categoryCount = this.categoryValues.length; categoryIndex < categoryCount; categoryIndex++) {
-                    var categoryValue = this.categoryValues[categoryIndex];
-                    var thisCategoryObjects = this.allCategoryObjects ? this.allCategoryObjects[categoryIndex] : undefined;
+                for (let categoryIndex = 0, categoryCount = this.categoryValues.length; categoryIndex < categoryCount; categoryIndex++) {
+                    let categoryValue = this.categoryValues[categoryIndex];
+                    let thisCategoryObjects = this.allCategoryObjects ? this.allCategoryObjects[categoryIndex] : undefined;
 
-                    var legendIdentity = SelectionId.createWithId(this.categoryIdentities[categoryIndex]);
-                    var color = this.colorHelper.getColorForSeriesValue(thisCategoryObjects, this.categoryColumnRef, categoryValue);
-                    var categoryLabel = valueFormatter.format(categoryValue, this.categoryFormatString);
+                    let legendIdentity = SelectionId.createWithId(this.categoryIdentities[categoryIndex]);
+                    let color = this.colorHelper.getColorForSeriesValue(thisCategoryObjects, this.categoryColumnRef, categoryValue);
+                    let categoryLabel = valueFormatter.format(categoryValue, this.categoryFormatString);
 
                     // Series are either measures in the multi-measure case, or the single series otherwise
-                    for (var seriesIndex = 0; seriesIndex < this.seriesCount; seriesIndex++) {
-                        var seriesData = dataViewCategorical.values[seriesIndex];
+                    for (let seriesIndex = 0; seriesIndex < this.seriesCount; seriesIndex++) {
+                        let seriesData = dataViewCategorical.values[seriesIndex];
 
-                        var label = this.isSingleMeasure
+                        let label = this.isSingleMeasure
                             ? categoryLabel
                             : converterHelper.getFormattedLegendLabel(seriesData.source, dataViewCategorical.values, formatStringProp);
 
-                        var nonHighlight = seriesData.values[categoryIndex] || 0;
-                        var highlight = this.hasHighlights ? seriesData.highlights[categoryIndex] || 0 : 0;
+                        let nonHighlight = seriesData.values[categoryIndex] || 0;
+                        let highlight = this.hasHighlights ? seriesData.highlights[categoryIndex] || 0 : 0;
 
                         let measure: string;
                         let seriesGroup: any;
@@ -1670,7 +1672,7 @@ module powerbi.visuals {
                             .withMeasure(measure)
                             .createSelectionId();
 
-                        var dataPoint: ConvertedDataPoint = {
+                        let dataPoint: ConvertedDataPoint = {
                             identity: identity,
                             measureFormat: valueFormatter.getFormatString(seriesData.source, formatStringProp, true),
                             measureValue: <MeasureAndValue> {
@@ -1703,24 +1705,24 @@ module powerbi.visuals {
             }
 
             private convertMeasures(): ConvertedDataPoint[] {
-                var dataViewCategorical = this.dataViewCategorical;
-                var dataPoints: ConvertedDataPoint[] = [];
-                var formatStringProp = donutChartProps.general.formatString;
+                let dataViewCategorical = this.dataViewCategorical;
+                let dataPoints: ConvertedDataPoint[] = [];
+                let formatStringProp = donutChartProps.general.formatString;
 
-                for (var measureIndex = 0; measureIndex < this.seriesCount; measureIndex++) {
-                    var measureData = dataViewCategorical.values[measureIndex];
-                    var measureFormat = valueFormatter.getFormatString(measureData.source, formatStringProp, true);
-                    var measureLabel = measureData.source.displayName;
-                    var identity = SelectionId.createWithMeasure(measureData.source.queryName);
+                for (let measureIndex = 0; measureIndex < this.seriesCount; measureIndex++) {
+                    let measureData = dataViewCategorical.values[measureIndex];
+                    let measureFormat = valueFormatter.getFormatString(measureData.source, formatStringProp, true);
+                    let measureLabel = measureData.source.displayName;
+                    let identity = SelectionId.createWithMeasure(measureData.source.queryName);
 
                     debug.assert(measureData.values.length > 0, 'measure should have data points');
                     debug.assert(!this.hasHighlights || measureData.highlights.length > 0, 'measure with highlights should have highlight data points');
-                    var nonHighlight = measureData.values[0] || 0;
-                    var highlight = this.hasHighlights ? measureData.highlights[0] || 0 : 0;
+                    let nonHighlight = measureData.values[0] || 0;
+                    let highlight = this.hasHighlights ? measureData.highlights[0] || 0 : 0;
 
-                    var color = this.colorHelper.getColorForMeasure(measureData.source.objects, measureData.source.queryName);
+                    let color = this.colorHelper.getColorForMeasure(measureData.source.objects, measureData.source.queryName);
 
-                    var dataPoint: ConvertedDataPoint = {
+                    let dataPoint: ConvertedDataPoint = {
                         identity: identity,
                         measureFormat: measureFormat,
                         measureValue: <MeasureAndValue> {
@@ -1751,26 +1753,26 @@ module powerbi.visuals {
             }
 
             private convertSeries(): ConvertedDataPoint[] {
-                var dataViewCategorical = this.dataViewCategorical;
-                var dataPoints: ConvertedDataPoint[] = [];
-                var formatStringProp = donutChartProps.general.formatString;
+                let dataViewCategorical = this.dataViewCategorical;
+                let dataPoints: ConvertedDataPoint[] = [];
+                let formatStringProp = donutChartProps.general.formatString;
 
-                for (var seriesIndex = 0; seriesIndex < this.seriesCount; seriesIndex++) {
-                    var seriesData = dataViewCategorical.values[seriesIndex];
-                    var seriesFormat = valueFormatter.getFormatString(seriesData.source, formatStringProp, true);
-                    var label = converterHelper.getFormattedLegendLabel(seriesData.source, dataViewCategorical.values, formatStringProp);
-                    var identity = SelectionId.createWithId(seriesData.identity);
-                    var seriesName = converterHelper.getSeriesName(seriesData.source);
-                    var seriesObjects = seriesData.objects && seriesData.objects[0];
+                for (let seriesIndex = 0; seriesIndex < this.seriesCount; seriesIndex++) {
+                    let seriesData = dataViewCategorical.values[seriesIndex];
+                    let seriesFormat = valueFormatter.getFormatString(seriesData.source, formatStringProp, true);
+                    let label = converterHelper.getFormattedLegendLabel(seriesData.source, dataViewCategorical.values, formatStringProp);
+                    let identity = SelectionId.createWithId(seriesData.identity);
+                    let seriesName = converterHelper.getSeriesName(seriesData.source);
+                    let seriesObjects = seriesData.objects && seriesData.objects[0];
 
                     debug.assert(seriesData.values.length > 0, 'measure should have data points');
                     debug.assert(!this.hasHighlights || seriesData.highlights.length > 0, 'measure with highlights should have highlight data points');
-                    var nonHighlight = seriesData.values[0] || 0;
-                    var highlight = this.hasHighlights ? seriesData.highlights[0] || 0 : 0;
+                    let nonHighlight = seriesData.values[0] || 0;
+                    let highlight = this.hasHighlights ? seriesData.highlights[0] || 0 : 0;
 
-                    var color = this.colorHelper.getColorForSeriesValue(seriesObjects, dataViewCategorical.values.identityFields, seriesName);
+                    let color = this.colorHelper.getColorForSeriesValue(seriesObjects, dataViewCategorical.values.identityFields, seriesName);
 
-                    var dataPoint: ConvertedDataPoint = {
+                    let dataPoint: ConvertedDataPoint = {
                         identity: identity,
                         measureFormat: seriesFormat,
                         measureValue: <MeasureAndValue> {
@@ -1803,13 +1805,15 @@ module powerbi.visuals {
 
             private convertDataLableSettings(): VisualDataLabelsSettings {
                 var dataViewMetadata = this.dataViewMetadata;
-                var dataLabelsSettings = dataLabelUtils.getDefaultDonutLabelSettings();
+                var values = this.dataViewCategorical.values;
+                var labelFormatString = values ? valueFormatter.getFormatString(values[0].source, donutChartProps.general.formatString) : undefined;
+                var dataLabelsSettings = dataLabelUtils.getDefaultDonutLabelSettings(labelFormatString);
 
                 if (dataViewMetadata) {
-                    var objects: DataViewObjects = dataViewMetadata.objects;
+                    let objects: DataViewObjects = dataViewMetadata.objects;
                     if (objects) {
                         // Handle lables settings
-                        var labelsObj = <DataLabelObject>objects['labels'];
+                        let labelsObj = <DataLabelObject>objects['labels'];
                         if (labelsObj) {
                             if (labelsObj.show !== undefined)
                                 dataLabelsSettings.show = labelsObj.show;
@@ -1824,10 +1828,10 @@ module powerbi.visuals {
                             }
                         }
 
-                        var categoryLabelsObject = objects['categoryLabels'];
+                        let categoryLabelsObject = objects['categoryLabels'];
                         if (categoryLabelsObject) {
                             // Update category label visibility
-                            var category = <boolean>categoryLabelsObject['show'];
+                            let category = <boolean>categoryLabelsObject['show'];
                             if (category !== undefined)
                                 dataLabelsSettings.showCategory = category;
                         }

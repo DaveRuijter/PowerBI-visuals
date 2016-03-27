@@ -96,7 +96,7 @@ module powerbi.visuals {
             if (!point) {
                 return point;
             }
-            var m = this.matrix;
+            let m = this.matrix;
             return {
                 x: m.m00 * point.x + m.m01 * point.y + m.m02,
                 y: m.m10 * point.x + m.m11 * point.y + m.m12,
@@ -108,43 +108,43 @@ module powerbi.visuals {
                 return rect;
             }
 
-            var x0 = rect.left;
-            var y0 = rect.top;
+            let x0 = rect.left;
+            let y0 = rect.top;
 
-            var m = this.matrix;
-            var isScaled = m.m00 !== 1 || m.m11 !== 1;
-            var isRotated = m.m01 !== 0 || m.m10 !== 0;
+            let m = this.matrix;
+            let isScaled = m.m00 !== 1 || m.m11 !== 1;
+            let isRotated = m.m01 !== 0 || m.m10 !== 0;
             if (!isRotated && !isScaled) {
                 // Optimize for the translation only case
                 return { left: x0 + m.m02, top: y0 + m.m12, width: rect.width, height: rect.height };
             }
 
-            var x1 = rect.left + rect.width;
-            var y1 = rect.top + rect.height;
+            let x1 = rect.left + rect.width;
+            let y1 = rect.top + rect.height;
 
-            var minX: number;
-            var maxX: number;
-            var minY: number;
-            var maxY: number;
+            let minX: number;
+            let maxX: number;
+            let minY: number;
+            let maxY: number;
 
             if (isRotated) {
-                var p0x = m.m00 * x0 + m.m01 * y0 + m.m02;
-                var p0y = m.m10 * x0 + m.m11 * y0 + m.m12;
-                var p1x = m.m00 * x0 + m.m01 * y1 + m.m02;
-                var p1y = m.m10 * x0 + m.m11 * y1 + m.m12;
-                var p2x = m.m00 * x1 + m.m01 * y0 + m.m02;
-                var p2y = m.m10 * x1 + m.m11 * y0 + m.m12;
-                var p3x = m.m00 * x1 + m.m01 * y1 + m.m02;
-                var p3y = m.m10 * x1 + m.m11 * y1 + m.m12;
+                let p0x = m.m00 * x0 + m.m01 * y0 + m.m02;
+                let p0y = m.m10 * x0 + m.m11 * y0 + m.m12;
+                let p1x = m.m00 * x0 + m.m01 * y1 + m.m02;
+                let p1y = m.m10 * x0 + m.m11 * y1 + m.m12;
+                let p2x = m.m00 * x1 + m.m01 * y0 + m.m02;
+                let p2y = m.m10 * x1 + m.m11 * y0 + m.m12;
+                let p3x = m.m00 * x1 + m.m01 * y1 + m.m02;
+                let p3y = m.m10 * x1 + m.m11 * y1 + m.m12;
                 minX = Math.min(p0x, p1x, p2x, p3x);
                 maxX = Math.max(p0x, p1x, p2x, p3x);
                 minY = Math.min(p0y, p1y, p2y, p3y);
                 maxY = Math.max(p0y, p1y, p2y, p3y);
             } else {
-                var p0x = m.m00 * x0 + m.m02;
-                var p0y = m.m11 * y0 + m.m12;
-                var p3x = m.m00 * x1 + m.m02;
-                var p3y = m.m11 * y1 + m.m12;
+                let p0x = m.m00 * x0 + m.m02;
+                let p0y = m.m11 * y0 + m.m12;
+                let p3x = m.m00 * x1 + m.m02;
+                let p3y = m.m11 * y1 + m.m12;
                 minX = Math.min(p0x, p3x);
                 maxX = Math.max(p0x, p3x);
                 minY = Math.min(p0y, p3y);
@@ -156,7 +156,7 @@ module powerbi.visuals {
 
         public translate(xOffset: number, yOffset: number): void {
             if (xOffset !== 0 || yOffset !== 0) {
-                var m = createTranslateMatrix(xOffset, yOffset);
+                let m = createTranslateMatrix(xOffset, yOffset);
                 this.matrix = mutliplyMatrices(this.matrix, m);
                 this._inverse = null;
             }
@@ -164,7 +164,7 @@ module powerbi.visuals {
 
         public scale(xScale: number, yScale: number): void {
             if (xScale !== 1 || yScale !== 1) {
-                var m = createScaleMatrix(xScale, yScale);
+                let m = createScaleMatrix(xScale, yScale);
                 this.matrix = mutliplyMatrices(this.matrix, m);
                 this._inverse = null;
             }
@@ -172,7 +172,7 @@ module powerbi.visuals {
 
         public rotate(angleInRadians: number): void {
             if (angleInRadians !== 0) {
-                var m = createRotationMatrix(angleInRadians);
+                let m = createRotationMatrix(angleInRadians);
                 this.matrix = mutliplyMatrices(this.matrix, m);
                 this._inverse = null;
             }
@@ -208,9 +208,9 @@ module powerbi.visuals {
     }
 
     export function createRotationMatrix(angleInRads: number): I2DTransformMatrix {
-        var a = angleInRads;
-        var sinA = Math.sin(a);
-        var cosA = Math.cos(a);
+        let a = angleInRads;
+        let sinA = Math.sin(a);
+        let cosA = Math.cos(a);
         return {
             m00: cosA, m01: -sinA, m02: 0,
             m10: sinA, m11: cosA, m12: 0,
@@ -218,8 +218,8 @@ module powerbi.visuals {
     }
 
     export function createInverseMatrix(m: I2DTransformMatrix): I2DTransformMatrix {
-        var determinant = m.m00 * m.m11 - m.m01 * m.m10;
-        var invdet = 1 / determinant;
+        let determinant = m.m00 * m.m11 - m.m01 * m.m10;
+        let invdet = 1 / determinant;
         return {
             m00: m.m11 * invdet,
             m01: - m.m01 * invdet,
@@ -242,7 +242,7 @@ module powerbi.visuals {
         };
     }
 
-    var defaultLevelOfDetail = 11;
+    let defaultLevelOfDetail = 11;
 
     export class MapPolygonInfo {
         private _locationRect: Microsoft.Maps.LocationRect;
@@ -254,17 +254,17 @@ module powerbi.visuals {
         }
 
         public reCalc(mapControl: Microsoft.Maps.Map, width: number, height: number) {
-            var baseLocations = [this._locationRect.getNorthwest(), this._locationRect.getSoutheast()];
-            var width = width / 2.00;
-            var height = height / 2.00;
+            let baseLocations = [this._locationRect.getNorthwest(), this._locationRect.getSoutheast()];
+            width = width / 2.00;
+            height = height / 2.00;
 
             if (!this._baseRect) {
-                var l0 = powerbi.visuals.BI.Services.MapServices.locationToPixelXY(this._locationRect.getNorthwest(), defaultLevelOfDetail);
-                var l1 = powerbi.visuals.BI.Services.MapServices.locationToPixelXY(this._locationRect.getSoutheast(), defaultLevelOfDetail);
+                let l0 = powerbi.visuals.BI.Services.MapServices.locationToPixelXY(this._locationRect.getNorthwest(), defaultLevelOfDetail);
+                let l1 = powerbi.visuals.BI.Services.MapServices.locationToPixelXY(this._locationRect.getSoutheast(), defaultLevelOfDetail);
                 this._baseRect = new Rect(l0.x, l0.y, l1.x - l0.x, l1.y - l0.y);
             }
 
-            var l = mapControl.tryLocationToPixel(baseLocations);
+            let l = mapControl.tryLocationToPixel(baseLocations);
             this._currentRect = new Rect(l[0].x + width, l[0].y + height, l[1].x - l[0].x, l[1].y - l[0].y);
         }
 
@@ -276,9 +276,9 @@ module powerbi.visuals {
         }
 
         public get transform(): Transform {
-            var base = this._baseRect;
-            var current = this._currentRect;
-            var transform = new Transform();
+            let base = this._baseRect;
+            let current = this._currentRect;
+            let transform = new Transform();
             transform.translate(current.left, current.top);
             transform.scale((current.width / base.width), (current.height / base.height));
             transform.translate(-base.left, -base.top);
@@ -286,33 +286,33 @@ module powerbi.visuals {
         }
 
         public get outherTransform() {
-            var base = this._baseRect;
-            var current = this._currentRect;
-            var transform = new Transform();
+            let base = this._baseRect;
+            let current = this._currentRect;
+            let transform = new Transform();
             transform.translate(current.left, current.top);
-            var scale = Math.sqrt(current.width / base.width);
+            let scale = Math.sqrt(current.width / base.width);
             transform.scale(scale, scale);
             return transform;
         }
 
         public setViewBox(svg: SVGSVGElement) {
-            var rect = svg.getBoundingClientRect();
-            var current = this._currentRect;
+            let rect = svg.getBoundingClientRect();
+            let current = this._currentRect;
             svg.setAttribute("viewBox", [-current.left, -current.top, rect.width, rect.height].join(" "));
         }
 
         public get innerTransform() {
-            var base = this._baseRect;
-            var current = this._currentRect;
-            var transform = new Transform();
-            var scale = current.width / base.width;
+            let base = this._baseRect;
+            let current = this._currentRect;
+            let transform = new Transform();
+            let scale = current.width / base.width;
             transform.scale(scale, scale);
             transform.translate(-base.left, -base.top);
             return transform;
         }
 
         public transformToString(transform: Transform) {
-            var m = transform.matrix;
+            let m = transform.matrix;
             return "matrix(" + m.m00 + " " + m.m10 + " " + m.m01 + " " + m.m11 + " " + m.m02 + " " + m.m12 + ")";
         }
     }
@@ -472,7 +472,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         }
 
         public getBingEntity(): string {
-            var category = this.category.toLowerCase();
+            let category = this.category.toLowerCase();
             if (!categoryToBingEntity) {
                 categoryToBingEntity = {};
                 categoryToBingEntity[CategoryTypes.Continent.toLowerCase()] = BingEntities.Continent;
@@ -487,9 +487,9 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         }
 
         public getUrl(): string {
-            var url = Settings.BingUrl + "key=" + Settings.BingKey;
-            var entityType = this.getBingEntity();
-            var queryAdded = false;
+            let url = Settings.BingUrl + "key=" + Settings.BingKey;
+            let entityType = this.getBingEntity();
+            let queryAdded = false;
             if (entityType) {
                 if (entityType === BingEntities.Postcode) {
                     url += "&includeEntityTypes=Postcode,Postcode1,Postcode2,Postcode3,Postcode4";
@@ -515,7 +515,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
                 }
             }
 
-            var cultureName = navigator.userLanguage || navigator["language"];
+            let cultureName = navigator.userLanguage || navigator["language"];
             if (cultureName) {
                 url += "&c=" + cultureName;
             }
@@ -540,7 +540,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         }
 
         public getBingEntity(): string {
-            var category = this.category.toLowerCase();
+            let category = this.category.toLowerCase();
             if (!categoryToBingEntityGeodata) {
                 categoryToBingEntityGeodata = {};
                 categoryToBingEntityGeodata[CategoryTypes.CountryRegion.toLowerCase()] = BingEntities.CountryRegion;
@@ -553,15 +553,15 @@ module powerbi.visuals.BI.Services.GeocodingManager {
         }
 
         public getUrl(): string {
-            var url = Settings.BingUrlGeodata + "key=" + Settings.BingKey + "&$format=json";
-            var entityType = this.getBingEntity();
+            let url = Settings.BingUrlGeodata + "key=" + Settings.BingKey + "&$format=json";
+            let entityType = this.getBingEntity();
             if (!entityType) {
                 return null;
             }
 
-            var cultureName = navigator.userLanguage || navigator["language"];
-            var cultures = cultureName.split("-");
-            var data = [this.latitude, this.longitude, this.levelOfDetail, "'" + entityType + "'", 1, 0, "'" + cultureName + "'"];
+            let cultureName = navigator.userLanguage || navigator["language"];
+            let cultures = cultureName.split("-");
+            let data = [this.latitude, this.longitude, this.levelOfDetail, "'" + entityType + "'", 1, 0, "'" + cultureName + "'"];
             if (cultures.length > 1) {
                 data.push("'" + cultures[1] + "'");
             }
@@ -570,8 +570,8 @@ module powerbi.visuals.BI.Services.GeocodingManager {
     }
 
     export function geocodeCore(geocodeQuery: GeocodeQuery): any {
-        var result = geocodingCache ? geocodingCache.getCoordinates(geocodeQuery) : undefined;
-        var deferred = $.Deferred();
+        let result = geocodingCache ? geocodingCache.getCoordinates(geocodeQuery) : undefined;
+        let deferred = $.Deferred();
 
         if (result) {
             deferred.resolve(result);
@@ -606,7 +606,7 @@ module powerbi.visuals.BI.Services.GeocodingManager {
     function makeRequest(item: IGeocodeQueueItem) {
 
         // Check again if we already got the coordinate;
-        var result = geocodingCache ? geocodingCache.getCoordinates(item.query) : undefined;
+        let result = geocodingCache ? geocodingCache.getCoordinates(item.query) : undefined;
         if (result) {
             setTimeout(() => dequeue(1));
             item.deferred.resolve(result);
@@ -615,13 +615,13 @@ module powerbi.visuals.BI.Services.GeocodingManager {
 
         // Unfortunately the Bing service doesn't support CORS, only jsonp. This issue must be raised and revised.
         // VSTS: 1396088 - Tracking: Ask: Bing geocoding to support CORS
-        var config: JQueryAjaxSettings = {
+        let config: JQueryAjaxSettings = {
             type: "GET",
             dataType: "jsonp",
             jsonp: "jsonp"
         };
 
-        var url = item.query.getUrl();
+        let url = item.query.getUrl();
         if (!url) {
             completeRequest(item, new Error("Unsupported query. " + item.query.query));
         }
@@ -630,12 +630,12 @@ module powerbi.visuals.BI.Services.GeocodingManager {
             (data) => {
                 try {
                     if (item.query instanceof GeocodeBoundaryQuery) {
-                        var result = data;
+                        let result = data;
                         if (result && result.d && Array.isArray(result.d.results) && result.d.results.length > 0) {
-                            var entity = result.d.results[0];
-                            var primitives = entity.Primitives;
+                            let entity = result.d.results[0];
+                            let primitives = entity.Primitives;
                             if (primitives && primitives.length > 0) {
-                                var coordinates: IGeocodeCoordinate = {
+                                let coordinates: IGeocodeCoordinate = {
                                     latitude: (<GeocodeBoundaryQuery>item.query).latitude,
                                     longitude: (<GeocodeBoundaryQuery>item.query).longitude,
                                     locations: []
@@ -651,13 +651,13 @@ module powerbi.visuals.BI.Services.GeocodingManager {
                                     return 0;
                                 });
 
-                                var maxGeoData = Math.min(primitives.length, (<GeocodeBoundaryQuery>item.query).maxGeoData);
+                                let maxGeoData = Math.min(primitives.length, (<GeocodeBoundaryQuery>item.query).maxGeoData);
 
-                                for (var i = 0; i < maxGeoData; i++) {
-                                    var ringStr = primitives[i].Shape;
-                                    var ringArray = ringStr.split(",");
+                                for (let i = 0; i < maxGeoData; i++) {
+                                    let ringStr = primitives[i].Shape;
+                                    let ringArray = ringStr.split(",");
 
-                                    for (var j = 1; j < ringArray.length; j++) {
+                                    for (let j = 1; j < ringArray.length; j++) {
                                         coordinates.locations.push({ nativeBing: ringArray[j] });
                                     }
                                 }
@@ -673,11 +673,11 @@ module powerbi.visuals.BI.Services.GeocodingManager {
                         }
                     }
                     else {
-                        var resources = data.resourceSets[0].resources;
+                        let resources = data.resourceSets[0].resources;
                         if (Array.isArray(resources) && resources.length > 0) {
-                            var index = getBestResultIndex(resources, item.query);
-                            var pointData = resources[index].point.coordinates;
-                            var coordinates: IGeocodeCoordinate = {
+                            let index = getBestResultIndex(resources, item.query);
+                            let pointData = resources[index].point.coordinates;
+                            let coordinates: IGeocodeCoordinate = {
                                 latitude: parseFloat(pointData[0]),
                                 longitude: parseFloat(pointData[1])
                             };
@@ -713,9 +713,9 @@ module powerbi.visuals.BI.Services.GeocodingManager {
     }
 
     function getBestResultIndex(resources: any[], query: GeocodeQuery) {
-        var targetEntity = query.getBingEntity().toLowerCase();
-        for (var index = 0; index < resources.length; index++) {
-            var resultEntity = (resources[index].entityType || "").toLowerCase();
+        let targetEntity = query.getBingEntity().toLowerCase();
+        for (let index = 0; index < resources.length; index++) {
+            let resultEntity = (resources[index].entityType || "").toLowerCase();
             if (resultEntity === targetEntity) {
                 return index;
             }
@@ -769,16 +769,16 @@ module powerbi.visuals.BI.Services.MapServices {
      * @returns Float64Array as [x0, y0, x1, y1, x2, y2,....]
      */
     export function latLongToPixelXYArray(latLongArray: Float64Array, levelOfDetail: number): Float64Array {
-        var result = new Float64Array(latLongArray.length);
-        for (var i = 0; i < latLongArray.length; i += 2) {
-            var latitude = clip(latLongArray[i], MinAllowedLatitude, MaxAllowedLatitude);
-            var longitude = clip(latLongArray[i + 1], MinAllowedLongitude, MaxAllowedLongitude);
+        let result = new Float64Array(latLongArray.length);
+        for (let i = 0; i < latLongArray.length; i += 2) {
+            let latitude = clip(latLongArray[i], MinAllowedLatitude, MaxAllowedLatitude);
+            let longitude = clip(latLongArray[i + 1], MinAllowedLongitude, MaxAllowedLongitude);
 
-            var x: number = (longitude + 180) / 360;
-            var sinLatitude: number = Math.sin(latitude * Math.PI / 180);
-            var y: number = 0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI);
+            let x: number = (longitude + 180) / 360;
+            let sinLatitude: number = Math.sin(latitude * Math.PI / 180);
+            let y: number = 0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI);
 
-            var mapSize: number = getMapSize(levelOfDetail);
+            let mapSize: number = getMapSize(levelOfDetail);
             result[i] = clip(x * mapSize + 0.5, 0.0, mapSize - 1);
             result[i + 1] = clip(y * mapSize + 0.5, 0.0, mapSize - 1);
         }
@@ -786,11 +786,11 @@ module powerbi.visuals.BI.Services.MapServices {
     }
 
     export function pointArrayToString(array: Float64Array) {
-        var maxLength = 80000;
+        let maxLength = 80000;
         if (array.length > maxLength) {
-            var result: string = "";
-            for (var i = 0; i < array.length; i += maxLength) {
-                var array1 = Array.apply([], array.subarray(i, i + maxLength));
+            let result: string = "";
+            for (let i = 0; i < array.length; i += maxLength) {
+                let array1 = Array.apply([], array.subarray(i, i + maxLength));
                 result += array1.join(" ") + " ";
             }
             return result;
@@ -799,11 +799,11 @@ module powerbi.visuals.BI.Services.MapServices {
     }
 
     export function pointArrayToArray(array: Float64Array): number[] {
-        var maxLength = 80000;
-        var result: number[] = [];
+        let maxLength = 80000;
+        let result: number[] = [];
         if (array.length > maxLength) {
-            for (var i = 0; i < array.length; i += maxLength) {
-                var array1 = Array.apply([], array.subarray(i, i + maxLength));
+            for (let i = 0; i < array.length; i += maxLength) {
+                let array1 = Array.apply([], array.subarray(i, i + maxLength));
                 result.concat(array1);
             }
             return result;
@@ -812,14 +812,14 @@ module powerbi.visuals.BI.Services.MapServices {
     }
 
     export function getLocationBoundaries(latLongArray: Float64Array): Microsoft.Maps.LocationRect {
-        var northWest = {
+        let northWest = {
             latitude: -90, longitude: 180
         };
-        var southEast = {
+        let southEast = {
             latitude: 90, longitude: -180
         };
 
-        for (var i = 0; i < latLongArray.length; i += 2) {
+        for (let i = 0; i < latLongArray.length; i += 2) {
             northWest.latitude = Math.max(latLongArray[i], northWest.latitude);
             northWest.longitude = Math.min(latLongArray[i + 1], northWest.longitude);
             southEast.latitude = Math.min(latLongArray[i], southEast.latitude);
@@ -840,15 +840,15 @@ module powerbi.visuals.BI.Services.MapServices {
      *  see Decompression Algorithm in http://msdn.microsoft.com/en-us/library/dn306801.aspx
      */
     export function parseEncodedSpatialValueArray(value): Float64Array {
-        var list: number[] = [];
-        var index = 0;
-        var xsum = 0;
-        var ysum = 0;
-        var max = 4294967296;
+        let list: number[] = [];
+        let index = 0;
+        let xsum = 0;
+        let ysum = 0;
+        let max = 4294967296;
 
         while (index < value.length) {
-            var n = 0;
-            var k = 0;
+            let n = 0;
+            let k = 0;
 
             while (1) {
 
@@ -856,35 +856,35 @@ module powerbi.visuals.BI.Services.MapServices {
                     return null;
                 }
 
-                var b = safeCharacters.indexOf(value.charAt(index++));
+                let b = safeCharacters.indexOf(value.charAt(index++));
                 if (b === -1) {
                     return null;
                 }
 
-                var tmp = ((b & 31) * (Math.pow(2, k)));
+                let tmp = ((b & 31) * (Math.pow(2, k)));
 
-                var ht = tmp / max;
-                var lt = tmp % max;
+                let ht = tmp / max;
+                let lt = tmp % max;
 
-                var hn = n / max;
-                var ln = n % max;
+                let hn = n / max;
+                let ln = n % max;
 
-                var nl = (lt | ln) >>> 0;
+                let nl = (lt | ln) >>> 0;
                 n = (ht | hn) * max + nl;
                 k += 5;
                 if (b < 32) break;
             }
 
-            var diagonal = Math.floor((Math.sqrt(8 * n + 5) - 1) / 2);
+            let diagonal = Math.floor((Math.sqrt(8 * n + 5) - 1) / 2);
             n -= diagonal * (diagonal + 1) / 2;
-            var ny = Math.floor(n);
-            var nx = diagonal - ny;
+            let ny = Math.floor(n);
+            let nx = diagonal - ny;
             nx = (nx >> 1) ^ -(nx & 1);
             ny = (ny >> 1) ^ -(ny & 1);
             xsum += nx;
             ysum += ny;
-            var lat = ysum * 0.00001;
-            var lon = xsum * 0.00001;
+            let lat = ysum * 0.00001;
+            let lon = xsum * 0.00001;
 
             list.push(lat);
             list.push(lon);
@@ -893,14 +893,14 @@ module powerbi.visuals.BI.Services.MapServices {
     }
 
     export function calcGeoData(data: powerbi.visuals.BI.Services.GeocodingManager.IGeocodeCoordinate) {
-        var locations = data.locations;
+        let locations = data.locations;
 
-        for (var i = 0; i < locations.length; i++) {
-            var location = locations[i];
+        for (let i = 0; i < locations.length; i++) {
+            let location = locations[i];
             if (!location.geographic) {
                 location.geographic = MapServices.parseEncodedSpatialValueArray(location.nativeBing);
             }
-            var polygon = location.geographic;
+            let polygon = location.geographic;
             if (polygon) {
                 if (!location.absolute) {
                     location.absolute = MapServices.latLongToPixelXYArray(polygon, MapServices.DefaultLevelOfDetail);
@@ -913,7 +913,7 @@ module powerbi.visuals.BI.Services.MapServices {
     }
 
     export function latLongToPixelXY(latitude: number, longitude: number, levelOfDetail: number): powerbi.visuals.Point {
-        var array = latLongToPixelXYArray(new Float64Array([latitude, longitude]), levelOfDetail);
+        let array = latLongToPixelXYArray(new Float64Array([latitude, longitude]), levelOfDetail);
         return new powerbi.visuals.Point(array[0], array[1]);
     }
 
@@ -922,17 +922,17 @@ module powerbi.visuals.BI.Services.MapServices {
     }
 
     export function locationRectToRectXY(locationRect: Microsoft.Maps.LocationRect, levelOfDetail: number): powerbi.visuals.Rect {
-        var topleft = locationToPixelXY(locationRect.getNorthwest(), levelOfDetail);
-        var bottomRight = locationToPixelXY(locationRect.getSoutheast(), levelOfDetail);
+        let topleft = locationToPixelXY(locationRect.getNorthwest(), levelOfDetail);
+        let bottomRight = locationToPixelXY(locationRect.getSoutheast(), levelOfDetail);
         return new powerbi.visuals.Rect(topleft.x, topleft.y, bottomRight.x - topleft.x, bottomRight.y - topleft.y);
     }
 
     export function pixelXYToLocation(pixelX: number, pixelY: number, levelOfDetail: number): Microsoft.Maps.Location {
-        var mapSize = getMapSize(levelOfDetail);
-        var x = (clip(pixelX, 0, mapSize - 1) / mapSize) - 0.5;
-        var y = 0.5 - (clip(pixelY, 0, mapSize - 1) / mapSize);
-        var latitude = 90 - 360 * Math.atan(Math.exp(-y * 2 * Math.PI)) / Math.PI;
-        var longitude = 360 * x;
+        let mapSize = getMapSize(levelOfDetail);
+        let x = (clip(pixelX, 0, mapSize - 1) / mapSize) - 0.5;
+        let y = 0.5 - (clip(pixelY, 0, mapSize - 1) / mapSize);
+        let latitude = 90 - 360 * Math.atan(Math.exp(-y * 2 * Math.PI)) / Math.PI;
+        let longitude = 360 * x;
         return new Microsoft.Maps.Location(latitude, longitude);
     }
 }

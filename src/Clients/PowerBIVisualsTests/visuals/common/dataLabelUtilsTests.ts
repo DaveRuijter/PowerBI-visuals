@@ -31,313 +31,14 @@ module powerbitests {
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
     import DataLabelUtils = powerbi.visuals.dataLabelUtils;
+    import ObjectEnumerationBuilder = powerbi.visuals.ObjectEnumerationBuilder;
 
     powerbitests.mocks.setLocale();
 
     describe("DataLabelUtils", () => {
-        var visualBuilder: VisualBuilder;
 
         afterEach(() => {
             $(".data-labels").remove();
-        });
-
-        describe("Line Chart Collision Detection", () => {
-            var dataViewMetadata: powerbi.DataViewMetadata = {
-                columns: [
-                    {
-                        displayName: "col1",
-                        queryName: "col1",
-                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text)
-                    },
-                    {
-                        displayName: "col2",
-                        queryName: "col2",
-                        isMeasure: true,
-                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
-                        format: "0.000"
-                    },
-                    {
-                        displayName: "col3",
-                        queryName: "col3",
-                        isMeasure: false,
-                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
-                        format: "d"
-                    }],
-                objects: {
-                    labels: {
-                        show: true
-                    }
-                }
-            };
-
-            beforeEach(() => {
-                visualBuilder = new VisualBuilder("500", "145", "lineChart");
-
-                visualBuilder.metadata = dataViewMetadata;
-                visualBuilder.categoriesValues = ["a", "b", "c", "d", "e"];
-                visualBuilder.values = [500000, 495000, 490000, 480000, 500000];
-            });
-
-            it("Show labels validation", (done) => {
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    // Only the top two label should be hidden
-                    expect(getDataLabel().length).toBe(3);
-
-                    expect(getDataLableText(0)).toContain("495");
-                    expect(getDataLableText(1)).toContain("490");
-                    expect(getDataLableText(2)).toContain("480");
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("Overlap labels validation", (done) => {
-                //label format will be overriden by label settings
-                visualBuilder.metadata.objects = { labels: { show: true, labelPrecision: 3 } };
-                visualBuilder.values = [500000, 495000, 495050, 480000, 500000];
-
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    // Two label should be hidden because it collides
-                    expect(getDataLabel().length).toBe(2);
-
-                    expect(getDataLableText(0)).toContain("495");
-                    expect(getDataLableText(1)).toContain("480");
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it('Hide labels DOM validation', (done) => {
-                visualBuilder.setSize("10", "10");
-
-                visualBuilder.metadata.objects = {
-                    labels: {
-                        show: true,
-                        labelPrecision: 3
-                    }
-                };
-
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    // All labels should be hidden and no 'labels' class should be created
-                    expect($('.lineChart .axisGraphicsContext .labels').length).toBe(0);
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("undefined labelSettings validation", () => {
-                var labelSettings: powerbi.visuals.VisualDataLabelsSettings;
-                var instance = DataLabelUtils.enumerateDataLabels(labelSettings, false);
-                expect(instance).toEqual([]);
-            });
-        });
-
-        describe("Scatter Chart Collision Detection", () => {
-            var dataViewMetadata: powerbi.DataViewMetadata = {
-                columns: [
-                    {
-                        displayName: "col1",
-                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text),
-                        queryName: "col1",
-                    },
-                    {
-                        displayName: "col2",
-                        isMeasure: true,
-                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double),
-                        format: "0.000"
-                    },
-                    {
-                        displayName: "col3",
-                        isMeasure: false,
-                        type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.DateTime),
-                        format: "d"
-                    }],
-                objects: {
-                    categoryLabels: {
-                        show: true
-                    }
-                },
-            };
-
-            beforeEach(() => {
-                visualBuilder = new VisualBuilder("250", "235", "scatterChart");
-
-                visualBuilder.isIdentity = true;
-                visualBuilder.metadata = dataViewMetadata;
-                visualBuilder.categoriesValues = ["First", "Second", "Third", "Fourth"];
-                visualBuilder.values = [110, 120, 130, 140];
-            });
-
-            it("Show labels validation", (done) => {
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    // No label should be hidden
-                    expect(getDataLabel().length).toBe(4);
-
-                    for (var i = 0; i < visualBuilder.categoriesValues.length; i++) {
-                        expect(getDataLableText(i)).toBe(visualBuilder.categoriesValues[i]);
-                    }
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("Overlap labels validation", (done) => {
-                visualBuilder.categoriesValues = ["First", "Second", "Third", "Fourth", "Fifth"];
-                visualBuilder.values = [110, 120, 130, 140, 150];
-
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    // Two labels should be hidden because they collides
-                    expect(getDataLabel().length).toBe(3);
-
-                    expect(getDataLableText(0)).toBe("First");
-                    expect(getDataLableText(1)).toBe("Second");
-                    expect(getDataLableText(2)).toBe("Fourth");
-
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it('Hide labels DOM validation', (done) => {
-                visualBuilder.setSize("10", "10");
-
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    // All labels should be hidden and no 'labels' class should be created
-                    expect($('.lineChart .axisGraphicsContext .labels').length).toBe(0);
-                    done();
-                }, DefaultWaitForRender);
-            });
-        });
-
-        describe("Map Collision Detection", () => {
-            var mapBubbleBuilder: MapBubbleBuilder,
-                mapSliceBuilder: MapSliceBuilder;
-
-            beforeEach(() => {
-                mapBubbleBuilder = new MapBubbleBuilder();
-                mapSliceBuilder = new MapSliceBuilder();
-            });
-
-            it("Show bubble labels validation", () => {
-                var mockBubbleData: powerbi.visuals.MapBubble[] = [
-                    mapBubbleBuilder.buildMapBubble(0, 55, "Label 1"),
-                    mapBubbleBuilder.buildMapBubble(50, 55, "Label 2")
-                ];
-
-                var result = mapBubbleBuilder.getResult(mockBubbleData, "mapBubbles");
-
-                expect(result).toBeDefined();
-                expect($(".mapBubbles text").length).toBe(2);
-            });
-
-            it("Overlap bubble labels validation", () => {
-                var mockBubbleData: powerbi.visuals.MapBubble[] = [
-                    mapBubbleBuilder.buildMapBubble(45, 60, "Label 1"),
-                    mapBubbleBuilder.buildMapBubble(50, 60, "Label 2")
-                ];
-
-                var result = mapBubbleBuilder.getResult(mockBubbleData, "mapBubbles");
-
-                expect(result).toBeDefined();
-                expect($(".mapBubbles text").length).toBe(1);
-            });
-
-            it("Show slice labels validation", () => {
-                var mockSliceData: powerbi.visuals.MapSlice[] = [
-                    mapSliceBuilder.buildMapSlice(0, 55, "Label 1", 20),
-                    mapSliceBuilder.buildMapSlice(50, 55, "Label 2", 20)
-                ];
-
-                var result = mapSliceBuilder.getResult(mockSliceData, "mapSlice");
-
-                expect(result).toBeDefined();
-                expect($(".mapSlice text").length).toBe(2);
-            });
-
-            it("Overlap slice labels validation", () => {
-                var mockSliceData: powerbi.visuals.MapSlice[] = [
-                    mapSliceBuilder.buildMapSlice(45, 60, "Label 1", 20),
-                    mapSliceBuilder.buildMapSlice(50, 60, "Label 2", 20)
-                ];
-
-                var result = mapSliceBuilder.getResult(mockSliceData, "mapSlice");
-
-                expect(result).toBeDefined();
-                expect($(".mapSlice text").length).toBe(1);
-            });
-        });
-
-        describe("Waterfall Chart Collision Detection", () => {
-            var categoryColumn: powerbi.DataViewMetadataColumn = {
-                displayName: "year",
-                queryName: "selectYear",
-                type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text)
-            };
-
-            var measureColumn: powerbi.DataViewMetadataColumn = {
-                displayName: "sales",
-                queryName: "selectSales",
-                isMeasure: true, type: ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer),
-                objects: {
-                    general: {
-                        formatString: "$0"
-                    }
-                }
-            };
-
-            var metadata: powerbi.DataViewMetadata = {
-                columns: [categoryColumn, measureColumn],
-                objects: {
-                    labels: {
-                        show: true
-                    }
-                }
-            };
-
-            beforeEach(() => {
-                visualBuilder = new VisualBuilder("500", "500", "waterfallChart");
-
-                visualBuilder.metadata = metadata;
-                visualBuilder.categoriesValues = [2010, 2011, 2012];
-                visualBuilder.values = [100, -200, 250];
-                visualBuilder.isIdentity = true;
-            });
-
-            it("Show labels validation", (done) => {
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    expect($('.labels text').length).toBe(4);
-                    done();
-                }, DefaultWaitForRender);
-            });
-
-            it("Overlap labels validation", (done) => {
-                visualBuilder.setSize("95", "95");
-
-                visualBuilder.metadata.objects = {
-                    labels: {
-                        show: true
-                    }
-                };
-
-                visualBuilder.onDataChanged();
-
-                setTimeout(() => {
-                    expect($('.labels text').length).toBe(2);
-                    done();
-                }, DefaultWaitForRender);
-            });
         });
 
         describe("dataLabelUtils tests", () => {
@@ -432,9 +133,15 @@ module powerbitests {
 
         describe("Test enumerateCategoryLabels", () => {
             it("test default values", () => {
-                var labelSettings = DataLabelUtils.getDefaultPointLabelSettings();
-                var objectsWithColor = DataLabelUtils.enumerateCategoryLabels(labelSettings, true);
-                var objectsNoColor = DataLabelUtils.enumerateCategoryLabels(labelSettings, false);
+                let labelSettings = DataLabelUtils.getDefaultPointLabelSettings();
+
+                let enumerationWithColor = new ObjectEnumerationBuilder();
+                DataLabelUtils.enumerateCategoryLabels(enumerationWithColor, labelSettings, true);
+                let objectsWithColor = enumerationWithColor.complete().instances;
+
+                let enumerationNoColor = new ObjectEnumerationBuilder();
+                DataLabelUtils.enumerateCategoryLabels(enumerationNoColor, labelSettings, false);
+                let objectsNoColor = enumerationNoColor.complete().instances;
 
                 expect(objectsWithColor[0].properties["show"]).toBe(false);
                 expect(objectsNoColor[0].properties["show"]).toBe(false);
@@ -444,29 +151,39 @@ module powerbitests {
             });
 
             it("test custom values", () => {
-                var labelSettings = DataLabelUtils.getDefaultPointLabelSettings();
+                let labelSettings = DataLabelUtils.getDefaultPointLabelSettings();
                 labelSettings.show = true;
                 labelSettings.labelColor = "#FF0000";
 
-                var objectsWithColor = DataLabelUtils.enumerateCategoryLabels(labelSettings, true);
+                let enumerationWithColor = new ObjectEnumerationBuilder();
+                DataLabelUtils.enumerateCategoryLabels(enumerationWithColor, labelSettings, true);
+                let objectsWithColor = enumerationWithColor.complete().instances;
 
                 expect(objectsWithColor[0].properties["show"]).toBe(true);
                 expect(objectsWithColor[0].properties["color"]).toBe("#FF0000");
             });
 
-            it("test category labels objetcs for donut chart", () => {
-                var labelSettings = DataLabelUtils.getDefaultDonutLabelSettings();
-                var objectsWithColor = DataLabelUtils.enumerateCategoryLabels(labelSettings, false, true);
+            it("test category labels objects for donut chart", () => {
+                let labelSettings = DataLabelUtils.getDefaultDonutLabelSettings();
+
+                let enumerationWithColor = new ObjectEnumerationBuilder();
+                DataLabelUtils.enumerateCategoryLabels(enumerationWithColor, labelSettings, false, true);
+                let objectsWithColor = enumerationWithColor.complete().instances;
 
                 expect(objectsWithColor[0].properties["show"]).toBe(labelSettings.showCategory);
             });
 
             it("test null values", () => {
-                var labelSettings = DataLabelUtils.getDefaultPointLabelSettings();
-                var donutLabelSettings = DataLabelUtils.getDefaultDonutLabelSettings();
+                let labelSettings = DataLabelUtils.getDefaultPointLabelSettings();
+                let donutLabelSettings = DataLabelUtils.getDefaultDonutLabelSettings();
 
-                var objectsWithColor = DataLabelUtils.enumerateCategoryLabels(null, true);
-                var donutObjectsWithColor = DataLabelUtils.enumerateCategoryLabels(null, false, true);
+                let enumerationWithColor = new ObjectEnumerationBuilder();
+                DataLabelUtils.enumerateCategoryLabels(enumerationWithColor, null, true);
+                let objectsWithColor = enumerationWithColor.complete().instances;
+
+                let enumerationCategories = new ObjectEnumerationBuilder();
+                DataLabelUtils.enumerateCategoryLabels(enumerationCategories, null, false, true);
+                let donutObjectsWithColor = enumerationCategories.complete().instances;
 
                 expect(objectsWithColor[0].properties["show"]).toBe(labelSettings.show);
                 expect(objectsWithColor[0].properties["color"]).toBe(labelSettings.labelColor);
@@ -474,14 +191,6 @@ module powerbitests {
                 expect(donutObjectsWithColor[0].properties["show"]).toBe(donutLabelSettings.showCategory);
             });
         });
-
-        function getDataLabel(): JQuery {
-            return $("." + visualBuilder.pluginName + " .axisGraphicsContext .labels .data-labels");
-        }
-
-        function getDataLableText(elementId: number): string {
-            return getDataLabel().eq(elementId).text();
-        }
     });
 
     function columnChartDataLabelsShowValidation(chartType: string, collide: boolean) {
@@ -535,53 +244,6 @@ module powerbitests {
             }
 
             visualBuilder.metadata = createMetadata(dataViewMetadataThreeColumn);
-        });
-
-        it("Data Label Visibility Validation", (done) => {
-            visualBuilder.categoriesValues = ["John Domo", "Delta Force", "Mr Bing"];
-            visualBuilder.values = [20, 20, 100];
-            visualBuilder.isIdentity = true;
-
-            visualBuilder.onDataChanged();
-
-            var labels = $(".data-labels");
-
-            setTimeout(() => {
-
-                if (collide)
-                    switch (chartType) {
-                        case "columnChart":
-                        case "clusteredColumnChart":
-                            expect(labels.length).toBe(2);
-                            break;
-                        case "barChart":
-                        case "clusteredBarChart":
-                            expect(labels.length).toBe(3);
-                            break;
-                        //Formatting support localization, 100.00% will be displayed as 100% so the label will be displayed.
-                        case "hundredPercentStackedColumnChart":
-                            expect(labels.length).toBe(0);
-                            break;
-                        case "hundredPercentStackedBarChart":
-                            expect(labels.length).toBe(3);
-                            break;
-                    }
-                else
-                    switch (chartType) {
-                        case "columnChart":
-                        case "barChart":
-                        case "clusteredColumnChart":
-                        case "clusteredBarChart":
-                            expect(labels.length).toBe(3);
-                            break;
-                        case "hundredPercentStackedColumnChart":
-                        case "hundredPercentStackedBarChart":
-                            expect(labels.length).toBe(3);
-                            break;
-                    }
-
-                done();
-            }, DefaultWaitForRender);
         });
     }
 

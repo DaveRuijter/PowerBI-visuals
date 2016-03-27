@@ -30,27 +30,29 @@ module powerbi.visuals {
     export interface ColumnBehaviorOptions {
         datapoints: SelectableDataPoint[];
         bars: D3.Selection;
-        clearCatcher: D3.Selection;
         mainGraphicsContext: D3.Selection;
         hasHighlights: boolean;
-        labelLayout: ILabelLayout;
         viewport: IViewport;
         axisOptions: ColumnAxisOptions;
         showLabel: boolean;
     }
 
-    export class ColumnChartWebBehavior {
-        public select(hasSelection: boolean, options: ColumnBehaviorOptions) {
-            options.bars.style("fill-opacity",(d: ColumnChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && options.hasHighlights));
+    export class ColumnChartWebBehavior implements IInteractiveBehavior {
+        private options: ColumnBehaviorOptions;
 
-            //selected column/bar chart have a different parameters for method getFillOpacity - labels of dimmed shapes should not be drawn, than there is a new filter that uses a new parameters
-            if (options.showLabel) {
-                options.labelLayout.filter = ((d: ColumnChartDataPoint) => dataLabelUtils.getColumnChartLabelFilter(d, hasSelection, options.hasHighlights, options.axisOptions, options.viewport.width));
-                dataLabelUtils.drawDefaultLabelsForDataPointChart(options.datapoints, options.mainGraphicsContext, options.labelLayout, options.viewport);
+        public bindEvents(options: ColumnBehaviorOptions, selectionHandler: ISelectionHandler) {
+            this.options = options;
+            let bars = options.bars;
+
+            bars.on('click', (d: SelectableDataPoint, i: number) => {
+                selectionHandler.handleSelection(d, d3.event.ctrlKey);
+            });
         }
-            else {
-                dataLabelUtils.cleanDataLabels(options.mainGraphicsContext);
-            }
+
+        public renderSelection(hasSelection: boolean) {
+            let options = this.options;
+            options.bars.style("fill-opacity", (d: ColumnChartDataPoint) => ColumnUtil.getFillOpacity(d.selected, d.highlight, !d.highlight && hasSelection, !d.selected && options.hasHighlights));
+
         }
     }
 } 

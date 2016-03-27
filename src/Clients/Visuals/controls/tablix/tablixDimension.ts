@@ -90,8 +90,8 @@ module powerbi.visuals.controls {
         }
 
         public getFirstVisibleChildIndex(item: any): number {
-            var startItem: any = this.getFirstVisibleItem(this._hierarchyNavigator.getLevel(item) + 1);
-            var firstVisibleIndex: number;
+            let startItem: any = this.getFirstVisibleItem(this._hierarchyNavigator.getLevel(item) + 1);
+            let firstVisibleIndex: number;
 
             if (startItem === undefined || (startItem !== undefined && this._hierarchyNavigator.getParent(startItem) !== item)) {
                 firstVisibleIndex = 0;
@@ -145,8 +145,8 @@ module powerbi.visuals.controls {
                 return;
             }
 
-            var firstVisibleScrollIndex: number = this.getIntegerScrollOffset();
-            var firstVisible: any = this._hierarchyNavigator.getLeafAt(this.model, firstVisibleScrollIndex);
+            let firstVisibleScrollIndex: number = this.getIntegerScrollOffset();
+            let firstVisible: any = this._hierarchyNavigator.getLeafAt(this.model, firstVisibleScrollIndex);
             if (!firstVisible) {
                 return;
             }
@@ -182,7 +182,7 @@ module powerbi.visuals.controls {
          * This method first populates the footer followed by each row and their correlating body cells from top to bottom.
          */
         public _render() { // The intent to be internal
-            var firstVisibleRowItem: any = this.getFirstVisibleItem(0);
+            let firstVisibleRowItem: any = this.getFirstVisibleItem(0);
 
             if (this.hasFooter()) {
                 this.addFooterRowHeader(this._footer);
@@ -204,22 +204,22 @@ module powerbi.visuals.controls {
          * upto its estimated edge.
          */
         private addNodes(items: any, rowIndex: number, depth: number, firstVisibleIndex: number) {
-            var count = this._hierarchyNavigator.getCount(items);
+            let count = this._hierarchyNavigator.getCount(items);
 
             //for loop explores children of current "items"
-            for (var i = firstVisibleIndex; i < count; i++) {
+            for (let i = firstVisibleIndex; i < count; i++) {
                 if (!this._layoutManager.needsToRealize) {
                     return;
                 }
 
-                var item = this._hierarchyNavigator.getAt(items, i);
-                var cell = this.addNode(item, items, rowIndex, depth);
+                let item = this._hierarchyNavigator.getAt(items, i);
+                let cell = this.addNode(item, items, rowIndex, depth);
                 rowIndex += cell.rowSpan; //next node is bumped down according cells vertical span
             }
         }
 
         public getFirstVisibleChildLeaf(item: any): any {
-            var leaf = item;
+            let leaf = item;
 
             while (!this._hierarchyNavigator.isLeaf(leaf)) {
                 leaf = this.getFirstVisibleChild(leaf);
@@ -240,9 +240,9 @@ module powerbi.visuals.controls {
          * Once the body cells are reached, populating is done linearly with addBodyCells().
          */
         private addNode(item: any, items: any, rowIndex: number, depth: number): ITablixCell {
-            var previousCount: number;
-            var rowHeaderCell: ITablixCell = this._tablixLayoutManager.getOrCreateRowHeader(item, items, rowIndex, this._hierarchyNavigator.getLevel(item));
-            var match = this.rowHeaderMatch(item, rowHeaderCell);
+            let previousCount: number;
+            let rowHeaderCell: ITablixCell = this._tablixLayoutManager.getOrCreateRowHeader(item, items, rowIndex, this._hierarchyNavigator.getLevel(item));
+            let match = this.rowHeaderMatch(item, rowHeaderCell);
 
             if (!match) {
                 this._owner._unbindCell(rowHeaderCell);
@@ -272,28 +272,28 @@ module powerbi.visuals.controls {
         }
 
         private rowHeaderMatch(item: any, cell: ITablixCell): boolean {
-            var previousItem = cell.item;
+            let previousItem = cell.item;
             return cell.type === TablixCellType.RowHeader && previousItem && this._hierarchyNavigator.headerItemEquals(item, previousItem);
         }
 
         private addBodyCells(item: any, items: any, rowIndex: number) {
-            var firstVisibleColumnIndex: number = this._otherDimension.getIntegerScrollOffset();
-            var columnCount: number = this._otherDimension._layoutManager.getRealizedItemsCount() - this.getDepth();
-            var hierarchyNavigator = this._hierarchyNavigator;
-            var otherModel = this._otherDimension.model;
-            var layoutManager = this._tablixLayoutManager;
+            let firstVisibleColumnIndex: number = this._otherDimension.getIntegerScrollOffset();
+            let columnCount: number = this._otherDimension._layoutManager.getRealizedItemsCount() - this.getDepth();
+            let hierarchyNavigator = this._hierarchyNavigator;
+            let otherModel = this._otherDimension.model;
+            let layoutManager = this._tablixLayoutManager;
 
-            for (var i = 0; i < columnCount; i++) {
+            for (let i = 0; i < columnCount; i++) {
                 //get column header "item" by index to pair up with row header to find corelating body cell
-                var cellItem: any = hierarchyNavigator.getIntersection(item, hierarchyNavigator.getLeafAt(otherModel, firstVisibleColumnIndex + i));
-                var cell: ITablixCell = layoutManager.getOrCreateBodyCell(cellItem, item, items, rowIndex, i);
+                let cellItem: any = hierarchyNavigator.getIntersection(item, hierarchyNavigator.getLeafAt(otherModel, firstVisibleColumnIndex + i));
+                let cell: ITablixCell = layoutManager.getOrCreateBodyCell(cellItem, item, items, rowIndex, i);
                 this.bindBodyCell(cellItem, cell);
                 layoutManager.onBodyCellRealized(cellItem, cell);
             }
         }
 
         private bindBodyCell(item: any, cell: ITablixCell): void {
-            var match = this.bodyCelMatch(item, cell);
+            let match = this.bodyCelMatch(item, cell);
             if (!match) {
                 this._owner._unbindCell(cell);
                 cell.type = TablixCellType.BodyCell;
@@ -304,9 +304,9 @@ module powerbi.visuals.controls {
         }
 
         private addFooterRowHeader(item: any) {
-            var cell: ITablixCell = this._tablixLayoutManager.getOrCreateFooterRowHeader(item, this.model);
+            let cell: ITablixCell = this._tablixLayoutManager.getOrCreateFooterRowHeader(item, this.model);
             cell.colSpan = this.getDepth();
-            var match = this.rowHeaderMatch(item, cell);
+            let match = this.rowHeaderMatch(item, cell);
             if (!match) {
                 this._owner._unbindCell(cell);
                 cell.type = TablixCellType.RowHeader;
@@ -317,23 +317,23 @@ module powerbi.visuals.controls {
         }
 
         private addFooterBodyCells(rowItem: any) {
-            var firstVisibleColumnIndex: number = this._otherDimension.getIntegerScrollOffset();
-            var columnCount: number = this._otherDimension.layoutManager.getRealizedItemsCount() - this.getDepth();
-            var layoutManager = this._tablixLayoutManager;
+            let firstVisibleColumnIndex: number = this._otherDimension.getIntegerScrollOffset();
+            let columnCount: number = this._otherDimension.layoutManager.getRealizedItemsCount() - this.getDepth();
+            let layoutManager = this._tablixLayoutManager;
 
-            for (var i = 0; i < columnCount; i++) {
+            for (let i = 0; i < columnCount; i++) {
                 //get column header "item" by index to pair up with row header to find corelating body cell
-                var columnItem: any = this._hierarchyNavigator.getLeafAt(this._otherDimension.model, firstVisibleColumnIndex + i);
+                let columnItem: any = this._hierarchyNavigator.getLeafAt(this._otherDimension.model, firstVisibleColumnIndex + i);
                 //get corelating body cell and bind it
-                var item: any = this._hierarchyNavigator.getIntersection(rowItem, columnItem);
-                var cell: ITablixCell = layoutManager.getOrCreateFooterBodyCell(item, i);
+                let item: any = this._hierarchyNavigator.getIntersection(rowItem, columnItem);
+                let cell: ITablixCell = layoutManager.getOrCreateFooterBodyCell(item, i);
                 this.bindBodyCell(item, cell);
                 layoutManager.onBodyCellFooterRealized(item, cell);
             }
         }
 
         private bodyCelMatch(item: any, cell: ITablixCell): boolean {
-            var previousItem: any = cell.item;
+            let previousItem: any = cell.item;
             return cell.type === TablixCellType.BodyCell && previousItem && this._hierarchyNavigator.bodyCellItemEquals(item, previousItem);
         }
     }
@@ -345,7 +345,7 @@ module powerbi.visuals.controls {
         }
 
         public _render(): void { // The intent to be internal
-            var firstVisibleColumnItem: any = this.getFirstVisibleItem(0);
+            let firstVisibleColumnItem: any = this.getFirstVisibleItem(0);
 
             if (firstVisibleColumnItem !== undefined) {
                 this.addNodes(this.model, 0, this.getDepth(), this._hierarchyNavigator.getIndex(firstVisibleColumnItem));
@@ -353,7 +353,7 @@ module powerbi.visuals.controls {
         }
 
         public _createScrollbar(parentElement: HTMLElement): Scrollbar {
-            var scrollbar: HorizontalScrollbar = new HorizontalScrollbar(parentElement);
+            let scrollbar: HorizontalScrollbar = new HorizontalScrollbar(parentElement);
 
             // Set smallest increment of the scrollbar to 0.2 rows
             scrollbar.smallIncrement = 0.2;
@@ -362,20 +362,20 @@ module powerbi.visuals.controls {
         }
 
         private addNodes(items: any, columnIndex: number, depth: number, firstVisibleIndex: number): void {
-            var count = this._hierarchyNavigator.getCount(items);
-            for (var i = firstVisibleIndex; i < count; i++) {
+            let count = this._hierarchyNavigator.getCount(items);
+            for (let i = firstVisibleIndex; i < count; i++) {
                 if (!this._layoutManager.needsToRealize) {
                     return;
                 }
-                var cell: ITablixCell = this.addNode(this._hierarchyNavigator.getAt(items, i), items, columnIndex, depth);
+                let cell: ITablixCell = this.addNode(this._hierarchyNavigator.getAt(items, i), items, columnIndex, depth);
                 columnIndex += cell.colSpan;
             }
         }
 
         private addNode(item: any, items: any, columnIndex: number, depth: number) {
-            var cell: ITablixCell = this._tablixLayoutManager.getOrCreateColumnHeader(item, items, this._hierarchyNavigator.getLevel(item), columnIndex);
+            let cell: ITablixCell = this._tablixLayoutManager.getOrCreateColumnHeader(item, items, this._hierarchyNavigator.getLevel(item), columnIndex);
 
-            var match = this.columnHeaderMatch(item, cell);
+            let match = this.columnHeaderMatch(item, cell);
 
             if (!match) {
                 this._owner._unbindCell(cell);
@@ -386,7 +386,7 @@ module powerbi.visuals.controls {
             if (this._hierarchyNavigator.isLeaf(item)) {
                 cell.rowSpan = depth - this._hierarchyNavigator.getLevel(item);
             } else {
-                var previousCount: number = this._layoutManager.getRealizedItemsCount();
+                let previousCount: number = this._layoutManager.getRealizedItemsCount();
                 this.addNodes(this._hierarchyNavigator.getChildren(item), columnIndex, depth, this.getFirstVisibleChildIndex(item));
                 cell.rowSpan = 1;
                 cell.colSpan = this._layoutManager.getRealizedItemsCount() - previousCount + 1;
@@ -400,7 +400,7 @@ module powerbi.visuals.controls {
         }
 
         public columnHeaderMatch(item: any, cell: ITablixCell): boolean {
-            var previousItem: any = cell.item;
+            let previousItem: any = cell.item;
             return cell.type === TablixCellType.ColumnHeader && previousItem && this._hierarchyNavigator.headerItemEquals(item, previousItem);
         }
     }

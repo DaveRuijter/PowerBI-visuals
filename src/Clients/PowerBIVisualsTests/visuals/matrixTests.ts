@@ -28,6 +28,7 @@
 
 module powerbitests {
     import CompiledDataViewMapping = powerbi.data.CompiledDataViewMapping;
+    import CompiledDataViewRoleForMappingWithReduction = powerbi.data.CompiledDataViewRoleForMappingWithReduction;
     import CompiledSubtotalType = powerbi.data.CompiledSubtotalType;
     import DataViewAnalysis = powerbi.DataViewAnalysis;
     import DataViewMatrix = powerbi.DataViewMatrix;
@@ -50,6 +51,7 @@ module powerbitests {
     var dataTypeString = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text);
     var dataTypeBoolean = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Boolean);
     var dataTypeWebUrl = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text, "WebUrl");
+    var dataTypeKpiStatus = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Integer);
 
     var rowGroupSource1: DataViewMetadataColumn = { displayName: "RowGroup1", queryName: "RowGroup1", type: dataTypeString, index: 0 };
     var rowGroupSource2: DataViewMetadataColumn = { displayName: "RowGroup2", queryName: "RowGroup2", type: dataTypeString, index: 1 };
@@ -63,6 +65,19 @@ module powerbitests {
     var columnGroupSource3formatted: DataViewMetadataColumn = { displayName: "ColGroup3", queryName: "ColGroup3", type: dataTypeString, index: 5, objects: { general: { formatString: "0.00" } } };
     var columnGroupSource4: DataViewMetadataColumn = { displayName: "ColGroup4", queryName: "ColGroup4", type: dataTypeBoolean, index: 10 };
     var columnGroupSourceWebUrl: DataViewMetadataColumn = { displayName: "ColGroupWebUrl", queryName: "ColGroupWebUrl", type: dataTypeWebUrl, index: 0 };
+    var columnGroupSourceKpiStatus: DataViewMetadataColumn = {
+        displayName: "ColGroupKpiStatus",
+        queryName: "Table1._ColGroupKpiStatus Status",
+        type: dataTypeKpiStatus,
+        roles: { Values: true },
+        format: "g",
+        kpiStatusGraphic: "Traffic Light - Single",
+        objects: {
+            general: {
+                formatString: "g",
+            },
+        },
+    };
     var measureSource1: DataViewMetadataColumn = { displayName: "Measure1", queryName: "Measure1", type: dataTypeNumber, isMeasure: true, index: 6 };
     var measureSource2: DataViewMetadataColumn = { displayName: "Measure2", queryName: "Measure2", type: dataTypeNumber, isMeasure: true, index: 7 };
     var measureSource3: DataViewMetadataColumn = { displayName: "Measure3", queryName: "Measure3", type: dataTypeNumber, isMeasure: true, index: 8 };
@@ -97,6 +112,44 @@ module powerbitests {
     var matrixOneMeasureDataView: powerbi.DataView = {
         metadata: { columns: [measureSource1] },
         matrix: matrixOneMeasure
+    };
+
+    // -----------------------
+    // | Measure1 | Measure2 |
+    // +----------------------
+    // |      100 |      200 |
+    // -----------------------
+    var matrixTwoMeasures: DataViewMatrix = {
+        rows: {
+            root: {
+                children: [{
+                    level: 0,
+                    values: {
+                        0: { value: 100 },
+                        1: { value: 200, valueSourceIndex: 1 }
+                    }
+                }]
+            },
+            levels: []
+        },
+        columns: {
+            root: {
+                children: [
+                    { level: 0 },
+                    { level: 0, levelSourceIndex: 1 }
+                ]
+            },
+            levels: [{
+                sources: [
+                    measureSource1,
+                    measureSource2
+                ]
+            }]
+        },
+        valueSources: [
+            measureSource1,
+            measureSource2
+        ]
     };
 
     // -----------
@@ -500,6 +553,35 @@ module powerbitests {
     var matrixOneMeasureOneRowGroupUrlOneGroupInstanceDataView: powerbi.DataView = {
         metadata: { columns: [], segment: {} },
         matrix: matrixOneMeasureOneRowGroupUrlOneGroupInstance
+    };
+
+    // ------------------------------------------
+    // | RowGroup1    |          kpiStatus      |
+    // |----------------------------------------|
+    // |   1          |  kpiTrafficLightSingle2 |
+    // ------------------------------------------
+    var matrixOneMeasureOneRowGroupKpiStatusOneGroupInstance: DataViewMatrix = {
+        rows: {
+            root: {
+                children: [{
+                    level: 0,
+                    value: "1",
+                    values: { 0: { value: "1" } }
+                }]
+            },
+            levels: [{ sources: [rowGroupSource1] }]
+        },
+        columns: {
+            root: {
+                children: [{ level: 0 }]
+            },
+            levels: [{ sources: [columnGroupSourceKpiStatus] }]
+        },
+        valueSources: [columnGroupSourceKpiStatus]
+    };
+    var matrixOneMeasureOneRowGroupKpiStatusOneGroupInstanceDataView: powerbi.DataView = {
+        metadata: { columns: [], segment: {} },
+        matrix: matrixOneMeasureOneRowGroupKpiStatusOneGroupInstance
     };
 
     // ----------------------
@@ -2074,6 +2156,34 @@ module powerbitests {
         valueSources: [measureSource1]
     };
 
+    function getMatrixColumnWidthDataView(matrix, objects): any {
+        return {
+            metadata: {
+                columns:
+                [
+                    rowGroupSource1,
+                    rowGroupSource2,
+                    columnGroupSource1,
+                    columnGroupSource2,
+                    measureSource1,
+                    measureSource2
+                ],
+                objects: objects
+            },
+            matrix: matrix
+        };
+    }
+
+    function getMatrixColumnWidthDataView2(columns, matrix, objects): any {
+        return {
+            metadata: {
+                columns: columns,
+                objects: objects
+            },
+            matrix: matrix
+        };
+    }
+
     describe("Matrix", () => {
 
         it("Matrix registered capabilities", () => {
@@ -2083,9 +2193,6 @@ module powerbitests {
         it("Capabilities should include dataViewMappings", () => expect(matrixCapabilities.dataViewMappings).toBeDefined());
 
         it("Capabilities should include dataRoles", () => expect(matrixCapabilities.dataRoles).toBeDefined());
-
-        it("Capabilities should include row windowing", () => {
-        });
 
         it("Capabilities should allow measure only matrices", () => {
             var allowedProjections1: QueryProjectionsByRole =
@@ -2317,7 +2424,8 @@ module powerbitests {
             var objects: MatrixDataViewObjects = {
                 general: {
                     rowSubtotals: true,
-                    columnSubtotals: false
+                    columnSubtotals: false,
+                    autoSizeColumnWidth: true
                 }
             };
             var dataViewMapping = createCompiledDataViewMapping(objects);
@@ -2326,7 +2434,7 @@ module powerbitests {
                 dataViewMappings: [dataViewMapping]
             });
 
-            expect(dataViewMapping.matrix.rows.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
+            expect((<CompiledDataViewRoleForMappingWithReduction>dataViewMapping.matrix.rows).for.in.subtotalType).toEqual(CompiledSubtotalType.After);
             expect(dataViewMapping.matrix.columns.for.in.subtotalType).toEqual(CompiledSubtotalType.None);
         });
 
@@ -2334,7 +2442,8 @@ module powerbitests {
             var objects: MatrixDataViewObjects = {
                 general: {
                     rowSubtotals: false,
-                    columnSubtotals: true
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
                 }
             };
             var dataViewMapping = createCompiledDataViewMapping(objects);
@@ -2343,7 +2452,7 @@ module powerbitests {
                 dataViewMappings: [dataViewMapping]
             });
 
-            expect(dataViewMapping.matrix.rows.for.in.subtotalType).toEqual(CompiledSubtotalType.None);
+            expect((<CompiledDataViewRoleForMappingWithReduction>dataViewMapping.matrix.rows).for.in.subtotalType).toEqual(CompiledSubtotalType.None);
             expect(dataViewMapping.matrix.columns.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
         });
 
@@ -2351,7 +2460,8 @@ module powerbitests {
             var objects: MatrixDataViewObjects = {
                 general: {
                     rowSubtotals: true,
-                    columnSubtotals: true
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
                 }
             };
             var dataViewMapping = createCompiledDataViewMapping(objects);
@@ -2360,7 +2470,7 @@ module powerbitests {
                 dataViewMappings: [dataViewMapping]
             });
 
-            expect(dataViewMapping.matrix.rows.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
+            expect((<CompiledDataViewRoleForMappingWithReduction>dataViewMapping.matrix.rows).for.in.subtotalType).toEqual(CompiledSubtotalType.After);
             expect(dataViewMapping.matrix.columns.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
         });
 
@@ -2372,7 +2482,7 @@ module powerbitests {
             });
 
             // Totals default to Enabled (After)
-            expect(dataViewMapping.matrix.rows.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
+            expect((<CompiledDataViewRoleForMappingWithReduction>dataViewMapping.matrix.rows).for.in.subtotalType).toEqual(CompiledSubtotalType.After);
             expect(dataViewMapping.matrix.columns.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
         });
 
@@ -2380,7 +2490,8 @@ module powerbitests {
             var objects: MatrixDataViewObjects = {
                 general: {
                     rowSubtotals: undefined,
-                    columnSubtotals: undefined
+                    columnSubtotals: undefined,
+                    autoSizeColumnWidth: true
                 }
             };
             var dataViewMapping = createCompiledDataViewMapping(objects);
@@ -2390,7 +2501,7 @@ module powerbitests {
             });
 
             // Totals default to Enabled (After)
-            expect(dataViewMapping.matrix.rows.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
+            expect((<CompiledDataViewRoleForMappingWithReduction>dataViewMapping.matrix.rows).for.in.subtotalType).toEqual(CompiledSubtotalType.After);
             expect(dataViewMapping.matrix.columns.for.in.subtotalType).toEqual(CompiledSubtotalType.After);
         });
 
@@ -2423,7 +2534,7 @@ module powerbitests {
             var matrix = matrixOneMeasure;
             var navigator = powerbi.visuals.createMatrixHierarchyNavigator(matrix, valueFormatter.formatRaw);
             var binder = new powerbi.visuals.MatrixBinder(navigator, { layoutKind: layoutKind });
-            var layoutManager = powerbi.visuals.controls.internal.CanvasTablixLayoutManager.createLayoutManager(binder);
+            var layoutManager = powerbi.visuals.controls.internal.CanvasTablixLayoutManager.createLayoutManager(binder, undefined, undefined);
             var parent = document.createElement("div");
             var tablixControl = new powerbi.visuals.controls.TablixControl(navigator, layoutManager, binder, parent, { interactive: true, enableTouchSupport: false });
 
@@ -2847,13 +2958,13 @@ module powerbitests {
                 validateIntersections(navigator, rowLeaves, columnLeaves, expectedValues);
             });
 
-            function validateIntersections<T>(navigator: MatrixHierarchyNavigator, rowLeaves: MatrixVisualNode[], columnLeaves: MatrixVisualNode[], expectedValues: T[][]): void {
-                var result: T[][] = [];
+            function validateIntersections(navigator: MatrixHierarchyNavigator, rowLeaves: MatrixVisualNode[], columnLeaves: MatrixVisualNode[], expectedValues: string[][]): void {
+                var result: string[][] = [];
 
                 for (var i = 0, ilen = rowLeaves.length; i < ilen; i++) {
                     result[i] = [];
                     for (var j = 0, jlen = columnLeaves.length; j < jlen; j++)
-                        result[i][j] = navigator.getIntersection(rowLeaves[i], columnLeaves[j]).content;
+                        result[i][j] = navigator.getIntersection(rowLeaves[i], columnLeaves[j]).textContent || '';
                 }
 
                 expect(result).toEqual(expectedValues);
@@ -3090,7 +3201,8 @@ module powerbitests {
                         objects: {
                             general: {
                                 rowSubtotals: false,
-                                columnSubtotals: false
+                                columnSubtotals: false,
+                                autoSizeColumnWidth: true
                             }
                         }
                     },
@@ -3104,7 +3216,8 @@ module powerbitests {
                 objectName: "general",
                 properties: {
                     rowSubtotals: false,
-                    columnSubtotals: false
+                    columnSubtotals: false,
+                    autoSizeColumnWidth: true
                 }
             }]);
         });
@@ -3123,7 +3236,8 @@ module powerbitests {
                         objects: {
                             general: {
                                 rowSubtotals: true,
-                                columnSubtotals: true
+                                columnSubtotals: true,
+                                autoSizeColumnWidth: true
                             }
                         }
                     },
@@ -3137,7 +3251,8 @@ module powerbitests {
                 objectName: "general",
                 properties: {
                     rowSubtotals: true,
-                    columnSubtotals: true
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
                 }
             }]);
         });
@@ -3164,7 +3279,8 @@ module powerbitests {
                 objectName: "general",
                 properties: {
                     rowSubtotals: true,
-                    columnSubtotals: true
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
                 }
             }]);
         });
@@ -3195,7 +3311,8 @@ module powerbitests {
                 objectName: "general",
                 properties: {
                     rowSubtotals: true,
-                    columnSubtotals: true
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
                 }
             }]);
 
@@ -3250,6 +3367,126 @@ module powerbitests {
                 }, DefaultWaitForRender);
             });
         });
+
+        it("enumerateObjectInstances general autoSizeColumnWidth off", () => {
+            var matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: false
+                }
+            };
+            let dataView = getMatrixColumnWidthDataView(matrix, objects);
+            v.onDataChanged({ dataViews: [dataView] });
+            expect(v.enumerateObjectInstances({ objectName: "general" })).toEqual([{
+                selector: null,
+                objectName: "general",
+                properties: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: false
+                }
+            }]);
+        });
+
+        it("enumerateObjectInstances general autoSizeColumnWidth on", () => {
+            var matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
+                }
+            };
+            let dataView = getMatrixColumnWidthDataView(matrix, objects);
+            v.onDataChanged({ dataViews: [dataView] });
+
+            expect(v.enumerateObjectInstances({ objectName: "general" })).toEqual([{
+                selector: null,
+                objectName: "general",
+                properties: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
+                }
+            }]);
+        });
+
+        it("ColumnWidthChangedCallback AutoSizeProperty on", (done) => {
+            var matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            v["isInteractive"] = true;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true
+                }
+            };
+            let dataView = getMatrixColumnWidthDataView(matrix, objects);
+            v.onDataChanged({ dataViews: [dataView] });
+            setTimeout(() => {
+                let matrixVisual = <Matrix>v;
+                matrixVisual.columnWidthChanged(2, 45);
+                let colWidthManager = matrixVisual.getColumnWidthManager();
+                let persistedColWidths = colWidthManager.getTablixColumnWidthsObject();
+                expect(persistedColWidths.length).toBe(1);
+                expect(persistedColWidths[0].queryName).toBe('Measure1');
+                expect(persistedColWidths[0].width).toBe(45);
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it("ColumnWidthChangedCallback AutoSizeProperty off", (done) => {
+            var matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: false
+                }
+            };
+
+            let dataView = getMatrixColumnWidthDataView(matrix, objects);
+            v.onDataChanged({ dataViews: [dataView] });
+            setTimeout(() => {
+                let matrixVisual = <Matrix>v;
+                let colWidthManager = matrixVisual.getColumnWidthManager();
+                spyOn(colWidthManager, "shouldAutoSizeColumnWidth").and.callFake(() => { return false; });
+                spyOn(colWidthManager, "dataViewUpdated").and.callFake(() => { return true; });
+                let widthsToPersist: number[] = [70, 75, 50, 60, 50, 60, 50, 60, 50, 60, 50, 60, 50, 60, 50, 60];
+                colWidthManager.persistAllColumnWidths(widthsToPersist);
+                let persistedColWidths = colWidthManager.getTablixColumnWidthsObject();
+                expect(persistedColWidths.length).toBe(16);
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it("ColumnWidthChangedCallback AutoSizeProperty off then resize", (done) => {
+            let matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: false
+                }
+            };
+            let dataView = getMatrixColumnWidthDataView(matrix, objects);
+            v["isInteractive"] = true;
+            v.onDataChanged({ dataViews: [dataView] });
+            setTimeout(() => {
+                let matrixVisual = <Matrix>v;
+                let colWidthManager = matrixVisual.getColumnWidthManager();
+                // Resize
+                colWidthManager.columnWidthChanged(2, 45);
+                expect(colWidthManager.suppressOnDataChangedNotification).toBe(false);
+                let persistedColWidths = colWidthManager.getTablixColumnWidthsObject();
+                expect(persistedColWidths.length).toBe(1);
+                expect(persistedColWidths[0].queryName).toBe('Measure1');
+                expect(persistedColWidths[0].width).toBe(45);
+                done();
+            }, DefaultWaitForRender);
+        });
     });
 
     describe("Matrix DOM validation", () => {
@@ -3296,6 +3533,227 @@ module powerbitests {
         function validateClassNames(expectedValues: string[][]): void {
             tablixHelper.validateClassNames(expectedValues, ".bi-tablix tr", NoMarginClass);
         }
+
+        it("resize with autoSizeColumnwidth on", (done) => {
+            let selector = ".bi-tablix tr";
+            var matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true,
+                }
+            };
+
+            let newMeasureSource1: DataViewMetadataColumn = { displayName: "Measure2", queryName: "Measure2", type: dataTypeNumber, isMeasure: true, index: 7, objects: { general: { formatString: "#.00", columnWidth: 45 } } };
+            let columns = [
+                rowGroupSource1,
+                rowGroupSource2,
+                columnGroupSource1,
+                columnGroupSource2,
+                newMeasureSource1,
+                measureSource2
+            ];
+            let dataView = getMatrixColumnWidthDataView2(columns, matrix, objects);
+            v["isInteractive"] = true;
+            v.onDataChanged({ dataViews: [dataView] });
+            setTimeout(() => {
+                let rows = $(selector);
+                let rowCells = rows.eq(2).find('td');
+                expect(rowCells.length).toBe(16);
+                expect(rowCells.eq(3).width()).toEqual(46);
+                expect(rowCells.eq(5).width()).toEqual(46);
+                expect(rowCells.eq(7).width()).toEqual(46);
+                expect(rowCells.eq(9).width()).toEqual(46);
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        xit("autoSizeColumnwidth on to off then resize", (done) => {
+            let selector = ".bi-tablix tr";
+            let matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: false,
+                }
+            };
+            let dataView = getMatrixColumnWidthDataView(matrix, objects);
+            v["isInteractive"] = true;
+            v.onDataChanged({
+                dataViews: [dataView]
+            });
+            setTimeout(() => {
+                let rows = $(selector);
+                let rowCells = rows.eq(2).find('td');
+                expect(rowCells.eq(0).width()).toBeCloseTo(93, -1);
+                expect(rowCells.eq(1).width()).toBeCloseTo(84, -1);
+                expect(rowCells.eq(2).width()).toBeCloseTo(61, -1);
+                expect(rowCells.eq(3).width()).toBeCloseTo(62, -1);
+                expect(rowCells.eq(4).width()).toBeCloseTo(60, -1);
+                expect(rowCells.eq(5).width()).toBeCloseTo(62, -1);
+                expect(rowCells.eq(6).width()).toBeCloseTo(64, -1);
+
+                let newMeasureSource1: DataViewMetadataColumn = { displayName: "Measure2", queryName: "Measure2", type: dataTypeNumber, isMeasure: true, index: 7, objects: { general: { formatString: "#.00", columnWidth: 45 } } };
+                let columns = [
+                    rowGroupSource1,
+                    rowGroupSource2,
+                    columnGroupSource1,
+                    columnGroupSource2,
+                    newMeasureSource1,
+                    measureSource2
+                ];
+                let dataView1 = getMatrixColumnWidthDataView2(columns, matrix, objects);
+                v["isInteractive"] = true;
+                let matrixVisual = <Matrix>v;
+                let colWidthManager = matrixVisual.getColumnWidthManager();
+                colWidthManager.suppressOnDataChangedNotification = false;
+                colWidthManager["dataViewUpdated"] = true;
+                v.onDataChanged({ dataViews: [dataView1] });
+                setTimeout(() => {
+                    let rows1 = $(selector);
+                    let rowCells1 = rows1.eq(2).find('td');
+                    expect(rowCells1.eq(0).width()).toBeCloseTo(93, -1);
+                    expect(rowCells1.eq(1).width()).toBeCloseTo(84, -1);
+                    expect(rowCells1.eq(2).width()).toBeCloseTo(61, -1);
+                    expect(rowCells1.eq(3).width()).toBeCloseTo(46, -1);
+                    expect(rowCells1.eq(4).width()).toBeCloseTo(60, -1);
+                    expect(rowCells1.eq(5).width()).toBeCloseTo(46, -1);
+                    expect(rowCells1.eq(6).width()).toBeCloseTo(64, -1);
+                    done();
+                }, DefaultWaitForRender);
+            }, DefaultWaitForRender);
+        });
+
+        xit("autoSizeColumnwidth off to on", (done) => {
+            let selector = ".bi-tablix tr";
+            var matrix = matrixTwoRowGroupsTwoColumnGroupsTwoMeasuresAndTotals;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: false,
+                }
+            };
+            let newMeasureSource1: DataViewMetadataColumn = { displayName: "Measure2", queryName: "Measure2", type: dataTypeNumber, isMeasure: true, index: 7, objects: { general: { formatString: "#.00", columnWidth: 45 } } };
+            let columns = [
+                rowGroupSource1,
+                rowGroupSource2,
+                columnGroupSource1,
+                columnGroupSource2,
+                newMeasureSource1,
+                measureSource2
+            ];
+            let dataView = getMatrixColumnWidthDataView2(columns, matrix, objects);
+            v.onDataChanged({
+                dataViews: [dataView]
+            });
+            setTimeout(() => {
+                let rows = $(selector);
+                let rowCells = rows.eq(2).find('td');
+                expect(rowCells.eq(4).width()).toEqual(60);
+                expect(rowCells.eq(5).width()).toEqual(46);
+                expect(rowCells.eq(6).width()).toEqual(64);
+
+                let objects = {
+                    general: {
+                        rowSubtotals: true,
+                        columnSubtotals: true,
+                        autoSizeColumnWidth: true,
+                    }
+                };
+                let dataView2 = getMatrixColumnWidthDataView(matrix, objects);
+                let matrixVisual = <Matrix>v;
+                let colWidthManager = matrixVisual.getColumnWidthManager();
+                colWidthManager.suppressOnDataChangedNotification = false;
+                colWidthManager["dataViewUpdated"] = true;
+                v.onDataChanged({
+                    dataViews: [dataView2]
+                });
+                setTimeout(() => {
+                    let rows = $(selector);
+                    let rowCells = rows.eq(2).find('td');
+                    expect(rowCells.eq(4).width()).toEqual(60);
+                    expect(rowCells.eq(5).width()).toEqual(62);
+                    expect(rowCells.eq(6).width()).toEqual(64);
+                    done();
+                }, DefaultWaitForRender);
+            }, DefaultWaitForRender);
+        });
+
+        xit("multiple onDataChangedCalls to add matrix columns + resize", (done) => {
+            let selector = ".bi-tablix tr";
+            let matrix0 = matrixOneMeasure;
+            let objects = {
+                general: {
+                    rowSubtotals: true,
+                    columnSubtotals: true,
+                    autoSizeColumnWidth: true,
+                }
+            };
+
+            let dataView0 = getMatrixColumnWidthDataView(matrix0, objects);
+            // 1st onDataChanged call with one column in matrix
+            v["isInteractive"] = true;
+            v.onDataChanged({ dataViews: [dataView0] });
+            setTimeout(() => {
+                let matrixVisual = <Matrix>v;
+                let columnWidthManager = matrixVisual.getColumnWidthManager();
+                let rows0 = $(selector);
+                let rowCells0 = rows0.eq(0).find('td');
+                let queryNames0 = columnWidthManager.getTablixQueryNames();
+                expect(queryNames0.length).toBe(1);
+                expect(queryNames0[0]).toBe(measureSource1.queryName);
+                expect(rowCells0.eq(1).width()).toEqual(61);
+
+                // 2nd onDataChanged call with two columns in matrix
+                let matrix1 = matrixTwoMeasures;
+                let dataView1 = getMatrixColumnWidthDataView(matrix1, objects);
+                v.onDataChanged({ dataViews: [dataView1] });
+                setTimeout(() => {
+                    let rows1 = $(selector);
+                    let rowCells1 = rows1.eq(0).find('td');
+                    let queryNames1 = columnWidthManager.getTablixQueryNames();
+                    expect(queryNames1.length).toBe(2);
+                    expect(queryNames1[0]).toBe(measureSource1.queryName);
+                    expect(queryNames1[1]).toBe(measureSource2.queryName);
+                    expect(rowCells1.eq(1).width()).toEqual(61);
+                    expect(rowCells1.eq(2).width()).toEqual(62);
+
+                    // 3rd onDataChanged call with three columns in matrix
+                    let matrix2 = matrixThreeMeasures;
+                    let dataView2 = getMatrixColumnWidthDataView(matrix2, objects);
+                    v.onDataChanged({ dataViews: [dataView2] });
+                    setTimeout(() => {
+                        let rows2 = $(selector);
+                        let rowCells2 = rows2.eq(0).find('td');
+                        let queryNames2 = columnWidthManager.getTablixQueryNames();
+                        expect(queryNames2.length).toBe(3);
+                        expect(queryNames2[0]).toBe(measureSource1.queryName);
+                        expect(queryNames2[1]).toBe(measureSource2.queryName);
+                        expect(queryNames2[2]).toBe(measureSource3.queryName);
+                        expect(rowCells2.eq(1).width()).toEqual(61);
+                        expect(rowCells2.eq(2).width()).toEqual(62);
+                        expect(rowCells2.eq(3).width()).toEqual(62);
+
+                        // Resize column 2
+                        let newMeasureSource: DataViewMetadataColumn = { displayName: "Measure2", queryName: "Measure2", type: dataTypeNumber, isMeasure: true, index: 7, objects: { general: { formatString: "#.00", columnWidth: 45 } } };
+                        let columns = [measureSource1, newMeasureSource, measureSource3];
+                        let dataView3 = getMatrixColumnWidthDataView2(columns, matrix2, objects);
+                        v.onDataChanged({ dataViews: [dataView3] });
+                        setTimeout(() => {
+                            let rows3 = $(selector);
+                            let rowCells3 = rows3.eq(1).find('td');
+                            expect(rowCells3.eq(1).width()).toEqual(47);
+                            expect(rowCells3.eq(2).width()).toEqual(62);
+                            expect(rowCells3.eq(3).width()).toEqual(62);
+                            done();
+                        }, DefaultWaitForRender);
+                    }, DefaultWaitForRender);
+                }, DefaultWaitForRender);
+            }, DefaultWaitForRender);
+        });
 
         it("1x2 matrix (value and static column header)", (done) => {
 
@@ -5288,6 +5746,34 @@ module powerbitests {
                     expect(aTag.text()).toBe("http://www.validurl.com");
                     expect(aTag.attr("href")).toBe("http://www.validurl.com");
                     expect(aTag.attr("title")).toBe("http://www.validurl.com");
+                    done();
+                });
+        });
+
+        it("matrix with rowGroup Kpi", (done) => {
+            var data: powerbi.DataView = matrixOneMeasureOneRowGroupKpiStatusOneGroupInstanceDataView;
+
+            var renderTablixPromise = tablixHelper.renderNewTablix(
+                element,
+                {
+                    visualType: "matrix",
+                    data: data
+                });
+
+            renderTablixPromise.then(
+                () => {
+                    var tableBody = $(".tablixContainer > div.bi-tablix > div:nth-child(1) > table.unselectable > tbody");
+                    expect(tableBody).toBeInDOM();
+
+                    var cellHeader = tablixHelper.getTableCell(tableBody, { row: 0, col: 1 });
+                    var headerDiv = $("> div", cellHeader.clickTarget);
+                    var cellInfo = tablixHelper.getTableCell(tableBody, { row: 1, col: 1 });
+                    var kpiDiv = $("div.kpiTrafficLightSingle2", cellInfo.clickTarget);
+
+                    expect(headerDiv.text()).toBe('ColGroupKpiStatus');
+                    expect(kpiDiv.length).toBe(1);
+                    expect(kpiDiv.text()).toEqual('');
+
                     done();
                 });
         });

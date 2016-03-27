@@ -33,17 +33,23 @@ module powerbi.visuals.sampleData {
     export class SampleData {
 
         private static data = [
+            new sampleDataViews.DistrictSalesData(),
             new sampleDataViews.FileStorageData(),
             new sampleDataViews.ImageData(),
+            new sampleDataViews.ProfitLossData(),
             new sampleDataViews.RichtextData(),
             new sampleDataViews.SalesByCountryData(),
             new sampleDataViews.SalesByDayOfWeekData(),
+            new sampleDataViews.ServicesByUsers(),
             new sampleDataViews.SimpleFunnelData(),
             new sampleDataViews.SimpleGaugeData(),
             new sampleDataViews.SimpleMatrixData(),
             new sampleDataViews.SimpleTableData(),
             new sampleDataViews.TeamScoreData(),
-            new sampleDataViews.ProductSalesByDate()
+            new sampleDataViews.SimpleTreeData(),
+            new sampleDataViews.ProductSalesByDate(),
+            new sampleDataViews.SimpleDotPlotData(),
+            new sampleDataViews.SimpleHistogramData()
         ];
 
         /**

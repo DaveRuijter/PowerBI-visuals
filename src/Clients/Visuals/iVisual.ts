@@ -82,7 +82,7 @@ module powerbi {
         canResizeTo?(viewport: IViewport): boolean;
 
         /** Gets the set of objects that the visual is currently displaying. */
-        enumerateObjectInstances?(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[];
+        enumerateObjectInstances?(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstanceEnumeration;
     }
 
     export interface IVisualPlugin {
@@ -106,6 +106,9 @@ module powerbi {
 
         /** The class of the plugin.  At the moment it is only used to have a way to indicate the class name that a custom visual has. */
         class?: string;
+
+        /** Check if a visual is custom */
+        custom?: boolean;
 
         /* Function to get the list of sortable roles */
         getSortableRoles?: (visualSortableOptions?: VisualSortableOptions) => string[];
@@ -149,8 +152,8 @@ module powerbi {
 
     /**
      * Defines the visual filtering capabilities for various filter kinds.
-       By default all visuals support attribute filters and measure filters in their innermost scope. 
-    */
+     * By default all visuals support attribute filters and measure filters in their innermost scope. 
+     */
     export interface VisualFilterMappings {
         measureFilter?: VisualFilterMapping;
     }
@@ -224,7 +227,7 @@ module powerbi {
 
     export interface VisualImplicitSortingClause {
         role: string;
-        direction: data.QuerySortDirection;
+        direction: SortDirection;
     }
 
     export enum VisualDataRoleKind {
@@ -290,7 +293,7 @@ module powerbi {
 
     export interface SortableFieldDescriptor {
         queryName: string;
-        sortDirection?: data.QuerySortDirection;
+        sortDirection?: SortDirection;
     }
 
     export enum ViewMode {
@@ -329,11 +332,15 @@ module powerbi {
         /** Notifies of a data point being selected. */
         onSelect(args: SelectEventArgs): void;  // TODO: Revisit onSelect vs. onSelectObject.
 
+        /** Check if selection is sticky or otherwise. */
+        shouldRetainSelection(): boolean;
+
         /** Notifies of a visual object being selected. */
         onSelectObject?(args: SelectObjectEventArgs): void;  // TODO: make this mandatory, not optional.
 
         /** Notifies that properties of the IVisual have changed. */
         persistProperties(changes: VisualObjectInstance[]): void;
+        persistProperties(changes: VisualObjectInstancesToPersist): void;
 
         ///** This information will be part of the query. */
         //onDataRangeChanged(range: {
@@ -435,7 +442,7 @@ module powerbi {
         displayName?: string;
 
         /** The set of property values for this object.  Some of these properties may be defaults provided by the IVisual. */
-        properties?: {
+        properties: {
             [propertyName: string]: DataViewPropertyValue;
         };
 
@@ -446,5 +453,33 @@ module powerbi {
         validValues?: {
             [propertyName: string]: string[];
         };
+
+        /** (Optional) VisualObjectInstanceEnumeration category index. */
+        containerIdx?: number;
+    }
+
+    export type VisualObjectInstanceEnumeration = VisualObjectInstance[] | VisualObjectInstanceEnumerationObject;
+
+    export interface VisualObjectInstanceEnumerationObject {
+        /** The visual object instances. */
+        instances: VisualObjectInstance[];
+
+        /** Defines a set of containers for related object instances. */
+        containers?: VisualObjectInstanceContainer[];
+    }
+
+    export interface VisualObjectInstanceContainer {
+        displayName: data.DisplayNameGetter;
+
+        /** Defines a property that is used to expand/collapse the container. */
+        expander?: data.DataViewObjectPropertyDefinition;
+    }
+
+    export interface VisualObjectInstancesToPersist {
+        /** Instances which should be merged with existing instances */
+        merge?: VisualObjectInstance[];
+
+        /** Instances which should replace existing instances. */
+        replace?: VisualObjectInstance[];
     }
 }

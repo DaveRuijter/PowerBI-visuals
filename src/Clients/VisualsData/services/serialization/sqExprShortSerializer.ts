@@ -34,8 +34,8 @@ module powerbi.data {
         }
 
         export function serializeArray(exprs: SQExpr[]): string {
-            var str = '[';
-            for (var i = 0, len = exprs.length; i < len; i++) {
+            let str = '[';
+            for (let i = 0, len = exprs.length; i < len; i++) {
                 if (i > 0)
                     str += ',';
                 str += SQExprShortSerializer.serialize(exprs[i]);

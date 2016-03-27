@@ -24,10 +24,13 @@
  *  THE SOFTWARE.
  */
 
+/// <reference path="../_references.ts"/>
+
 module jsCommon {
     export module WordBreaker {
         import TextProperties = powerbi.TextProperties;
         import ITextAsSVGMeasurer = powerbi.ITextAsSVGMeasurer;
+        import ITextTruncator = powerbi.ITextTruncator;
          
         export interface WordBreakerResult {
             start: number;
@@ -96,6 +99,16 @@ module jsCommon {
             return count;
         }
 
+        export function getMaxWordWidth(content: string, textWidthMeasurer: ITextAsSVGMeasurer, properties: TextProperties): number {
+            var words = split(content);
+            var maxWidth = 0;
+            for (var w of words) {
+                properties.text = w;
+                maxWidth = Math.max(maxWidth, textWidthMeasurer(properties));
+            }
+            return maxWidth;
+        }
+
         function split(content: string): string[] {
             return content.split(BREAKERS_REGEX);
         }
@@ -103,6 +116,11 @@ module jsCommon {
         function getWidth(content: string, properties: TextProperties, textWidthMeasurer: ITextAsSVGMeasurer): number {
             properties.text = content;
             return textWidthMeasurer(properties);
+        }
+
+        function truncate(content: string, properties: TextProperties, truncator: ITextTruncator, maxWidth: number): string {
+            properties.text = content;
+            return truncator(properties, maxWidth);
         }
 
         /**
@@ -115,8 +133,18 @@ module jsCommon {
          * @param textWidthMeasurer - function to calculate width of given text content
          * @param maxWidth - maximum allowed width of text content in each result
          * @param maxNumLines - maximum number of results we will allow, valid values must be greater than 0
+         * @param truncator - (optional) if specified, used as a function to truncate content to a given width
         */
-        export function splitByWidth(content: string, properties: TextProperties, textWidthMeasurer: ITextAsSVGMeasurer, maxWidth: number, maxNumLines: number): string[] {
+        export function splitByWidth(
+            content: string,
+            properties: TextProperties,
+            textWidthMeasurer: ITextAsSVGMeasurer,
+            maxWidth: number,
+            maxNumLines: number,
+            truncator?: ITextTruncator): string[] {
+            // Default truncator returns string as-is
+            truncator = truncator ? truncator : (properties: TextProperties, maxWidth: number) => properties.text;
+
             let result: string[] = [];
             let words = split(content);
 
@@ -141,13 +169,14 @@ module jsCommon {
                 if (usedWidth + wordWidth > maxWidth) {
                     // Word alone exceeds max width, just add it.
                     if (wordsInLine.length === 0) {
-                        result.push(word);
+                        result.push(truncate(word, properties, truncator, maxWidth));
+
                         usedWidth = 0;
                         wordsInLine = [];
                         continue;
                     }
-
-                    result.push(wordsInLine.join(SPACE));
+                    
+                    result.push(truncate(wordsInLine.join(SPACE), properties, truncator, maxWidth));
 
                     usedWidth = 0;
                     wordsInLine = [];
@@ -159,7 +188,7 @@ module jsCommon {
             }
 
             // Push remaining words onto result
-            result.push(wordsInLine.join(SPACE));
+            result.push(truncate(wordsInLine.join(SPACE), properties, truncator, maxWidth));
 
             return result;
         }

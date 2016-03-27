@@ -40,8 +40,8 @@ module powerbi.visuals {
         export module Point {
 
             export function offset(point: IPoint, offsetX: number, offsetY: number): IPoint {
-                var newPointX = ((point.x + offsetX) >=0) ? (point.x + offsetX) : 0;
-                var newPointY = ((point.y + offsetY) >=0) ? (point.y + offsetY) : 0;
+                let newPointX = ((point.x + offsetX) >=0) ? (point.x + offsetX) : 0;
+                let newPointY = ((point.y + offsetY) >=0) ? (point.y + offsetY) : 0;
                 return { x: newPointX, y: newPointY };
             }
 
@@ -65,8 +65,8 @@ module powerbi.visuals {
                 if ((point === null) || (other) === null) {
                     return null;
                 }
-                var diffX = other.x - point.x;
-                var diffY = other.y - point.y;
+                let diffX = other.x - point.x;
+                let diffY = other.y - point.y;
                 return Math.sqrt(diffX * diffX + diffY * diffY);
             }
 
@@ -84,7 +84,7 @@ module powerbi.visuals {
                       if (value.length === 2) {
                         return { x: Utility.parseNumber(value[0]), y: Utility.parseNumber(value[1]) };
                       } else if (typeof value === "string") {
-                          var parts = (<string>value).split(",");
+                          let parts = (<string>value).split(",");
                           if (parts.length !== 2) {
                               return (defaultValue === undefined) ? null : defaultValue;
                           }
@@ -119,7 +119,7 @@ module powerbi.visuals {
             }
 
             export function inflate(size: ISize, padding: IThickness): ISize {
-                var result = clone(size);
+                let result = clone(size);
                 if (padding) {
                     result.width += padding.left + padding.right;
                     result.height += padding.top + padding.bottom;
@@ -128,7 +128,7 @@ module powerbi.visuals {
             }
 
             export function deflate(size: ISize, padding: IThickness): ISize {
-                var result = clone(size);
+                let result = clone(size);
                 if (padding) {
                     result.width = result.width - padding.left - padding.right;
                     if (result.width < 0) {
@@ -177,7 +177,7 @@ module powerbi.visuals {
                     if (value.length === 2) {
                         return { width: Utility.parseNumber(value[0]), height: Utility.parseNumber(value[1]) };
                     } else if (typeof value === "string") {
-                        var parts = (<string>value).split(",");
+                        let parts = (<string>value).split(",");
                         if (parts.length !== 2) {
                             return (defaultValue === undefined) ? null : defaultValue;
                         }
@@ -252,14 +252,14 @@ module powerbi.visuals {
             }
 
             export function offset(rect: IRect, offsetX: number, offsetY: number): IRect {
-                var newLeft = ((rect.left + offsetX) >= 0) ? rect.left + offsetX : 0;
-                var newTop = ((rect.top + offsetY) >= 0) ? rect.top + offsetY : 0;
+                let newLeft = ((rect.left + offsetX) >= 0) ? rect.left + offsetX : 0;
+                let newTop = ((rect.top + offsetY) >= 0) ? rect.top + offsetY : 0;
 
                 return { left: newLeft, top: newTop,width: rect.width,height: rect.height};
             }
 
             export function inflate(rect: IRect, padding: IThickness): IRect {
-                var result = clone(rect);
+                let result = clone(rect);
                 if (padding) {
                     result.left -= padding.left;
                     result.top -= padding.top;
@@ -270,7 +270,7 @@ module powerbi.visuals {
             }
 
             export function deflate(rect: IRect, padding: IThickness): IRect {
-                var result = clone(rect);
+                let result = clone(rect);
                 if (padding) {
                     result.left += padding.left;
                     result.top += padding.top;
@@ -329,13 +329,13 @@ module powerbi.visuals {
                 if (!rect1 || !rect2) {
                     return false;
                 }
-                var left = Math.max(rect1.left, rect2.left);
-                var right = Math.min(rect1.left + rect1.width, rect2.left + rect2.width);
+                let left = Math.max(rect1.left, rect2.left);
+                let right = Math.min(rect1.left + rect1.width, rect2.left + rect2.width);
                 if (left > right) {
                     return false;
                 }
-                var top = Math.max(rect1.top, rect2.top);
-                var bottom = Math.min(rect1.top + rect1.height, rect2.top + rect2.height);
+                let top = Math.max(rect1.top, rect2.top);
+                let bottom = Math.min(rect1.top + rect1.height, rect2.top + rect2.height);
                 return top <= bottom;
             }
 
@@ -346,10 +346,10 @@ module powerbi.visuals {
                 if (!rect2) {
                     return rect1;
                 }
-                var left = Math.max(rect1.left, rect2.left);
-                var top = Math.max(rect1.top, rect2.top);
-                var right = Math.min(rect1.left + rect1.width, rect2.left + rect2.width);
-                var bottom = Math.min(rect1.top + rect1.height, rect2.top + rect2.height);
+                let left = Math.max(rect1.left, rect2.left);
+                let top = Math.max(rect1.top, rect2.top);
+                let right = Math.min(rect1.left + rect1.width, rect2.left + rect2.width);
+                let bottom = Math.min(rect1.top + rect1.height, rect2.top + rect2.height);
                 if (left <= right && top <= bottom) {
                     return { left: left, top: top, width: right - left, height: bottom - top };
                 } else {
@@ -364,10 +364,10 @@ module powerbi.visuals {
                 if (!rect2) {
                     return rect1;
                 }
-                var left = Math.min(rect1.left, rect2.left);
-                var top = Math.min(rect1.top, rect2.top);
-                var right = Math.max(rect1.left + rect1.width, rect2.left + rect2.width);
-                var bottom = Math.max(rect1.top + rect1.height, rect2.top + rect2.height);
+                let left = Math.min(rect1.left, rect2.left);
+                let top = Math.min(rect1.top, rect2.top);
+                let right = Math.max(rect1.left + rect1.width, rect2.left + rect2.width);
+                let bottom = Math.max(rect1.top + rect1.height, rect2.top + rect2.height);
 
                 return { left: left, top: top, width: right - left, height: bottom - top };
             }
@@ -381,7 +381,7 @@ module powerbi.visuals {
                     if (value.length === 4) {
                         return {left:Utility.parseNumber(value[0]), top: Utility.parseNumber(value[1]), width:Utility.parseNumber(value[2]), height:Utility.parseNumber(value[3])};
                     } else if (typeof value === "string") {
-                        var parts = (<string>value).split(",");
+                        let parts = (<string>value).split(",");
                         if (parts.length !== 4) {
                             return (defaultValue === undefined) ? null : defaultValue;
                         }
@@ -408,7 +408,7 @@ module powerbi.visuals {
         export module Thickness {
 
             export function inflate(thickness: IThickness,other: IThickness): IThickness {
-                var result = clone(thickness);
+                let result = clone(thickness);
                 if (other) {
                     result.left = thickness.left + other.left;
                     result.right = thickness.right + other.right;
@@ -435,13 +435,13 @@ module powerbi.visuals {
             }
 
             export function flipHorizontal(thickness: IThickness): void {
-                var temp = thickness.right;
+                let temp = thickness.right;
                 thickness.right = thickness.left;
                 thickness.left = temp;
             }
 
             export function flipVertical(thickness: IThickness): void {
-                var top = thickness.top;
+                let top = thickness.top;
                 thickness.top = thickness.bottom;
                 thickness.bottom = top;
             }
@@ -479,7 +479,7 @@ module powerbi.visuals {
                     if (value.length === 4) {
                         return { left: Utility.parseNumber(value[0]), top: Utility.parseNumber(value[1]), right: Utility.parseNumber(value[2]), bottom: Utility.parseNumber(value[3]) };
                     } else if (typeof value === "string") {
-                        var parts = (<string>value).split(",");
+                        let parts = (<string>value).split(",");
                         if (parts.length !== 4) {
                             return (defaultValue === undefined) ? null : defaultValue;
                         }
@@ -542,8 +542,8 @@ module powerbi.visuals {
             }
 
             export function rotate(vector: IVector, angle: number): IVector {
-                var newX = vector.x * Math.cos(angle) - vector.y * Math.sin(angle);
-                var newY = vector.x * Math.sin(angle) + vector.y * Math.cos(angle);
+                let newX = vector.x * Math.cos(angle) - vector.y * Math.sin(angle);
+                let newY = vector.x * Math.sin(angle) + vector.y * Math.cos(angle);
                 return {x:newX, y:newY};
             }
 

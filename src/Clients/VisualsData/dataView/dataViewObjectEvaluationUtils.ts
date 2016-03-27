@@ -1,28 +1,28 @@
 ﻿/*
- *  Power BI Visualizations
- *
- *  Copyright (c) Microsoft Corporation
- *  All rights reserved. 
+*  Power BI Visualizations
+*
+*  Copyright (c) Microsoft Corporation
+*  All rights reserved. 
  *  MIT License
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the ""Software""), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
- *   
+*
+*  Permission is hereby granted, free of charge, to any person obtaining a copy
+*  of this software and associated documentation files (the ""Software""), to deal
+*  in the Software without restriction, including without limitation the rights
+*  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+*  copies of the Software, and to permit persons to whom the Software is
+*  furnished to do so, subject to the following conditions:
+*   
  *  The above copyright notice and this permission notice shall be included in 
  *  all copies or substantial portions of the Software.
- *   
+*   
  *  THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
  *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
  *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
  *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
  *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- *  THE SOFTWARE.
- */
+*  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+*  THE SOFTWARE.
+*/
 
 /// <reference path="../_references.ts"/>
 
@@ -55,13 +55,13 @@ module powerbi.data {
             debug.assertValue(objectDescriptors, 'objectDescriptors');
             debug.assertValue(objectDefns, 'objectDefns');
 
-            var objects: DataViewObjects;
+            let objects: DataViewObjects;
 
-            for (var j = 0, jlen = objectDefns.length; j < jlen; j++) {
-                var objectDefinition = objectDefns[j],
+            for (let j = 0, jlen = objectDefns.length; j < jlen; j++) {
+                let objectDefinition = objectDefns[j],
                     objectName = objectDefinition.name;
 
-                var evaluatedObject: DataViewObject = DataViewObjectEvaluator.run(objectDescriptors[objectName], objectDefinition.properties);
+                let evaluatedObject: DataViewObject = DataViewObjectEvaluator.run(objectDescriptors[objectName], objectDefinition.properties);
                 if (!evaluatedObject)
                     continue;
 
@@ -78,16 +78,16 @@ module powerbi.data {
         export function groupObjectsBySelector(objectDefinitions: DataViewObjectDefinitions): DataViewObjectDefinitionsByRepetition {
             debug.assertAnyValue(objectDefinitions, 'objectDefinitions');
 
-            var grouped: DataViewObjectDefinitionsByRepetition = {
+            let grouped: DataViewObjectDefinitionsByRepetition = {
                 data: [],
             };
 
             if (objectDefinitions) {
-                for (var objectName in objectDefinitions) {
-                    var objectDefnList = objectDefinitions[objectName];
+                for (let objectName in objectDefinitions) {
+                    let objectDefnList = objectDefinitions[objectName];
 
-                    for (var i = 0, len = objectDefnList.length; i < len; i++) {
-                        var objectDefn = objectDefnList[i];
+                    for (let i = 0, len = objectDefnList.length; i < len; i++) {
+                        let objectDefn = objectDefnList[i];
 
                         ensureDefinitionListForSelector(grouped, objectDefn.selector).objects.push({
                             name: objectName,
@@ -110,7 +110,7 @@ module powerbi.data {
                 return grouped.metadataOnce;
             }
 
-            var groupedObjects: DataViewObjectDefinitionsForSelector[];
+            let groupedObjects: DataViewObjectDefinitionsForSelector[];
             if (selector.data) {
                 groupedObjects = grouped.data;
             }
@@ -127,13 +127,13 @@ module powerbi.data {
 
             debug.assert(!!groupedObjects, 'GroupedObjects is not defined.  Indicates malformed selector.');
 
-            for (var i = 0, len = groupedObjects.length; i < len; i++) {
-                var item = groupedObjects[i];
+            for (let i = 0, len = groupedObjects.length; i < len; i++) {
+                let item = groupedObjects[i];
                 if (Selector.equals(selector, item.selector))
                     return item;
             }
 
-            var item: DataViewObjectDefinitionsForSelector = {
+            let item: DataViewObjectDefinitionsForSelector = {
                 selector: selector,
                 objects: [],
             };
@@ -153,12 +153,12 @@ module powerbi.data {
             debug.assertValue(columns, 'columns');
             debug.assertValue(selectTransforms, 'selectTransforms');
 
-            var formatStringProp = DataViewObjectDescriptors.findFormatString(objectDescriptors);
+            let formatStringProp = DataViewObjectDescriptors.findFormatString(objectDescriptors);
             if (!formatStringProp)
                 return;
 
-            for (var selectIdx = 0, selectLen = selectTransforms.length; selectIdx < selectLen; selectIdx++) {
-                var selectTransform = selectTransforms[selectIdx];
+            for (let selectIdx = 0, selectLen = selectTransforms.length; selectIdx < selectLen; selectIdx++) {
+                let selectTransform = selectTransforms[selectIdx];
                 if (!selectTransform)
                     continue;
                 debug.assertValue(selectTransform.queryName, 'selectTransform.queryName');
@@ -172,8 +172,8 @@ module powerbi.data {
         }
 
         function getColumnFormatForIndex(columns: DataViewMetadataColumn[], selectIdx: number): string {
-            for (var columnIdx = 0, columnLen = columns.length; columnIdx < columnLen; columnIdx++) {
-                var column = columns[columnIdx];
+            for (let columnIdx = 0, columnLen = columns.length; columnIdx < columnLen; columnIdx++) {
+                let column = columns[columnIdx];
                 if (!column || column.index !== selectIdx)
                     continue;
 
@@ -190,57 +190,65 @@ module powerbi.data {
                 return;
 
             // There is a format string specified -- apply it as an object property, if there is not already one specified.
-            var metadataObjects = objectsForAllSelectors.metadata;
+            let metadataObjects = objectsForAllSelectors.metadata;
             if (!metadataObjects)
                 metadataObjects = objectsForAllSelectors.metadata = [];
 
-            var selector: Selector = { metadata: queryName };
+            let selector: Selector = { metadata: queryName };
 
-            var targetMetadataObject = findWithMatchingSelector(metadataObjects, selector),
-                targetObjectDefns: DataViewNamedObjectDefinition[];
+            let targetMetadataObject = findWithMatchingSelector(metadataObjects, selector);
+            let targetObjectDefn: DataViewNamedObjectDefinition;
             if (targetMetadataObject) {
-                targetObjectDefns = targetMetadataObject.objects;
-                if (hasExistingObjectProperty(targetObjectDefns, formatStringProp))
-                    return;
+                let targetObjectDefns = targetMetadataObject.objects;
+                targetObjectDefn = findExistingObject(targetObjectDefns, formatStringProp.objectName);
+                if (targetObjectDefn) {
+                    if (targetObjectDefn.properties[formatStringProp.propertyName])
+                        return;
+                }
+                else {
+                    targetObjectDefn = {
+                        name: formatStringProp.objectName,
+                        properties: {},
+                    };
+                    targetObjectDefns.push(targetObjectDefn);
+                }
             }
             else {
-                targetObjectDefns = [];
-                targetMetadataObject = { selector: selector, objects: targetObjectDefns };
-                metadataObjects.push(targetMetadataObject);
+                targetObjectDefn = {
+                    name: formatStringProp.objectName,
+                    properties: {}
+                };
+
+                metadataObjects.push({
+                    selector: selector,
+                    objects: [targetObjectDefn],
+                });
             }
 
-            var newObjectDefn: DataViewNamedObjectDefinition = {
-                name: formatStringProp.objectName,
-                properties: {}
-            };
-            newObjectDefn.properties[formatStringProp.propertyName] = SQExprBuilder.text(formatStringValue);
-
-            targetObjectDefns.push(newObjectDefn);
+            targetObjectDefn.properties[formatStringProp.propertyName] = SQExprBuilder.text(formatStringValue);
         }
 
         function findWithMatchingSelector(objects: DataViewObjectDefinitionsForSelector[], selector: Selector): DataViewObjectDefinitionsForSelector {
             debug.assertValue(objects, 'objects');
             debug.assertValue(selector, 'selector');
 
-            for (var i = 0, len = objects.length; i < len; i++) {
-                var object = objects[i];
+            for (let i = 0, len = objects.length; i < len; i++) {
+                let object = objects[i];
                 if (Selector.equals(object.selector, selector))
                     return object;
             }
         }
 
-        function hasExistingObjectProperty(objectDefns: DataViewNamedObjectDefinition[], propertyId: DataViewObjectPropertyIdentifier): boolean {
+        function findExistingObject(objectDefns: DataViewNamedObjectDefinition[], objectName: string): DataViewNamedObjectDefinition {
             debug.assertValue(objectDefns, 'objectDefns');
-            debug.assertValue(propertyId, 'propertyId');
+            debug.assertValue(objectName, 'objectName');
 
-            for (var i = 0, len = objectDefns.length; i < len; i++) {
-                var objectDefn = objectDefns[i];
+            for (let i = 0, len = objectDefns.length; i < len; i++) {
+                let objectDefn = objectDefns[i];
 
-                if (objectDefn.name === propertyId.objectName && objectDefn.properties[propertyId.propertyName])
-                    return true;
+                if (objectDefn.name === objectName)
+                    return objectDefn;
             }
-
-            return false;
         }
     }
-} 
+}

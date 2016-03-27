@@ -65,9 +65,9 @@ module powerbi {
                     // Interval is calculated based on the number:
                     // 1. Integers below 10,000 are extended by 0.5: so the [2006-2006] empty range is extended to [2005.5-2006.5] range and the ForsedSingleStop=2006
                     // 2. Other numbers are extended by half of their power: [700,001-700,001] => [650,001-750,001] and the ForsedSingleStop=null as we want the intervals to be calculated to cover the range.
-                    var value = this.min;
-                    var exp = Double.log10(Math.abs(value));
-                    var step: number;
+                    let value = this.min;
+                    let exp = Double.log10(Math.abs(value));
+                    let step: number;
                     if (exp >= 0 && exp < 4) {
                         step = 0.5;
                         this.forcedSingleStop = value;
@@ -83,7 +83,7 @@ module powerbi {
 
         private _ensureDirection() { 
             if (this.min > this.max) { 
-                var temp = this.min;
+                let temp = this.min;
                 this.min = this.max;
                 this.max = temp;
             }
@@ -97,9 +97,9 @@ module powerbi {
             debug.assertValue(range, "range");
             debug.assert(step > 0, "step");
 
-            var oldCount = this.min / step;
-            var newCount = range.min / step;
-            var deltaCount = Math.floor(newCount - oldCount);
+            let oldCount = this.min / step;
+            let newCount = range.min / step;
+            let deltaCount = Math.floor(newCount - oldCount);
             this.min += deltaCount * step;
 
             oldCount = this.max / step;
@@ -112,7 +112,7 @@ module powerbi {
             debug.assert(dataMin <= dataMax, "dataMin should be less or equal to dataMax.");
             debug.assert(!fixedMin || !fixedMax || fixedMin <= fixedMax, "fixedMin should be less or equal to fixedMax.");
 
-            var result = new NumericSequenceRange(); 
+            let result = new NumericSequenceRange(); 
             result.includeZero = includeZero ? true : false;
             result.hasDataRange = ValueUtil.hasValue(dataMin) && ValueUtil.hasValue(dataMax);
             result.hasFixedMin = ValueUtil.hasValue(fixedMin);
@@ -164,7 +164,7 @@ module powerbi {
             debug.assertValue(fixedMin, "fixedMin");
             debug.assertValue(fixedMax, "fixedMax");
 
-            var result = new NumericSequenceRange(); 
+            let result = new NumericSequenceRange(); 
             result.hasDataRange = false;
             result.includeZero = includeZero;
             result.min = fixedMin;

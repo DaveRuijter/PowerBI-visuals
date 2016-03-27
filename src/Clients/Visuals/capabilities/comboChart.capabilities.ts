@@ -122,11 +122,6 @@ module powerbi.visuals {
                         displayName: data.createDisplayNameGetter('Visual_Show'),
                         type: { bool: true }
                     },
-                    secShow: {
-                        displayName: data.createDisplayNameGetter('Visual_YAxis_ShowSecondary'),
-                        type: { bool: true }
-                    },
-                    // TODO: 5005022 use property categories to organize Y & secondary Y properties.
                     axisLabel: {
                         displayName: data.createDisplayNameGetter('Visual_YAxis_ColumnTitle'),
                         type: { none: true }
@@ -154,6 +149,10 @@ module powerbi.visuals {
                     axisStyle: {
                         displayName: data.createDisplayNameGetter('Visual_Axis_Style'),
                         type: { formatting: { axisStyle: true } }
+                    },
+                    secShow: {
+                        displayName: data.createDisplayNameGetter('Visual_YAxis_ShowSecondary'),
+                        type: { bool: true }
                     },
                     secAxisLabel: {
                         displayName: data.createDisplayNameGetter('Visual_YAxis_LineTitle'),
@@ -289,6 +288,9 @@ module powerbi.visuals {
     export var comboChartProps = {
         general: {
             formatString: <DataViewObjectPropertyIdentifier>{ objectName: 'general', propertyName: 'formatString' },
+        },
+        valueAxis: {
+            secShow: <DataViewObjectPropertyIdentifier>{ objectName: 'valueAxis', propertyName: 'secShow' },
         },
     };
 }

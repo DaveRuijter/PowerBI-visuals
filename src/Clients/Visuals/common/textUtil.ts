@@ -38,5 +38,12 @@ module powerbi.visuals {
         export function removeBreakingSpaces(str: string): string {
             return str.toString().replace(new RegExp(' ', 'g'), '&nbsp');
         }
+
+        /**
+         * Remove ellipses from a given string
+         */
+        export function removeEllipses(str: string): string {
+            return str.replace(/\.\.\./g, '');
+        }
     }
 }

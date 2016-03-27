@@ -190,7 +190,7 @@ module powerbi {
         public static fromExtendedType(extendedType: ExtendedType): ValueType {
             extendedType = extendedType || ExtendedType.Null;
 
-            var primitiveType = getPrimitiveType(extendedType),
+            let primitiveType = getPrimitiveType(extendedType),
                 category = getCategoryFromExtendedType(extendedType);
             debug.assert(
                 primitiveType !== PrimitiveType.Null || extendedType === ExtendedType.Null,
@@ -203,7 +203,7 @@ module powerbi {
             primitiveType = primitiveType || PrimitiveType.Null;
             category = category || null;
 
-            var id = primitiveType.toString();
+            let id = primitiveType.toString();
             if (category)
                 id += '|' + category;
 
@@ -533,14 +533,14 @@ module powerbi {
         if (isPrimitiveType(extendedType))
             return null;
 
-        var category = ExtendedType[extendedType];
+        let category = ExtendedType[extendedType];
         if (category) {
             // Check for ExtendedType declaration without a primitive type.
             // If exists, use it as category (e.g. Longitude rather than Longitude_Double)
             // Otherwise use the ExtendedType declaration with a primitive type (e.g. Address)
-            var delimIdx = category.lastIndexOf('_');
+            let delimIdx = category.lastIndexOf('_');
             if (delimIdx > 0) {
-                var baseCategory = category.slice(0, delimIdx);
+                let baseCategory = category.slice(0, delimIdx);
                 if (ExtendedType[baseCategory]) {
                     debug.assert(
                         (ExtendedType[baseCategory] & PrimitiveTypeFlagsExcludedMask) === (extendedType & PrimitiveTypeFlagsExcludedMask),
@@ -553,17 +553,17 @@ module powerbi {
     }
 
     function toExtendedType(primitiveType: PrimitiveType, category?: string): ExtendedType {
-        var primitiveString = PrimitiveType[primitiveType];
-        var t = ExtendedType[primitiveString];
+        let primitiveString = PrimitiveType[primitiveType];
+        let t = ExtendedType[primitiveString];
         if (t == null) {
             debug.assertFail('Unexpected primitiveType ' + primitiveType);
             t = ExtendedType.Null;
         }
 
         if (primitiveType && category) {
-            var categoryType: ExtendedType = ExtendedType[category];
+            let categoryType: ExtendedType = ExtendedType[category];
             if (categoryType) {
-                var categoryPrimitiveType = getPrimitiveType(categoryType);
+                let categoryPrimitiveType = getPrimitiveType(categoryType);
                 if (categoryPrimitiveType === PrimitiveType.Null) {
                     // Category supports multiple primitive types, check if requested primitive type is supported
                     // (note: important to use t here rather than primitiveType as it may include primitive type flags)

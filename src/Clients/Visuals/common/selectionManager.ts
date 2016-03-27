@@ -41,14 +41,13 @@ module powerbi.visuals.utility {
         public select(selectionId: SelectionId, multiSelect: boolean = false): JQueryDeferred<SelectionId[]> {
             var defered: JQueryDeferred<data.Selector[]> = $.Deferred();
 
-            // Enable when host service feature is ported to master
-            //if (this.hostServices.shouldRetainSelection()) {
-                //this.sendSelectionToHost([selectionId]);
-            //}
-            //else {
+            if (this.hostServices.shouldRetainSelection()) {
+                this.sendSelectionToHost([selectionId]);
+            }
+            else {
                 this.selectInternal(selectionId, multiSelect);
                 this.sendSelectionToHost(this.selectedIds);
-            //}
+            }
 
             defered.resolve(this.selectedIds);
             return defered;

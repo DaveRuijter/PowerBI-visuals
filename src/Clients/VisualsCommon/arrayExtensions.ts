@@ -40,8 +40,8 @@ module jsCommon {
          * Returns items that exist in target and other.
          */
         export function intersect<T>(target: T[], other: T[]): T[] {
-            var result: T[] = [];
-            for (var i = target.length - 1; i >= 0; --i) {
+            let result: T[] = [];
+            for (let i = target.length - 1; i >= 0; --i) {
                 if (other.indexOf(target[i]) !== -1) {
                     result.push(target[i]);
                 }
@@ -53,9 +53,9 @@ module jsCommon {
          * Return elements exists in target but not exists in other.
          */
         export function diff<T>(target: T[], other: T[]): T[] {
-            var result: T[] = [];
-            for (var i = target.length - 1; i >= 0; --i) {
-                var value: T = target[i];
+            let result: T[] = [];
+            for (let i = target.length - 1; i >= 0; --i) {
+                let value: T = target[i];
                 if (other.indexOf(value) === -1) {
                     result.push(value);
                 }
@@ -67,9 +67,9 @@ module jsCommon {
          * Return an array with only the distinct items in the source. 
          */
         export function distinct<T>(source: T[]): T[] {
-            var result: T[] = [];
-            for (var i = 0, len = source.length; i < len; i++) {
-                var value: T = source[i];
+            let result: T[] = [];
+            for (let i = 0, len = source.length; i < len; i++) {
+                let value: T = source[i];
                 if (result.indexOf(value) === -1) {
                     result.push(value);
                 }
@@ -82,7 +82,7 @@ module jsCommon {
          * for parts of course that do not already exist in target.
          */ 
         export function union<T>(target: T[], source: T[]): void {
-            for (var i = 0, len = source.length; i < len; ++i) {
+            for (let i = 0, len = source.length; i < len; ++i) {
                 unionSingle(target, source[i]);
             }
         }
@@ -104,8 +104,8 @@ module jsCommon {
             debug.assert(startIndex >= 0 && startIndex < source.length, 'startIndex is out of range.');
             debug.assert(endIndex >= 0 && endIndex < source.length, 'endIndex is out of range.');
 
-            var result: T[] = [];
-            for (var i = startIndex; i <= endIndex; ++i) {
+            let result: T[] = [];
+            for (let i = startIndex; i <= endIndex; ++i) {
                 result.push(source[i]);
             }
             return result;
@@ -118,8 +118,8 @@ module jsCommon {
             debug.assert(count >= 0, 'Count is negative.');
             debug.assert(count <= source.length, 'Count is too large.');
 
-            var result: T[] = [];
-            for (var i = 0; i < count; ++i) {
+            let result: T[] = [];
+            for (let i = 0; i < count; ++i) {
                 result.push(source[i]);
             }
             return result;
@@ -145,12 +145,12 @@ module jsCommon {
                 return false;
             }
 
-            var len = left.length;
+            let len = left.length;
             if (len !== right.length) {
                 return false;
             }
 
-            var i = 0;
+            let i = 0;
             while (i < len && comparison(left[i], right[i])) {
                 ++i;
             }
@@ -173,7 +173,7 @@ module jsCommon {
             debug.assertValue(array, 'array');
             debug.assertValue(predicate, 'predicate');
 
-            for (var i = 0, len = array.length; i < len; ++i) {
+            for (let i = 0, len = array.length; i < len; ++i) {
                 if (predicate(array[i])) {
                     return i;
                 }
@@ -188,7 +188,7 @@ module jsCommon {
             if (offset === 0)
                 return array.slice();
 
-            var rotated = array.slice(offset);
+            let rotated = array.slice(offset);
             Array.prototype.push.apply(rotated, array.slice(0, offset));
 
             return rotated;
@@ -201,7 +201,7 @@ module jsCommon {
         export function extendWithId<T>(array: { id: number }[]): ArrayIdItems<T> {
             debug.assertValue(array, 'array');
 
-            var extended: ArrayIdItems<T> = <any>array;
+            let extended: ArrayIdItems<T> = <any>array;
             extended.withId = withId;
 
             return extended;
@@ -211,8 +211,8 @@ module jsCommon {
          * Finds and returns the first item with a matching ID.
          */
         export function findWithId<T>(array: T[], id: number): T {
-            for (var i = 0, len = array.length; i < len; i++) {
-                var item = array[i];
+            for (let i = 0, len = array.length; i < len; i++) {
+                let item = array[i];
                 if ((<any>item).id === id)
                     return item;
             }
@@ -229,21 +229,21 @@ module jsCommon {
         export function extendWithName<T>(array: { name: string }[]): ArrayNamedItems<T> {
             debug.assertValue(array, 'array');
 
-            var extended: ArrayNamedItems<T> = <any>array;
+            let extended: ArrayNamedItems<T> = <any>array;
             extended.withName = withName;
 
             return extended;
         }
 
         export function findItemWithName<T>(array: T[], name: string): T {
-            var index = indexWithName(array, name);
+            let index = indexWithName(array, name);
             if (index >= 0)
                 return array[index];
         }
 
         export function indexWithName<T>(array: T[], name: string): number {
-            for (var i = 0, len = array.length; i < len; i++) {
-                var item = array[i];
+            for (let i = 0, len = array.length; i < len; i++) {
+                let item = array[i];
                 if ((<any>item).name === name)
                     return i;
             }
@@ -255,7 +255,7 @@ module jsCommon {
          * Finds and returns the first item with a matching name.
          */
         function withName<T>(name: string): T {
-            var array: T[] = this;
+            let array: T[] = this;
             return findItemWithName(array, name);
         }
 

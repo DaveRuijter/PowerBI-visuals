@@ -115,7 +115,7 @@ module jsCommon {
      * from a helper method. <Min requirement: IE10, Chrome, Firefox, Opera>.
      */
     export function getStackTrace(leadingFramesToRemove = 1): string {
-        var stackTrace: string,
+        let stackTrace: string,
             stackSegments: string[];
 
         try {

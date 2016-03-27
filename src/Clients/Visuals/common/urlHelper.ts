@@ -39,5 +39,29 @@ module powerbi.visuals {
                 && value != null
                 && Utility.isValidUrl(value);
         }
+
+        export function isValidImage(columnItem: DataViewMetadataColumn, value: string): boolean {
+            return isImageColumn(columnItem)
+                && value
+                && Utility.isValidUrl(value);
+        }
+
+        export function hasImageColumn(dataView: DataView): boolean {
+            if (!dataView || !dataView.metadata || _.isEmpty(dataView.metadata.columns))
+                return false;
+
+            for (let columnItem of dataView.metadata.columns)
+                if (isImageColumn(columnItem))
+                    return true;
+
+            return false;
+        }
+
+        function isImageColumn(columnItem: DataViewMetadataColumn): boolean {
+            return columnItem
+                && columnItem.type
+                && columnItem.type.misc
+                && columnItem.type.misc.imageUrl;
+        }
     }
 }

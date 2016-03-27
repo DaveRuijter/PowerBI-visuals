@@ -171,10 +171,10 @@ module powerbitests.mocks {
     export class MockGeocoder implements powerbi.visuals.IGeocoder {
         private callNumber = 0;
         private resultList = [
-            { x: 45, y: -90 },
-            { x: 45, y: 90 },
-            { x: -45, y: -90 },
-            { x: -45, y: 90 },
+            { x: 90, y: -45 },
+            { x: 90, y: 45 },
+            { x: -90, y: -45 },
+            { x: -90, y: 45 },
             { x: 0, y: 0 },
             { x: 45, y: -45 },
             { x: 45, y: 45 },
@@ -255,7 +255,7 @@ module powerbitests.mocks {
             var centerX = this.centerX;
             var centerY = this.centerY;
             // Use a really dumb projection with no sort of zooming/panning
-            return { x: centerX + centerX * (location.x / 180), y: centerY + centerY * (location.y / 90) };
+            return { x: centerX * (location.x / 180), y: centerY * (location.y / 90) };
         }
 
         public setView(viewOptions): void {

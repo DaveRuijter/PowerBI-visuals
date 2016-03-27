@@ -40,10 +40,15 @@ module powerbi.visuals.controls.internal {
         private static DashboardCellPaddingRight = 5;
         private static DashboardRowHeight = 19;
 
+        // Minimum size for a column, used to calculate layout
+        private static TablixMinimumColumnWidth = 75;
+
         private _viewport: IViewport;
         private _columnCount: number;
         private _cellWidth: number;
         private _cellHeight: number;
+
+        public hasImageContent: boolean;
 
         public get visibleWidth(): number {
             return this._viewport ? this._viewport.width : 0;
@@ -90,29 +95,37 @@ module powerbi.visuals.controls.internal {
             this._viewport = viewport;
 
             this._cellWidth = this.computeColumnWidth(this._columnCount);
-            this._cellHeight = SizeComputationManager.DashboardRowHeight;
+            this._cellHeight = this.computeColumnHeight();
         }
 
         private computeColumnWidth(totalColumnCount: number): number {
+            let maxAllowedColumns = Math.floor(this._viewport.width / SizeComputationManager.TablixMinimumColumnWidth);
+            return this.fitToColumnCount(maxAllowedColumns, totalColumnCount);
+            }
+
+        private computeColumnHeight(): number {
+            if (!this.hasImageContent)
+                return SizeComputationManager.DashboardRowHeight;
+
             var width = this._viewport.width;
             if (width <= 250) {
                 // Small
-                return this.fitToColumnCount(3, totalColumnCount);
+                return 20;
             }
             else if (width <= 510) {
                 // Medium
-                return this.fitToColumnCount(6, totalColumnCount);
+                return 51;
             }
             else if (width <= 770) {
                 // Large
-                return this.fitToColumnCount(9, totalColumnCount);
+                return 52;
             }
 
             debug.assertFail("Fixed size is only for viewport up to 770px width.");
         }
 
-        private fitToColumnCount(desiredColumnCount: number, totalColumnCount: number): number {
-            var columnsToFit = Math.min(desiredColumnCount, totalColumnCount);
+        private fitToColumnCount(maxAllowedColumnCount: number, totalColumnCount: number): number {
+            let columnsToFit = Math.min(maxAllowedColumnCount, totalColumnCount);
             return Math.floor(this._viewport.width / columnsToFit);
         }
     }
@@ -210,14 +223,14 @@ module powerbi.visuals.controls.internal {
         }
 
         public getOtherHierarchyContextualHeight(): number {
-            var otherDimension = this.dimension.otherDimension;
-            var count = otherDimension.getDepth();
+            let otherDimension = this.dimension.otherDimension;
+            let count = otherDimension.getDepth();
 
-            var contextualHeight = 0;
-            var items = this._getRealizedItems();
+            let contextualHeight = 0;
+            let items = this._getRealizedItems();
 
             if (items.length > 0) {
-                for (var i = 0; i < count; i++) {
+                for (let i = 0; i < count; i++) {
                     contextualHeight += items[i].getContextualWidth();
                 }
             }
@@ -288,12 +301,12 @@ module powerbi.visuals.controls.internal {
                 return;
             }
 
-            var gridContextualWidth: number = this.getGridContextualWidth();
+            let gridContextualWidth: number = this.getGridContextualWidth();
 
-            var filled: boolean = Double.greaterOrEqualWithPrecision(gridContextualWidth, this._contextualWidthToFill, DimensionLayoutManager._pixelPrecision);
-            var allRealized = this.allItemsRealized;
+            let filled: boolean = Double.greaterOrEqualWithPrecision(gridContextualWidth, this._contextualWidthToFill, DimensionLayoutManager._pixelPrecision);
+            let allRealized = this.allItemsRealized;
 
-            var newScrollOffset;
+            let newScrollOffset;
 
             if (filled) {
                 newScrollOffset = this.scrollForwardToAlignEnd(gridContextualWidth);
@@ -304,7 +317,7 @@ module powerbi.visuals.controls.internal {
 
             this._realizationManager.onEndRenderingIteration(gridContextualWidth, filled);
 
-            var originalScrollbarVisible: boolean = this.dimension.scrollbar.visible;
+            let originalScrollbarVisible: boolean = this.dimension.scrollbar.visible;
 
             this.updateScrollbar(gridContextualWidth);
 
@@ -318,7 +331,7 @@ module powerbi.visuals.controls.internal {
 
         private getScrollDeltaWithinPage(): number {
             if (this._lastScrollOffset !== null) {
-                var delta = this.dimension.getIntegerScrollOffset() - Math.floor(this._lastScrollOffset);
+                let delta = this.dimension.getIntegerScrollOffset() - Math.floor(this._lastScrollOffset);
                 if (Math.abs(delta) < this.getRealizedItemsCount() - this.dimension.otherDimension.getDepth()) {
                     return delta;
                 }
@@ -327,9 +340,9 @@ module powerbi.visuals.controls.internal {
         }
 
         private swapElements() {
-            var delta = this.getScrollDeltaWithinPage();
+            let delta = this.getScrollDeltaWithinPage();
             if (delta !== null) {
-                var otherHierarchyDepth = this.dimension.otherDimension.getDepth();
+                let otherHierarchyDepth = this.dimension.otherDimension.getDepth();
 
                 if (Math.abs(delta) < this.getRealizedItemsCount() - otherHierarchyDepth) {
                     if (delta > 0) {
@@ -349,7 +362,7 @@ module powerbi.visuals.controls.internal {
         }
 
         public getRealizedItemsCount(): number {
-            var realizedItems = this._getRealizedItems();
+            let realizedItems = this._getRealizedItems();
             return realizedItems.length;
         }
 
@@ -371,7 +384,7 @@ module powerbi.visuals.controls.internal {
         }
 
         private updateScrollbar(gridContextualWidth: number): void {
-            var scrollbar = this.dimension.scrollbar;
+            let scrollbar = this.dimension.scrollbar;
             scrollbar.viewMin = this.dimension.scrollOffset;
             scrollbar.min = 0;
             scrollbar.max = this.dimension.getItemsCount();
@@ -380,28 +393,28 @@ module powerbi.visuals.controls.internal {
         }
 
         public getViewSize(gridContextualWidth: number): number {
-            var count: number = this.getRealizedItemsCount();
+            let count: number = this.getRealizedItemsCount();
             if (count === 0)
                 return 0;
 
-            var startIndex = this._gridOffset;
-            var sizeInItems = 0;
-            var sizeInPixels = 0;
+            let startIndex = this._gridOffset;
+            let sizeInItems = 0;
+            let sizeInPixels = 0;
 
-            var widthToFill: number = this._contextualWidthToFill;
-            var scrollableArea = widthToFill - this.getOtherHierarchyContextualHeight();
+            let widthToFill: number = this._contextualWidthToFill;
+            let scrollableArea = widthToFill - this.getOtherHierarchyContextualHeight();
 
-            var error = this.getMeaurementError(gridContextualWidth);
+            let error = this.getMeaurementError(gridContextualWidth);
 
-            for (var i = startIndex; i < count; i++) {
-                var visibleRatio;
+            for (let i = startIndex; i < count; i++) {
+                let visibleRatio;
                 if (i === startIndex) {
                     visibleRatio = this.getVisibleSizeRatio();
                 }
                 else
                     visibleRatio = 1;
 
-                var itemContextualWidth = this.getItemContextualWidthWithScrolling(i) * error;
+                let itemContextualWidth = this.getItemContextualWidthWithScrolling(i) * error;
 
                 sizeInPixels += itemContextualWidth;
                 sizeInItems += visibleRatio;
@@ -420,14 +433,14 @@ module powerbi.visuals.controls.internal {
                 return false;
             }
 
-            var hierarchyNavigator: ITablixHierarchyNavigator = this.dimension._hierarchyNavigator;
+            let hierarchyNavigator: ITablixHierarchyNavigator = this.dimension._hierarchyNavigator;
 
             if (hierarchyNavigator.isLeaf(item)) {
                 return true;
             }
 
-            var currentItem: any = item;
-            var currentItems: any[] = items;
+            let currentItem: any = item;
+            let currentItems: any[] = items;
 
             do {
                 currentItems = hierarchyNavigator.getChildren(currentItem);
@@ -451,11 +464,11 @@ module powerbi.visuals.controls.internal {
         }
 
         public scrollBackwardToFill(gridContextualWidth: number): number {
-            var newScrollOffset = this.dimension.scrollOffset;
+            let newScrollOffset = this.dimension.scrollOffset;
             if (this.reachedEnd()) {
-                var widthToFill = this._contextualWidthToFill - gridContextualWidth;
+                let widthToFill = this._contextualWidthToFill - gridContextualWidth;
                 if (this.dimension.getItemsCount() > 0) {
-                    var averageColumnwidth = gridContextualWidth / (this.getRealizedItemsCount() - this.dimension.getFractionScrollOffset());
+                    let averageColumnwidth = gridContextualWidth / (this.getRealizedItemsCount() - this.dimension.getFractionScrollOffset());
                     newScrollOffset = this.dimension.getValidScrollOffset(Math.floor(this.dimension.scrollOffset - (widthToFill / averageColumnwidth)));
                 }
                 this._alignToEnd = !Double.equalWithPrecision(newScrollOffset, this.dimension.scrollOffset, DimensionLayoutManager._scrollOffsetPrecision); // this is an aproximate scrolling back, we have to ensure it is aligned to the end of the control
@@ -464,7 +477,7 @@ module powerbi.visuals.controls.internal {
         }
 
         private getItemContextualWidth(index: number): number {
-            var realizedItems = this._getRealizedItems();
+            let realizedItems = this._getRealizedItems();
             if (index >= realizedItems.length)
                 return null;
 
@@ -476,7 +489,7 @@ module powerbi.visuals.controls.internal {
         }
 
         public getSizeWithScrolling(size: number, index: number): number {
-            var ratio;
+            let ratio;
 
             if (this._gridOffset === index) {
                 ratio = this.getVisibleSizeRatio();
@@ -489,9 +502,9 @@ module powerbi.visuals.controls.internal {
         }
 
         public getGridContextualWidthFromItems(): number {
-            var count = this.getRealizedItemsCount();
-            var contextualWidth = 0;
-            for (var i = 0; i < count; i++) {
+            let count = this.getRealizedItemsCount();
+            let contextualWidth = 0;
+            for (let i = 0; i < count; i++) {
                 contextualWidth += this.getItemContextualWidthWithScrolling(i);
             }
             return contextualWidth;
@@ -502,23 +515,23 @@ module powerbi.visuals.controls.internal {
         }
 
         private scrollForwardToAlignEnd(gridContextualWidth: number): number {
-            var newScrollOffset = this.dimension.scrollOffset;
+            let newScrollOffset = this.dimension.scrollOffset;
             if (this._alignToEnd) {
-                var withinThreshold = Double.equalWithPrecision(gridContextualWidth, this._contextualWidthToFill, DimensionLayoutManager._pixelPrecision);
+                let withinThreshold = Double.equalWithPrecision(gridContextualWidth, this._contextualWidthToFill, DimensionLayoutManager._pixelPrecision);
                 if (!withinThreshold) { // if it is within the threshold we consider it aligned, skip aliging algorithm
-                    var count: number = this.getRealizedItemsCount();
-                    var startIndex = this._gridOffset;
-                    var widthToScroll = gridContextualWidth - this._contextualWidthToFill;
+                    let count: number = this.getRealizedItemsCount();
+                    let startIndex = this._gridOffset;
+                    let widthToScroll = gridContextualWidth - this._contextualWidthToFill;
 
-                    var error = this.getMeaurementError(gridContextualWidth);
+                    let error = this.getMeaurementError(gridContextualWidth);
 
-                    for (var i = startIndex; i < count; i++) {
-                        var itemContextualWidth = this.getItemContextualWidth(i) * error;
+                    for (let i = startIndex; i < count; i++) {
+                        let itemContextualWidth = this.getItemContextualWidth(i) * error;
                         if (Double.lessWithPrecision(itemContextualWidth, widthToScroll, DimensionLayoutManager._pixelPrecision)) {
                             widthToScroll -= itemContextualWidth;
                         }
                         else {
-                            var visibleRatio = startIndex === i ? 1 - this.dimension.getFractionScrollOffset() : 1;
+                            let visibleRatio = startIndex === i ? 1 - this.dimension.getFractionScrollOffset() : 1;
                             newScrollOffset = this.dimension.getValidScrollOffset(this.dimension.scrollOffset + (i - startIndex) + (widthToScroll * visibleRatio / itemContextualWidth));
                             break;
                         }
@@ -571,16 +584,17 @@ module powerbi.visuals.controls.internal {
             }
         }
 
-        protected _calculateSize(item: ITablixGridItem): void {
+        protected _calculateSize(item: ITablixGridItem): number {
             debug.assertFail("PureVirtualMethod: DimensionLayoutManager._calculateSize");
+            return null;
         }
 
         public calculateContextualWidths(): void {
-            var items: ITablixGridItem[] = this._getRealizedItems();
-            var count = items.length;
+            let items: ITablixGridItem[] = this._getRealizedItems();
+            let count = items.length;
 
-            for (var i = 0; i < count; i++) {
-                var item: ITablixGridItem = items[i];
+            for (let i = 0; i < count; i++) {
+                let item: ITablixGridItem = items[i];
 
                 if (this.measureEnabled)
                     item.setAligningContextualWidth(-1);
@@ -599,46 +613,46 @@ module powerbi.visuals.controls.internal {
         }
 
         public updateNonScrollableItemsSpans(): void {
-            var otherDimensionItems = this.otherLayoutManager._getRealizedItems();
-            var otherDimensionItemsCount = otherDimensionItems.length;
-            var startIndex = this.dimension.getDepth();
-            for (var i = startIndex; i < otherDimensionItemsCount; i++) {
-                var otherDimensionItem = otherDimensionItems[i];
+            let otherDimensionItems = this.otherLayoutManager._getRealizedItems();
+            let otherDimensionItemsCount = otherDimensionItems.length;
+            let startIndex = this.dimension.getDepth();
+            for (let i = startIndex; i < otherDimensionItemsCount; i++) {
+                let otherDimensionItem = otherDimensionItems[i];
                 this.updateSpans(otherDimensionItem, otherDimensionItem.getHeaders());
             }
         }
 
         public updateScrollableItemsSpans(): void {
-            var otherRealizedItems = this.otherLayoutManager._getRealizedItems();
-            var otherRealizedItemsCount = Math.min(this.dimension.getDepth(), otherRealizedItems.length);
-            for (var i = 0; i < otherRealizedItemsCount; i++) {
-                var otherRealizedItem = otherRealizedItems[i];
+            let otherRealizedItems = this.otherLayoutManager._getRealizedItems();
+            let otherRealizedItemsCount = Math.min(this.dimension.getDepth(), otherRealizedItems.length);
+            for (let i = 0; i < otherRealizedItemsCount; i++) {
+                let otherRealizedItem = otherRealizedItems[i];
                 this.updateSpans(otherRealizedItem, otherRealizedItem.getOtherDimensionHeaders());
             }
         }
 
         public fixSizes(): void {
             if (this.fixedSizeEnabled) {
-                var items: ITablixGridItem[] = this._getRealizedItems();
-                var count = items.length;
-                for (var i = 0; i < count; i++) {
+                let items: ITablixGridItem[] = this._getRealizedItems();
+                let count = items.length;
+                for (let i = 0; i < count; i++) {
                     items[i].fixSize();
                 }
             }
         }
 
         private updateSpans(otherRealizedItem: ITablixGridItem, cells: TablixCell[]): void {
-            var realizedItems = this._getRealizedItems();
-            var cellCount = cells.length;
-            for (var j = 0; j < cellCount; j++) {
-                var cell = cells[j];
-                var owner = otherRealizedItem.getOtherDimensionOwner(cell);
-                var span = owner.getCellContextualSpan(cell);
+            let realizedItems = this._getRealizedItems();
+            let cellCount = cells.length;
+            for (let j = 0; j < cellCount; j++) {
+                let cell = cells[j];
+                let owner = otherRealizedItem.getOtherDimensionOwner(cell);
+                let span = owner.getCellContextualSpan(cell);
                 if (span > 1) {
-                    var totalSizeInSpan = 0;
-                    var startIndex = owner.getIndex(this._grid);
-                    for (var k = 0; k < span; k++) {
-                        var item = realizedItems[k + startIndex];
+                    let totalSizeInSpan = 0;
+                    let startIndex = owner.getIndex(this._grid);
+                    for (let k = 0; k < span; k++) {
+                        let item = realizedItems[k + startIndex];
                         totalSizeInSpan += this.getSizeWithScrolling(item.getContentContextualWidth(), k + startIndex);
                         if (k === span - 1)
                             this.updateLastChildSize(cell, item, totalSizeInSpan);
@@ -648,7 +662,7 @@ module powerbi.visuals.controls.internal {
         }
 
         private updateLastChildSize(spanningCell: TablixCell, item: ITablixGridItem, totalSpanSize: number): void {
-            var delta = item.getCellIContentContextualWidth(spanningCell) - totalSpanSize;
+            let delta = item.getCellIContentContextualWidth(spanningCell) - totalSpanSize;
             if (delta > 0) // the parent width is wider than the sum of the children, stretch the last child to compensate the difference
                 item.setAligningContextualWidth(Math.max(item.getAligningContextualWidth(), delta + item.getContentContextualWidth()));
         }
@@ -748,11 +762,11 @@ module powerbi.visuals.controls.internal {
         }
 
         public applyScrolling() {
-            var columnOffset: number = this.dimension.getFractionScrollOffset();
-            var firstVisibleColumnWidth: number = 0;
+            let columnOffset: number = this.dimension.getFractionScrollOffset();
+            let firstVisibleColumnWidth: number = 0;
 
             if (columnOffset !== 0) {
-                var firstVisibleColumn: TablixColumn = this.getFirstVisibleColumn();
+                let firstVisibleColumn: TablixColumn = this.getFirstVisibleColumn();
                 if (firstVisibleColumn !== undefined) {
                     firstVisibleColumnWidth = firstVisibleColumn.getContextualWidth();
                     this.scroll(firstVisibleColumn, firstVisibleColumnWidth, columnOffset);
@@ -770,17 +784,17 @@ module powerbi.visuals.controls.internal {
         }
 
         private scrollCells(cells: TablixCell[], width: number, offset: number): void {
-            var length: number = cells.length;
-            for (var i = 0; i < length; i++) {
+            let length: number = cells.length;
+            for (let i = 0; i < length; i++) {
                 cells[i].scrollHorizontally(width, offset);
             }
         }
 
         private scrollBodyCells(rows: TablixRow[], width: number, offset: number): void {
-            var length: number = rows.length;
-            var cells: TablixCell[];
-            var cell: TablixCell;
-            for (var i = 0; i < length; i++) {
+            let length: number = rows.length;
+            let cells: TablixCell[];
+            let cell: TablixCell;
+            for (let i = 0; i < length; i++) {
                 cells = rows[i]._realizedBodyCells;
                 if (cells !== undefined) {
                     cell = cells[0];
@@ -819,15 +833,15 @@ module powerbi.visuals.controls.internal {
             if (this._resizeState === null)
                 return;
 
-            var columnCount: number = realizedColumns.length;
+            let columnCount: number = realizedColumns.length;
 
-            var hierarchyNavigator: ITablixHierarchyNavigator = this.owner.owner.hierarchyNavigator;
+            let hierarchyNavigator: ITablixHierarchyNavigator = this.owner.owner.hierarchyNavigator;
 
             // Only iterate over the columns that belong to column hierachy (i.e. skip the row hierarchy rows)
             // as this post-rendering adjustment only applies to them.
-            var startIndex = this.otherLayoutManager.dimension.getDepth();
-            for (var i = startIndex; i < columnCount; i++) {
-                var column: TablixColumn = realizedColumns[i];
+            let startIndex = this.otherLayoutManager.dimension.getDepth();
+            for (let i = startIndex; i < columnCount; i++) {
+                let column: TablixColumn = realizedColumns[i];
 
                 if (!column.columnHeaderOrCornerEquals(this._resizeState.itemType, this._resizeState.item, column.itemType, column.getLeafItem(), hierarchyNavigator))
                     continue;
@@ -845,7 +859,7 @@ module powerbi.visuals.controls.internal {
                 return;
 
             this._resizeState.animationFrame = null;
-            var newSize = this._resizeState.startColumnWidth + this._resizeState.resizingDelta;
+            let newSize = this._resizeState.startColumnWidth + this._resizeState.resizingDelta;
             this._resizeState.column.resize(newSize);
             this.owner.owner.refresh(false);
         }
@@ -854,10 +868,10 @@ module powerbi.visuals.controls.internal {
          * Sends column related data (pixel size, column count, etc) to TablixControl.
          */
         public _sendDimensionsToControl(): void {
-            var gridContextualWidth: number = this.getGridContextualWidth();
-            var widthToFill: number = this.getActualContextualWidth(gridContextualWidth);
-            var otherContextualHeight = this.getOtherHierarchyContextualHeight();
-            var scale = this.getGridScale(); // in case of canvas we have to convert the size from device pixel to css pixel
+            let gridContextualWidth: number = this.getGridContextualWidth();
+            let widthToFill: number = this.getActualContextualWidth(gridContextualWidth);
+            let otherContextualHeight = this.getOtherHierarchyContextualHeight();
+            let scale = this.getGridScale(); // in case of canvas we have to convert the size from device pixel to css pixel
             this.owner.owner.updateColumnDimensions(otherContextualHeight / scale,
                 (widthToFill - otherContextualHeight) / scale,
                 this.getViewSize(gridContextualWidth));
@@ -892,9 +906,9 @@ module powerbi.visuals.controls.internal {
             return false;
         }
 
-        protected _calculateSize(item: ITablixGridItem): void {
-            var headerIndex = item.getIndex(this._grid);
-            var computedSize = 0;
+        protected _calculateSize(item: ITablixGridItem): number {
+            let headerIndex = item.getIndex(this._grid);
+            let computedSize = 0;
 
             if (!this.ignoreColumn(headerIndex)) {
                 // for dashboard layout it does not matter whether we pass an actual cell or not
@@ -902,6 +916,7 @@ module powerbi.visuals.controls.internal {
             }
 
             item.resize(computedSize);
+            return computedSize;
         }
 
         private ignoreColumn(headerIndex: number): boolean {
@@ -921,14 +936,29 @@ module powerbi.visuals.controls.internal {
             return this.owner.getEstimatedTextWidth(content);
         }
 
+        public calculateContextualWidths(): void {
+            let items: ITablixGridItem[] = this._getRealizedItems();
+            let columnWidths: number[] = [];
+
+            for (let item of items) {
+                if (this.measureEnabled)
+                    item.setAligningContextualWidth(-1);
+
+                columnWidths.push(this._calculateSize(item));
+            }
+            
+            // Save all column widths. Needed when user turns off auto-sizing for column widths.
+            this.owner.columnWidthsToPersist = columnWidths;
+        }
+
         protected canScroll(gridContextualWidth: number): boolean {
             return !Double.equalWithPrecision(this.dimension.scrollOffset, 0, DimensionLayoutManager._scrollOffsetPrecision) ||
                 (((this.getRealizedItemsCount() - this._gridOffset) < this.dimension.getItemsCount()) && this._contextualWidthToFill > 0) ||
                 Double.greaterWithPrecision(gridContextualWidth, this._contextualWidthToFill, DimensionLayoutManager._pixelPrecision);
         }
 
-        protected _calculateSize(item: ITablixGridItem): void {
-            item.calculateSize();
+        protected _calculateSize(item: ITablixGridItem): number {
+            return item.calculateSize();
         }
     }
 
@@ -993,11 +1023,11 @@ module powerbi.visuals.controls.internal {
         }
 
         public applyScrolling() {
-            var rowOffset: number = this.dimension.getFractionScrollOffset();
-            var firstVisibleRowHeight: number = 0;
+            let rowOffset: number = this.dimension.getFractionScrollOffset();
+            let firstVisibleRowHeight: number = 0;
 
             if (rowOffset !== 0) {
-                var firstVisibleRow: TablixRow = this.getFirstVisibleRow();
+                let firstVisibleRow: TablixRow = this.getFirstVisibleRow();
                 if (firstVisibleRow) {
                     firstVisibleRowHeight = firstVisibleRow.getContextualWidth();
                     this.scroll(firstVisibleRow, firstVisibleRowHeight, rowOffset);
@@ -1011,8 +1041,8 @@ module powerbi.visuals.controls.internal {
         }
 
         private scrollCells(cells: TablixCell[], height: number, offset: number): void {
-            var length: number = cells.length;
-            for (var i = 0; i < length; i++) {
+            let length: number = cells.length;
+            for (let i = 0; i < length; i++) {
                 cells[i].scrollVertically(height, offset);
             }
         }
@@ -1030,7 +1060,7 @@ module powerbi.visuals.controls.internal {
         public calculateContextualWidths(): void {
             super.calculateContextualWidths();
             if (this.fixedSizeEnabled) {
-                var footerRow: TablixRow = this._grid.footerRow;
+                let footerRow: TablixRow = this._grid.footerRow;
                 if (footerRow) {
                     this._calculateSize(footerRow);
                 }
@@ -1050,10 +1080,10 @@ module powerbi.visuals.controls.internal {
          * Sends row related data (pixel size, column count, etc) to TablixControl.
          */
         public _sendDimensionsToControl(): void {
-            var gridContextualWidth: number = this.getGridContextualWidth();
-            var widthToFill: number = this.getActualContextualWidth(gridContextualWidth);
-            var otherContextualHeight = this.getOtherHierarchyContextualHeight();
-            var scale = this.getGridScale();
+            let gridContextualWidth: number = this.getGridContextualWidth();
+            let widthToFill: number = this.getActualContextualWidth(gridContextualWidth);
+            let otherContextualHeight = this.getOtherHierarchyContextualHeight();
+            let scale = this.getGridScale();
             this.owner.owner.updateRowDimensions(otherContextualHeight / scale,
                 (widthToFill - otherContextualHeight) / scale,
                 gridContextualWidth / scale,
@@ -1076,9 +1106,10 @@ module powerbi.visuals.controls.internal {
             return false;
         }
 
-        protected _calculateSize(item: ITablixGridItem): void {
-            var computedSize = this.owner.getEstimatedRowHeight();
+        protected _calculateSize(item: ITablixGridItem): number {
+            let computedSize = this.owner.getEstimatedRowHeight();
             item.resize(computedSize);
+            return computedSize;
         }
 
         private getHeaderWidth(headerIndex: number): number {
@@ -1104,8 +1135,8 @@ module powerbi.visuals.controls.internal {
                 Double.greaterWithPrecision(gridContextualWidth, this._contextualWidthToFill, DimensionLayoutManager._pixelPrecision);
         }
 
-        protected _calculateSize(item: ITablixGridItem): void {
-            item.calculateSize();
+        protected _calculateSize(item: ITablixGridItem): number {
+            return item.calculateSize();
         }
     }
 
@@ -1121,6 +1152,7 @@ module powerbi.visuals.controls.internal {
         private _footersHost: HTMLElement;
         private _grid: internal.TablixGrid;
         private _allowHeaderResize: boolean = true;
+        private _columnWidthsToPersist: number[];
 
         constructor(
             binder: ITablixBinder,
@@ -1131,6 +1163,7 @@ module powerbi.visuals.controls.internal {
             this._grid = grid;
             this._columnLayoutManager = columnLayoutManager;
             this._rowLayoutManager = rowLayoutManager;
+            this._columnWidthsToPersist = [];
         }
 
         public initialize(owner: TablixControl): void {
@@ -1149,6 +1182,14 @@ module powerbi.visuals.controls.internal {
             return this._binder;
         }
 
+        public get columnWidthsToPersist(): number[] {
+            return this._columnWidthsToPersist;
+        }
+
+        public set columnWidthsToPersist(columnWidths: number[]) {
+            this._columnWidthsToPersist = columnWidths;
+        }        
+
         public getTablixClassName(): string {
             debug.assertFail("PureVirtualMethod: TablixLayoutManager.getTablixClassName");
             return null;
@@ -1162,42 +1203,42 @@ module powerbi.visuals.controls.internal {
         }
 
         public getOrCreateColumnHeader(item: any, items: any, rowIndex: number, columnIndex: number): ITablixCell {
-            var row: TablixRow = this._grid.getOrCreateRow(rowIndex);
-            var column: TablixColumn = this._grid.getOrCreateColumn(columnIndex + this._columnLayoutManager._gridOffset);
-            var isLeaf = this.owner.hierarchyNavigator.isLeaf(item);
-            var cell: TablixCell = row.getOrCreateColumnHeader(column, this._columnLayoutManager.isScrollableHeader(item, items, columnIndex), isLeaf);
+            let row: TablixRow = this._grid.getOrCreateRow(rowIndex);
+            let column: TablixColumn = this._grid.getOrCreateColumn(columnIndex + this._columnLayoutManager._gridOffset);
+            let isLeaf = this.owner.hierarchyNavigator.isLeaf(item);
+            let cell: TablixCell = row.getOrCreateColumnHeader(column, this._columnLayoutManager.isScrollableHeader(item, items, columnIndex), isLeaf);
             this.enableCellHorizontalResize(isLeaf, cell);
             return cell;
         }
 
         public getOrCreateRowHeader(item: any, items: any, rowIndex: number, columnIndex: number): ITablixCell {
-            var row: TablixRow = this._grid.getOrCreateRow(rowIndex + this._rowLayoutManager._gridOffset);
-            var column: TablixColumn = this._grid.getOrCreateColumn(columnIndex);
-            var scrollable: boolean = this._rowLayoutManager.isScrollableHeader(item, items, rowIndex);
+            let row: TablixRow = this._grid.getOrCreateRow(rowIndex + this._rowLayoutManager._gridOffset);
+            let column: TablixColumn = this._grid.getOrCreateColumn(columnIndex);
+            let scrollable: boolean = this._rowLayoutManager.isScrollableHeader(item, items, rowIndex);
 
             if (row.getRealizedCellCount() === 0) {
                 this.alignRowHeaderCells(item, row);
             }
 
-            var cell: TablixCell = row.getOrCreateRowHeader(column, scrollable, this.owner.hierarchyNavigator.isLeaf(item));
+            let cell: TablixCell = row.getOrCreateRowHeader(column, scrollable, this.owner.hierarchyNavigator.isLeaf(item));
             cell.enableHorizontalResize(false, this._columnLayoutManager);
             return cell;
         }
 
         public getOrCreateCornerCell(item: any, rowLevel: number, columnLevel: number): ITablixCell {
-            var row: TablixRow = this._grid.getOrCreateRow(columnLevel);
-            var column: TablixColumn = this._grid.getOrCreateColumn(rowLevel);
-            var cell: TablixCell = row.getOrCreateCornerCell(column);
-            var columnDepth = this._columnLayoutManager.dimension.getDepth();
-            var isLeaf = columnLevel === (columnDepth - 1);
+            let row: TablixRow = this._grid.getOrCreateRow(columnLevel);
+            let column: TablixColumn = this._grid.getOrCreateColumn(rowLevel);
+            let cell: TablixCell = row.getOrCreateCornerCell(column);
+            let columnDepth = this._columnLayoutManager.dimension.getDepth();
+            let isLeaf = columnLevel === (columnDepth - 1);
             this.enableCellHorizontalResize(isLeaf, cell);
             return cell;
         }
 
         public getOrCreateBodyCell(cellItem: any, rowItem: any, rowItems: any, rowIndex: number, columnIndex: number): ITablixCell {
-            var scrollable: boolean;
-            var row: TablixRow = this._grid.getOrCreateRow(rowIndex + this._rowLayoutManager._gridOffset);
-            var column: TablixColumn = this._grid.getOrCreateColumn(columnIndex + this._columnLayoutManager._gridOffset);
+            let scrollable: boolean;
+            let row: TablixRow = this._grid.getOrCreateRow(rowIndex + this._rowLayoutManager._gridOffset);
+            let column: TablixColumn = this._grid.getOrCreateColumn(columnIndex + this._columnLayoutManager._gridOffset);
 
             if (row._realizedBodyCells.length === 0 && this._owner.columnDimension.getFractionScrollOffset() !== 0) {
                 scrollable = true;
@@ -1206,30 +1247,30 @@ module powerbi.visuals.controls.internal {
                 scrollable = this._rowLayoutManager.isScrollableHeader(rowItem, rowItems, rowIndex);
             }
 
-            var cell: TablixCell = row.getOrCreateBodyCell(column, scrollable);
+            let cell: TablixCell = row.getOrCreateBodyCell(column, scrollable);
             cell.enableHorizontalResize(false, this._columnLayoutManager);
             return cell;
         }
 
         public getOrCreateFooterBodyCell(cellItem: any, columnIndex: number): ITablixCell {
-            var scrollable: boolean;
-            var row: TablixRow = this._grid.getOrCreateFootersRow();
-            var column: TablixColumn = this._grid.getOrCreateColumn(columnIndex + this._columnLayoutManager._gridOffset);
+            let scrollable: boolean;
+            let row: TablixRow = this._grid.getOrCreateFootersRow();
+            let column: TablixColumn = this._grid.getOrCreateColumn(columnIndex + this._columnLayoutManager._gridOffset);
 
             scrollable = (row._realizedBodyCells.length === 0 && this._owner.columnDimension.getFractionScrollOffset() !== 0);
 
-            var cell: TablixCell = row.getOrCreateFooterBodyCell(column, scrollable);
+            let cell: TablixCell = row.getOrCreateFooterBodyCell(column, scrollable);
             cell.enableHorizontalResize(false, this._columnLayoutManager);
             return cell;
         }
 
         public getOrCreateFooterRowHeader(item: any, items: any): ITablixCell {
-            var row: TablixRow = this._grid.getOrCreateFootersRow();
-            var column: TablixColumn = this._grid.getOrCreateColumn(0);
+            let row: TablixRow = this._grid.getOrCreateFootersRow();
+            let column: TablixColumn = this._grid.getOrCreateColumn(0);
 
             //debug.assert(this.owner.hierarchyNavigator.isLeaf(item), "Leaf item expected");
 
-            var cell: TablixCell = row.getOrCreateFooterRowHeader(column);
+            let cell: TablixCell = row.getOrCreateFooterRowHeader(column);
             cell.enableHorizontalResize(false, this._columnLayoutManager);
             return cell;
         }
@@ -1267,6 +1308,10 @@ module powerbi.visuals.controls.internal {
             return -1;
         }
 
+        public adjustContentSize(hasImage: boolean): void {
+            // default implementation has no adjustment
+        }
+
         /**
          * This call makes room for parent header cells where neccessary.
          * Since HTML cells that span vertically displace other rows,
@@ -1275,14 +1320,14 @@ module powerbi.visuals.controls.internal {
          * returning to an entering row.
          */
         private alignRowHeaderCells(item: any, currentRow: TablixRow): void {
-            var index = currentRow.getRowHeaderLeafIndex();
+            let index = currentRow.getRowHeaderLeafIndex();
 
             if (index === -1) {
                 return;
             }
 
-            var rowDimension: TablixRowDimension = this._owner.rowDimension;
-            var leaf = rowDimension.getFirstVisibleChildLeaf(item);
+            let rowDimension: TablixRowDimension = this._owner.rowDimension;
+            let leaf = rowDimension.getFirstVisibleChildLeaf(item);
 
             if (!this.owner.hierarchyNavigator.headerItemEquals(leaf, currentRow.getAllocatedCellAt(index).item)) {
                 return;
@@ -1310,7 +1355,7 @@ module powerbi.visuals.controls.internal {
 
         public onStartRenderingSession(scrollingDimension: TablixDimension, parentElement: HTMLElement, clear: boolean): void {
             if (this.showEmptySpaceHeader()) {
-                var cell: ITablixCell = this._grid.emptySpaceHeaderCell;
+                let cell: ITablixCell = this._grid.emptySpaceHeaderCell;
                 if (cell) {
                     this._binder.unbindEmptySpaceHeaderCell(cell);
                 }
@@ -1333,7 +1378,7 @@ module powerbi.visuals.controls.internal {
             this._columnLayoutManager.onStartRenderingSession();
             this._grid.onStartRenderingSession(clear);
 
-            var measureEnabled = this._columnLayoutManager.measureEnabled || this._rowLayoutManager.measureEnabled;
+            let measureEnabled = this._columnLayoutManager.measureEnabled || this._rowLayoutManager.measureEnabled;
             if (measureEnabled)
                 this.measureSampleText(parentElement);
         }
@@ -1349,11 +1394,11 @@ module powerbi.visuals.controls.internal {
             this._scrollingDimension = null;
 
             if (this.showEmptySpaceHeader()) {
-                var emptySpace = this._columnLayoutManager.contextualWidthToFill - this._columnLayoutManager.getGridContextualWidth();
+                let emptySpace = this._columnLayoutManager.contextualWidthToFill - this._columnLayoutManager.getGridContextualWidth();
                 if (emptySpace > 0) {
                     this._grid.ShowEmptySpaceCells(this._owner.columnDimension.getDepth(), emptySpace);
 
-                    var cell: ITablixCell = this._grid.emptySpaceHeaderCell;
+                    let cell: ITablixCell = this._grid.emptySpaceHeaderCell;
                     if (cell) {
                         this._binder.bindEmptySpaceHeaderCell(cell);
                     }
@@ -1391,8 +1436,8 @@ module powerbi.visuals.controls.internal {
         }
 
         public onCornerCellRealized(item: any, cell: ITablixCell): void {
-            var columnLeaf: boolean = this.owner.hierarchyNavigator.isColumnHierarchyLeaf(item);
-            var rowLeaf: boolean = this.owner.hierarchyNavigator.isRowHierarchyLeaf(item);
+            let columnLeaf: boolean = this.owner.hierarchyNavigator.isColumnHierarchyLeaf(item);
+            let rowLeaf: boolean = this.owner.hierarchyNavigator.isRowHierarchyLeaf(item);
             if (columnLeaf)
                 (<TablixCell>cell)._column.OnLeafRealized(this._owner.hierarchyNavigator);
             this._columnLayoutManager.onCornerCellRealized(item, cell, columnLeaf);
@@ -1400,8 +1445,8 @@ module powerbi.visuals.controls.internal {
         }
 
         public onRowHeaderRealized(item: any, cell: ITablixCell): void {
-            var hierarchyNavigator: ITablixHierarchyNavigator = this._owner.hierarchyNavigator;
-            var leaf = hierarchyNavigator.isLeaf(item);
+            let hierarchyNavigator: ITablixHierarchyNavigator = this._owner.hierarchyNavigator;
+            let leaf = hierarchyNavigator.isLeaf(item);
             this._rowLayoutManager.onHeaderRealized(item, cell, leaf);
         }
 
@@ -1409,8 +1454,8 @@ module powerbi.visuals.controls.internal {
         }
 
         public onColumnHeaderRealized(item: any, cell: ITablixCell): void {
-            var hierarchyNavigator: ITablixHierarchyNavigator = this._owner.hierarchyNavigator;
-            var leaf = hierarchyNavigator.isLeaf(item);
+            let hierarchyNavigator: ITablixHierarchyNavigator = this._owner.hierarchyNavigator;
+            let leaf = hierarchyNavigator.isLeaf(item);
             if (leaf)
                 (<TablixCell>cell)._column.OnLeafRealized(this._owner.hierarchyNavigator);
             this._columnLayoutManager.onHeaderRealized(item, cell, leaf);
@@ -1427,7 +1472,7 @@ module powerbi.visuals.controls.internal {
         }
 
         public enableCellHorizontalResize(isLeaf: boolean, cell: TablixCell) {
-            var enableCellHorizontalResize = isLeaf && this._allowHeaderResize;
+            let enableCellHorizontalResize = isLeaf && this._allowHeaderResize;
             cell.enableHorizontalResize(enableCellHorizontalResize, this._columnLayoutManager);
         }
 
@@ -1460,11 +1505,11 @@ module powerbi.visuals.controls.internal {
 
         public static createLayoutManager(binder: ITablixBinder): DashboardTablixLayoutManager {
             // computed sizes are shared between layout manager and grid presenter
-            var sizeComputationManager = new SizeComputationManager();
+            let sizeComputationManager = new SizeComputationManager();
             return new DashboardTablixLayoutManager(
                 binder,
                 sizeComputationManager,
-                new TablixGrid(new DashboardTablixGridPresenter(sizeComputationManager)),
+                new TablixGrid(new DashboardTablixGridPresenter(sizeComputationManager), undefined /* Dashboad columns have fixed sizes. */),
                 new RowRealizationManager(binder),
                 new ColumnRealizationManager(binder));
         }
@@ -1507,11 +1552,15 @@ module powerbi.visuals.controls.internal {
             return this._sizeComputationManager.contentWidth;
         }
 
+        public adjustContentSize(hasImage: boolean): void {
+            this._sizeComputationManager.hasImageContent = hasImage;
+        }
+
         public updateColumnCount(rowDimension: TablixRowDimension, columnDimension: TablixColumnDimension): void {
             // The total number of columns is the number (depth) of row groups + the number of (leaf) column group instances
-            var rowDimensionDepth = rowDimension ? rowDimension.getDepth() : 0;
-            var columnInstances = columnDimension ? columnDimension.getItemsCount() : 0;
-            var totalColumnCount = rowDimensionDepth + columnInstances;
+            let rowDimensionDepth = rowDimension ? rowDimension.getDepth() : 0;
+            let columnInstances = columnDimension ? columnDimension.getItemsCount() : 0;
+            let totalColumnCount = rowDimensionDepth + columnInstances;
 
             // Adjust the column count by the static row header (if any)
             if (!this.binder.hasRowGroups())
@@ -1537,7 +1586,8 @@ module powerbi.visuals.controls.internal {
             binder: ITablixBinder,
             grid: TablixGrid,
             rowRealizationManager: RowRealizationManager,
-            columnRealizationManager: ColumnRealizationManager) {
+            columnRealizationManager: ColumnRealizationManager,
+            columnWidthChangedCallback: ColumnWidthCallbackType) {
             super(
                 binder,
                 grid,
@@ -1545,12 +1595,13 @@ module powerbi.visuals.controls.internal {
                 new CanvasRowLayoutManager(this, grid, rowRealizationManager));
         }
 
-        public static createLayoutManager(binder: ITablixBinder): CanvasTablixLayoutManager {
+        public static createLayoutManager(binder: ITablixBinder, columnWidthsCallback: () => number[], columnWidthChangedCallback: ColumnWidthCallbackType): CanvasTablixLayoutManager {
             return new CanvasTablixLayoutManager(
                 binder,
-                new TablixGrid(new controls.internal.CanvasTablixGridPresenter()),
+                new TablixGrid(new controls.internal.CanvasTablixGridPresenter(columnWidthsCallback), columnWidthChangedCallback),
                 new RowRealizationManager(binder),
-                new ColumnRealizationManager(binder));
+                new ColumnRealizationManager(binder),
+                columnWidthChangedCallback);
         }
 
         public getTablixClassName(): string {
@@ -1563,11 +1614,11 @@ module powerbi.visuals.controls.internal {
 
         public measureSampleText(parentElement: HTMLElement): void {
             // TODO: Use TextMeasurementService once the DOM methods are fixed (they are not working right now)
-            var textDiv = controls.internal.TablixUtils.createDiv();
+            let textDiv = controls.internal.TablixUtils.createDiv();
             textDiv.style.cssFloat = 'left';
             parentElement.appendChild(textDiv);
 
-            var textNode = document.createTextNode("a");
+            let textNode = document.createTextNode("a");
             textDiv.appendChild(textNode);
 
             this.characterWidth = controls.HTMLElementUtils.getElementWidth(textDiv);

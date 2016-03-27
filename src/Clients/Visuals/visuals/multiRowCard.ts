@@ -27,69 +27,49 @@
 /// <reference path="../_references.ts"/>
 
 module powerbi.visuals {
+    import getKpiImageMetadata = powerbi.visuals.KpiUtil.getKpiImageMetadata;
+
     export interface CardItemData {
         caption: string;
         details: string;
         showURL: boolean;
+        showImage: boolean;
+        showKPI: boolean;
+        columnIndex: number;
     }
 
     export interface CardData {
         title?: string;
         showTitleAsURL?: boolean;
+        showTitleAsImage?: boolean;
+        showTitleAsKPI?: boolean;
         cardItemsData: CardItemData[];
     }
 
+    interface ImageStyle {
+        maxWidth?: number;
+        maxHeight?: number;
+    }
+
+    interface MediaQuery {
+        maxWidth?: number;
+        style?: MultiRowCardStyle;
+    }
+
     interface MultiRowCardStyle {
-        card: {
-            bottomBorderWidth: number;
-            leftBorderWidth: number;
-            borderStyle: string;
-            leftBorderColor: string;
-            borderColor: string;
-            bottomPadding: number;
-            topPadding: number;
-            leftPadding: number;
-            color: string;
-            marginBottom: number;
+        card?: {
+            marginBottom?: number;
+            maxRows?: number;
         };
-        title: {
-            height: number;
-            marginBottom: number;
+        cardItemContainer?: {
+            paddingRight?: number;
+            minWidth?: number;
         };
-        cardItemContainer: {
-            marginRight: number;
-            maxWidth: number;
-            topPadding: number;
-            topPaddingCanvas: number;
+        caption?: {
+            lineHeight?: number;
         };
-        caption: {
-            height: number;
-            fontSize: number;
-            color: string;
-        };
-        details: {
-            height: number;
-            fontSize: number;
-            color: string;
-        };
-        scrollbar: {
-            padding: number;
-        };
-        cardItems: {
-            maxItemsSmallTile: number;
-            maxItemsMediumTile: number;
-            maxItemsLargeTile: number;
-        };
-        cardRowColumns: {
-            maxRowColumnsSmallTile: number;
-            maxRowColumnsMediumTile: number;
-            maxRowColumnsLargeTile: number;
-        };
-        cards: {
-            maxCardsSmallTile: number;
-            maxCardsMediumTile: number;
-            maxCardsLargeTile: number;
-        };
+        imageCaption?: ImageStyle;
+        imageTitle?: ImageStyle;
     }
 
     export class MultiRowCard implements IVisual {
@@ -99,16 +79,9 @@ module powerbi.visuals {
         private style: IVisualStyle;
         private element: JQuery;
         private listView: IListView;
-        private cardHeight: number;
-        private cardWidth: number;
-        private columnWidth: number;
-        private maxCardsDisplayed: number;
-        private cardItemContainerHeight: number;
-        private isCardWrapped: boolean = false;
         /**
          * This includes card height with margin that will be passed to list view.
          */
-        private cardHeightTotal: number;
         private settings: MultiRowCardStyle;
         private dataModel: CardData[];
         private interactivity: InteractivityOptions;
@@ -116,7 +89,7 @@ module powerbi.visuals {
         private waitingForData: boolean;
         private cardHasTitle: boolean;
         private isSingleRowCard: boolean;
-        private isSingleValueCard: boolean;
+        private maxColPerRow: number;
         
         /**
          * Note: Public for testability.
@@ -136,6 +109,16 @@ module powerbi.visuals {
             selector: '.title'
         };
 
+        private static ImageTitle: ClassAndSelector = {
+            class: 'title',
+            selector: MultiRowCard.Title.selector + ' img'
+        };
+
+        private static KPITitle: ClassAndSelector = {
+            class: 'kpiTitle',
+            selector: MultiRowCard.Title.selector + ' kpiTitle'
+        };
+
         private static CardItemContainer: ClassAndSelector = {
             class: 'cardItemContainer',
             selector: '.cardItemContainer'
@@ -146,129 +129,179 @@ module powerbi.visuals {
             selector: '.caption'
         };
 
+        private static ImageCaption: ClassAndSelector = {
+            class: '',
+            selector: MultiRowCard.Caption.selector + ' img'
+        };
+
         private static Details: ClassAndSelector = {
             class: 'details',
             selector: '.details'
         };
         private static TitleUrlSelector: string = MultiRowCard.Title.selector + ' a';
         private static CaptionUrlSelector: string = MultiRowCard.Caption.selector + ' a';
-
-        private static SmallTileWidth = 250;
-        private static MediumTileWidth = 490;
-        private static LargeTileWidth = 750;
-        
         /**
          * Cards have specific styling so defined inline styles and also to support theming and improve performance.
          */
         private static DefaultStyle: MultiRowCardStyle = {
             card: {
-                bottomBorderWidth: 1,
-                leftBorderWidth: 3,
-                borderStyle: 'solid',
-                leftBorderColor: '#A6A6A6',
-                borderColor: '#C8C8C8',
-                bottomPadding: 5,
-                leftPadding: 10,
-                topPadding: 5,
-                color: '#767676',
                 marginBottom: 20
             },
-            title: {
-                height: 24,
-                marginBottom: 5,
-            },
             cardItemContainer: {
-                marginRight: 20,
-                maxWidth: 100,
-                topPadding: 5,
-                topPaddingCanvas: 7
+                paddingRight: 20,
+                minWidth: 120,
             },
             caption: {
-                height: 20,
-                fontSize: 14,
-                color: '#333333'
+                lineHeight: 20,
             },
-            details: {
-                height: 16,
-                fontSize: 12,
-                color: '#A6A6A6'
+            imageCaption: {
+                maxHeight: 75,
+                maxWidth: 100,
             },
-            scrollbar: {
-                padding: 8
-            },
-            cardItems: {
-                maxItemsSmallTile: 4,
-                maxItemsMediumTile: 6,
-                maxItemsLargeTile: 6
-            },
-            cardRowColumns: {
-                maxRowColumnsSmallTile: 2,
-                maxRowColumnsMediumTile: 3,
-                maxRowColumnsLargeTile: 6
-            },
-            cards: {
-                maxCardsSmallTile: 1,
-                maxCardsMediumTile: 3,
-                maxCardsLargeTile: 8
+            imageTitle: {
+                maxHeight: 75,
+                maxWidth: 100,
             }
         };
+
+        // queries should be ordered by maxWidth in ascending order
+        private static tileMediaQueries: MediaQuery[] = [
+            {
+                maxWidth: 250,
+                style: {
+                    card: {
+                        maxRows: 2,
+                    },
+                    cardItemContainer: {
+                        minWidth: 110,
+                    },
+                    imageCaption: {
+                        maxHeight: 45,
+                    }
+                }
+            },
+            {
+                maxWidth: 490,
+                style: {
+                    card: {
+                        maxRows: 2,
+                    },
+                    cardItemContainer: {
+                        minWidth: 130,
+                    },
+                    caption: {
+                        lineHeight: 24,
+                    },
+                    imageCaption: {
+                        maxHeight: 52,
+                    }
+                }
+            },
+            {
+                maxWidth: 750,
+                style: {
+                    card: {
+                        maxRows: 1,
+                    },
+                    cardItemContainer: {
+                        minWidth: 120,
+                    },
+                    caption: {
+                        lineHeight: 20,
+                    },
+                    imageCaption: {
+                        maxHeight: 53,
+                    }
+                }
+            }
+        ];
 
         public init(options: VisualInitOptions) {
             debug.assertValue(options, 'options');
             this.options = options;
             this.style = options.style;
-            var viewport = this.currentViewport = options.viewport;
-            var interactivity = this.interactivity = options.interactivity;
+            let viewport = this.currentViewport = options.viewport;
+            let interactivity = this.interactivity = options.interactivity;
 
             if (interactivity && interactivity.overflow === 'hidden')
                 this.isInteractivityOverflowHidden = true;
 
-            this.settings = MultiRowCard.DefaultStyle;
-
-            var multiRowCardDiv = $('<div/>').addClass(MultiRowCard.multiRowCardClass);
+            this.settings = $.extend(true, {}, MultiRowCard.DefaultStyle);
+            var multiRowCardDiv = this.element = $('<div/>')
+                .addClass(MultiRowCard.multiRowCardClass)
+                .css({
+                    'height': getPixelString(viewport.height),
+                });
             options.element.append(multiRowCardDiv);
-            var element = this.element = multiRowCardDiv;
-            element.css('height', this.getPixelString(viewport.height));
-
             this.initializeCardRowSelection();
         }
 
         public onDataChanged(options: VisualDataChangedOptions): void {
             debug.assertValue(options, 'options');
 
-            var dataViews = options.dataViews;
+            let dataViews = options.dataViews;
             if (dataViews && dataViews.length > 0) {
-                this.dataView = dataViews[0];
+                var dataView = this.dataView = dataViews[0];
+                var columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
+                var tableRows: any[][] = dataView.table.rows;
+                var resetScrollbarPosition = options.operationKind !== VisualDataChangeOperationKind.Append;
+                var dataModel = this.dataModel = MultiRowCard.converter(dataView, columnMetadata.length, tableRows.length, this.isInteractivityOverflowHidden);
+                this.setCardDimensions();
+                this.listView.data(dataModel, (d: CardData) => dataModel.indexOf(d), resetScrollbarPosition);
             }
 
-            var resetScrollbarPosition = options.operationKind !== VisualDataChangeOperationKind.Append;
-            this.updateInternal(resetScrollbarPosition);
             this.waitingForData = false;
         }
 
         public onResizing(viewport: IViewport): void {
-            var viewport = this.currentViewport = viewport;
-            this.element.css('height', this.getPixelString(viewport.height));
-            this.updateInternal();
+            var heightNotChanged = (this.currentViewport.height === viewport.height);
+            this.currentViewport = viewport;
+            this.element.css('height', getPixelString(viewport.height));
+            if (!this.dataView)
+                return;
+
+            var previousMaxColPerRow = this.maxColPerRow;
+            this.maxColPerRow = this.getMaxColPerRow();
+            var widthNotChanged = (previousMaxColPerRow === this.maxColPerRow);
+            if (heightNotChanged && widthNotChanged)
+                return;
+
+            this.listView.viewport(viewport);
         }
 
         public static converter(dataView: DataView, columnCount: number, maxCards: number, isDashboardVisual: boolean = false): CardData[] {
-            var details: CardData[] = [];
-            var tableDataRows = dataView.table.rows;
-            var columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
+            let details: CardData[] = [];
+            let tableDataRows = dataView.table.rows;
+            let columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
 
-            for (var i = 0, len = maxCards; i < len; i++) {
-                var row = tableDataRows[i];
-                var isValuePromoted: boolean = undefined;
+            for (let i = 0, len = maxCards; i < len; i++) {
+                let row = tableDataRows[i];
+                let isValuePromoted: boolean = undefined;
                 var title: string = undefined;
-                var showTitleAsURL: boolean = false;
-                var cardData: CardItemData[] = [];
+                let showTitleAsURL: boolean = false;
+                let showTitleAsImage: boolean = false;
+                let showTitleAsKPI: boolean = false;
+                let cardData: CardItemData[] = [];
                 for (var j = 0; j < columnCount; j++) {
-                    var column = columnMetadata[j];
-                    var columnCaption: string = valueFormatter.format(row[j], valueFormatter.getFormatString(column, MultiRowCard.formatStringProp));
-                    
+                    let column = columnMetadata[j];
+
+                    let statusGraphicInfo = getKpiImageMetadata(column, row[j]);
+                    let columnCaption: string;
+                    let statusGraphic: string;
+
+                    if (statusGraphicInfo) {
+                        columnCaption = statusGraphicInfo.caption;
+                        statusGraphic = statusGraphicInfo.statusGraphic;
+                    }
+
+                    //TODO: seems we are duplicating this logic in many places. Consider putting it in KPIUtil
+                    if (!columnCaption)
+                        columnCaption = valueFormatter.format(row[j], valueFormatter.getFormatString(column, MultiRowCard.formatStringProp));
+
+                    let showKPI = statusGraphicInfo !== undefined && statusGraphicInfo.caption !== undefined;
+
                     // The columnDetail represents column name. In card the column name is shown as details
-                    var columnDetail: string = columnMetadata[j].displayName;
+                    let columnDetail: string = columnMetadata[j].displayName;
 
                     //Title is shown only on Canvas and only if there is one Category field.
                     if (!isDashboardVisual && !column.type.numeric) {
@@ -276,6 +309,8 @@ module powerbi.visuals {
                             isValuePromoted = true;
                             title = columnCaption;
                             showTitleAsURL = UrlHelper.isValidUrl(column, title);
+                            showTitleAsImage = UrlHelper.isValidImage(column, columnCaption);
+                            showTitleAsKPI = showKPI;
                         }
                         else if (isValuePromoted) {
                             isValuePromoted = false;
@@ -284,152 +319,145 @@ module powerbi.visuals {
                     cardData.push({
                         caption: columnCaption,
                         details: columnDetail,
-                        showURL: UrlHelper.isValidUrl(column, columnCaption)
+                        showURL: UrlHelper.isValidUrl(column, columnCaption),
+                        showImage: UrlHelper.isValidImage(column, columnCaption),
+                        showKPI: showKPI,
+                        columnIndex: j
                     });
                 }
                 details.push({
                     title: isValuePromoted ? title : undefined,
                     showTitleAsURL: showTitleAsURL,
+                    showTitleAsImage: showTitleAsImage,
+                    showTitleAsKPI: showTitleAsKPI,
                     cardItemsData: isValuePromoted ? cardData.filter((d: CardItemData) => d.caption !== title) : cardData
-
                 });
             }
             return details;
         }
 
-        private updateInternal(resetScrollbarPosition: boolean = false) {
-            var dataView = this.dataView;
-            if (!(dataView && dataView.metadata && dataView.table && dataView.table.rows && dataView.table.rows.length > 0 && dataView.table.columns && dataView.table.columns.length > 0)) {
-                this.listView.empty();
-                return;
-            }
-
-            this.setCardDimensions();
-            var cardHeightTotal = this.cardHeightTotal;
-            var dataModel = this.dataModel;
-
-            debug.assertValue(cardHeightTotal, 'cardHeightTotal');
-            debug.assert(cardHeightTotal > 0, 'cardHeightTotal should be more than 0');
-
-            this.listView
-                .viewport(this.currentViewport)
-                .rowHeight(cardHeightTotal)
-                .data(dataModel, (d: CardData) => dataModel.indexOf(d))
-                .render(true, resetScrollbarPosition);
-        }
-
         private initializeCardRowSelection() {
-            var settings = this.settings;
-            var cardHeightTotal = this.cardHeightTotal;
-            var rowHeight = this.cardHeight;
-            var isDashboardVisual = this.isInteractivityOverflowHidden;
+            let isDashboardVisual = this.isInteractivityOverflowHidden;
 
-            var rowEnter = (rowSelection: D3.Selection) => {
-                var cardRow = rowSelection
+            let rowEnter = (rowSelection: D3.Selection) => {
+                let cardRow = rowSelection
                     .append("div")
-                    .style({
-                        'color': settings.card.color,
-                        'overflow-y': 'hidden',
-                        'box-sizing': 'border-box',
-                    })
                     .classed(MultiRowCard.Card.class, true);
 
                 // The card top padding is not needed when card items are wrapped as top padding is added to each carditemcontainer when wrapped
                 if (isDashboardVisual) {
-                    cardRow.style('padding-top', this.isCardWrapped ? '0px' : this.getPixelString(settings.card.topPadding));
+                    cardRow.classed('mrtile', true);
                 }
                 else {
-                    cardRow
-                        .style({
-                            'border-left': this.getPixelString(settings.card.leftBorderWidth) + " " + settings.card.borderStyle,
-                            'border-left-color': settings.card.leftBorderColor,
-                            'padding-left': this.getPixelString(settings.card.leftPadding)
-                        });
-
                     if (this.cardHasTitle) {
                         cardRow.append("div").classed(MultiRowCard.Title.class, true)
-                            .style({
-                                'height': this.getPixelString(settings.title.height),
-                                'margin-bottom': this.isCardWrapped ? '0px' : this.getPixelString(settings.title.marginBottom),
-                            })
                             .each(function (d: CardData) {
-                                if (d.showTitleAsURL)
+                                if (d.showTitleAsImage)
+                                    appendImage(d3.select(this));
+                                else if (d.showTitleAsURL)
                                     d3.select(this).append('a');
+                                else if (d.showTitleAsKPI)
+                                    d3.select(this).append('div')
+                                        .classed(MultiRowCard.KPITitle.class, true)
+                                        .classed(d.title, true)
+                                        .style({
+                                            display: 'inline-block',
+                                            verticalAlign: 'sub'
+                                        });
                             });
                     }
                 }
 
-                var cardItem = cardRow
+                let cardItem = cardRow
                     .selectAll(MultiRowCard.CardItemContainer.selector)
                     .data((d: CardData) => d.cardItemsData)
                     .enter()
                     .append('div')
-                    .classed(MultiRowCard.CardItemContainer.class, true)
-                    .style({
-                        'box-sizing': 'border-box',
-                        'height': this.getPixelString(this.cardItemContainerHeight),
-                        'margin-right': this.isSingleValueCard ? '0px' : this.getPixelString(settings.cardItemContainer.marginRight),
-                        'float': 'left',
-                        // If card is wrapped, padding is added to the itemcontainer as top padding so we don't have to add the bottom padding to the title
-                        'padding-top': this.isCardWrapped ? (isDashboardVisual ? this.getPixelString(settings.cardItemContainer.topPadding) : this.getPixelString(settings.cardItemContainer.topPaddingCanvas)) : '0px'
-                    });
+                    .classed(MultiRowCard.CardItemContainer.class, true);
 
                 cardItem
                     .append('div')
                     .classed(MultiRowCard.Caption.class, true)
-                    .style({
-                        'height': this.getPixelString(settings.caption.height),
-                        'font-size': this.getPixelString(settings.caption.fontSize),
-                        'color': settings.caption.color,
-                        'text-align': 'left',
-                        'white-space': 'nowrap',
-                        'text-overflow': 'ellipsis',
-                        'overflow': 'hidden'
-                    })
                     .each(function (d: CardItemData) {
-                        if (d.showURL)
+                        if (d.showURL) {
                             d3.select(this).append('a');
+                        }
+                        else if (d.showImage) {
+                            appendImage(d3.select(this));
+                        }
+                        else if (d.showKPI) {
+                            d3.select(this).append('div')
+                                .classed(d.caption, true)
+                                .style({
+                                    display: 'inline-block',
+                                    verticalAlign: 'sub'
+                                });
+                        }
                     });
 
                 cardItem
                     .append('div')
-                    .classed(MultiRowCard.Details.class, true)
-                    .style({
-                        'height': this.getPixelString(settings.details.height),
-                        'font-size': this.getPixelString(settings.details.fontSize),
-                        'color': settings.details.color,
-                        'text-align': 'left',
-                        'white-space': 'nowrap',
-                        'text-overflow': 'ellipsis',
-                        'overflow': 'hidden'
-                    });
+                    .classed(MultiRowCard.Details.class, true);
             };
 
-            var rowUpdate = (rowSelection: D3.Selection) => {
-                rowHeight = this.cardHeight;
-
+            /**
+            * Row update should:
+            * 1. bind Data
+            * 2. Manipulate DOM (likely just updating CSS properties) affected by data
+            */
+            let rowUpdate = (rowSelection: D3.Selection) => {
+                let style = this.getStyle();
                 if (!isDashboardVisual && this.cardHasTitle) {
-                    rowSelection.selectAll(MultiRowCard.Title.selector).filter((d: CardData) => !d.showTitleAsURL).text((d: CardData) => d.title);
+                    rowSelection.selectAll(MultiRowCard.Title.selector).filter((d: CardData) => !d.showTitleAsURL && !d.showTitleAsImage && !d.showTitleAsKPI).text((d: CardData) => d.title);
                     rowSelection
                         .selectAll(MultiRowCard.TitleUrlSelector)
                         .attr('href', (d: CardData) => d.title)
                         .attr('target', '_blank')
                         .text((d: CardData) => d.title);
+
+                    rowSelection
+                        .selectAll(MultiRowCard.ImageTitle.selector)
+                        .attr('src', (d: CardData) => d.title);
+                    setImageStyle(rowSelection.selectAll(MultiRowCard.Title.selector), style.imageTitle);
+
+                    rowSelection
+                        .selectAll(MultiRowCard.KPITitle.selector)
+                        .each(function (d: CardData) {
+                            var element = d3.select(this);
+                            element.classed(d.title);
+                        });
                 }
 
-                var cardSelection = rowSelection.selectAll(MultiRowCard.Card.selector)
+                let cardSelection = rowSelection.selectAll(MultiRowCard.Card.selector);
+
+                cardSelection
+                    .selectAll(MultiRowCard.Caption.selector)
+                    .filter((d: CardItemData) => !(d.showURL || d.showImage || d.showKPI))
+                    .text((d: CardItemData) => d.caption)
                     .style({
-                        'height': this.getPixelString(rowHeight),
-                        'width': this.getPixelString(this.cardWidth)
+                        'line-height': getPixelString(style.caption.lineHeight),
                     });
 
-                var cardItemContainerWidth = this.isSingleValueCard ? this.columnWidth : this.columnWidth - settings.cardItemContainer.marginRight;
                 cardSelection
-                    .selectAll(MultiRowCard.CardItemContainer.selector)
-                    .style("width", this.getPixelString(cardItemContainerWidth));
+                    .selectAll(MultiRowCard.ImageCaption.selector)
+                    .attr('src', (d: CardItemData) => d.caption)
+                    .style(style.imageCaption);
 
                 cardSelection
-                    .selectAll(MultiRowCard.Caption.selector).filter((d: CardItemData) => !d.showURL).text((d: CardItemData) => d.caption);
+                    .selectAll(MultiRowCard.CardItemContainer.selector)
+                    .style({
+                        'padding-right': (d: CardItemData) => {
+                            return this.isLastRowItem(d.columnIndex, this.dataView.metadata.columns.length) ? '0px' : getPixelString(style.cardItemContainer.paddingRight);
+                        },
+                        'width': (d: CardItemData) => {
+                            return this.getColumnWidth(d.columnIndex, this.dataView.metadata.columns.length);
+                        },
+                        'display': (d: CardItemData) => {
+                            return (this.hideColumn(d.columnIndex) ? 'none' : 'inline-block');
+                        },
+                    });
+
+                setImageStyle(cardSelection.selectAll(MultiRowCard.Caption.selector), style.imageCaption);
 
                 cardSelection
                     .selectAll(MultiRowCard.CaptionUrlSelector)
@@ -440,43 +468,95 @@ module powerbi.visuals {
                 cardSelection
                     .selectAll(MultiRowCard.Details.selector).text((d: CardItemData) => d.details);
 
-                // The last card styling is different in the dashboard 
-                if (isDashboardVisual) {
-                    var dataModel = this.dataModel;
-
-                    if (dataModel && dataModel.length > 0)
-                        cardSelection = cardSelection.filter((d: CardData) => d !== dataModel[dataModel.length - 1]);
-
-                    cardSelection
-                        .style({
-                            'border-bottom-style': settings.card.borderStyle,
-                            'border-bottom-width': this.getPixelString(settings.card.bottomBorderWidth),
-                            'border-bottom-color': settings.card.borderColor,
-                            'padding-bottom': this.getPixelString(settings.card.bottomPadding),
-                        });
-                }
-
                 cardSelection
-                    .style('margin-bottom', isDashboardVisual ? '0px' : (this.isSingleRowCard ? '0px' : this.getPixelString(settings.card.marginBottom)));
+                    .style('margin-bottom', isDashboardVisual ? '0px' : (this.isSingleRowCard ? '0px' : getPixelString(style.card.marginBottom)));
             };
 
-            var rowExit = (rowSelection: D3.Selection) => {
+            let rowExit = (rowSelection: D3.Selection) => {
                 rowSelection.remove();
             };
 
-            var listViewOptions: ListViewOptions = {
-                rowHeight: cardHeightTotal,
+            let listViewOptions: ListViewOptions = {
+                rowHeight: undefined,
                 enter: rowEnter,
                 exit: rowExit,
                 update: rowUpdate,
                 loadMoreData: () => this.onLoadMoreData(),
                 viewport: this.currentViewport,
-                baseContainer: d3.select(this.element.get(0))
+                baseContainer: d3.select(this.element.get(0)),
+                scrollEnabled: !this.isInteractivityOverflowHidden,
             };
 
-            this.listView = ListViewFactory.createHTMLListView(listViewOptions);
+            this.listView = ListViewFactory.createListView(listViewOptions);
         }
-        
+
+        private getMaxColPerRow(): number {
+            var rowWidth = this.currentViewport.width;
+            var minColumnWidth = this.getStyle().cardItemContainer.minWidth;
+            var columnCount = this.dataView.metadata.columns.length;
+            //atleast one column fits in a row
+            var maxColumnPerRow = Math.floor(rowWidth / minColumnWidth) || 1;
+            return Math.min(columnCount, maxColumnPerRow);
+        }
+
+        private getRowIndex(fieldIndex: number): number {
+            return Math.floor((fieldIndex * 1.0) / this.getMaxColPerRow());
+        }
+
+        private getStyle(): MultiRowCardStyle {
+            var defaultStyle = this.settings;
+            if (!this.isInteractivityOverflowHidden)
+                return $.extend(true, {}, defaultStyle);
+
+            let viewportWidth = this.currentViewport.width;
+            let overrideStyle: MultiRowCardStyle = {};
+            for (let currentQuery of MultiRowCard.tileMediaQueries)
+                if (viewportWidth <= currentQuery.maxWidth) {
+                    overrideStyle = currentQuery.style;
+                    break;
+                }
+            return $.extend(true, {}, defaultStyle, overrideStyle);
+        }
+
+        private hideColumn(fieldIndex: number): boolean {
+            //calculate the number of items apearing in the same row as the columnIndex
+            var rowIndex = this.getRowIndex(fieldIndex);
+
+            // when interactivity is disabled (pinned tile), don't wrap the row
+            var maxRows = this.getStyle().card.maxRows;
+            return (maxRows && rowIndex >= maxRows);
+        }
+
+        private getColumnWidth(fieldIndex: number, columnCount: number): string {
+            //atleast one column fits in a row
+            var maxColumnPerRow = this.getMaxColPerRow();
+            if (maxColumnPerRow >= columnCount)
+                //all columns fit in the same row, divide the space equaly
+                return (100.0 / columnCount) + '%';
+
+            //calculate the number of items apearing in the same row as the columnIndex
+            var rowIndex = this.getRowIndex(fieldIndex);
+
+            var totalRows = Math.ceil((columnCount * 1.0) / maxColumnPerRow);
+            var lastRowCount = columnCount % maxColumnPerRow;
+            if (rowIndex < totalRows || lastRowCount === 0)
+                // items is not on the last row or last row contains max columns allowed per row
+                return (100.0 / maxColumnPerRow) + '%';
+
+            // items is on the last row
+            return (100.0 / lastRowCount) + '%';
+        }
+
+        private isLastRowItem(fieldIndex: number, columnCount: number) {
+            if (fieldIndex + 1 === columnCount)
+                return true;
+            var maxColumnPerRow = this.getMaxColPerRow();
+            if (maxColumnPerRow - (fieldIndex % maxColumnPerRow) === 1)
+                return true;
+
+            return false;
+        }
+
         /**
          * This contains the card column wrapping logic.
          * Determines how many columns can be shown per each row inside a Card.
@@ -484,110 +564,14 @@ module powerbi.visuals {
          * the width of each card item is calculated based on the available viewport width.
          */
         private setCardDimensions(): void {
-            var dataView = this.dataView;
-            debug.assertValue(dataView, 'dataView');
-
-            var columnMetadata: DataViewMetadataColumn[] = dataView.table.columns;
-            var tableRows: any[][] = dataView.table.rows;
-            var viewport = this.currentViewport;
-            var settings = this.settings;
-            var cardRowColumnCount: number = 0;
-            var maxCardColumns = cardRowColumnCount = columnMetadata.length;
-            var viewportWidth = viewport.width;
             this.cardHasTitle = false;
 
-            if (this.isInteractivityOverflowHidden) {
-                if (viewportWidth <= MultiRowCard.SmallTileWidth) {
-                    cardRowColumnCount = Math.min(settings.cardRowColumns.maxRowColumnsSmallTile, cardRowColumnCount);
-                    maxCardColumns = Math.min(settings.cardItems.maxItemsSmallTile, maxCardColumns);
-                }
+            var dataModel = this.dataModel;
 
-                else if (viewportWidth <= MultiRowCard.MediumTileWidth) {
-                    cardRowColumnCount = Math.min(settings.cardRowColumns.maxRowColumnsMediumTile, cardRowColumnCount);
-                    maxCardColumns = Math.min(settings.cardItems.maxItemsMediumTile, maxCardColumns);
-                }
-
-                else if (viewportWidth <= MultiRowCard.LargeTileWidth) {
-                    cardRowColumnCount = Math.min(settings.cardRowColumns.maxRowColumnsLargeTile, cardRowColumnCount);
-                    maxCardColumns = Math.min(settings.cardItems.maxItemsLargeTile, maxCardColumns);
-                }
-
-                this.calculateCardDimensions(viewport, cardRowColumnCount, maxCardColumns, tableRows.length);
-                this.dataModel = MultiRowCard.converter(dataView, maxCardColumns, this.maxCardsDisplayed, this.isInteractivityOverflowHidden);
+            if (!this.isInteractivityOverflowHidden && dataModel && dataModel.length > 0) {
+                this.cardHasTitle = dataModel[0].title !== undefined;
+                this.isSingleRowCard = dataModel.length === 1 ? true : false;
             }
-            else {
-                var dataModel = this.dataModel = MultiRowCard.converter(dataView, maxCardColumns, tableRows.length);
-                maxCardColumns = 0;
-
-                if (dataModel && dataModel.length > 0) {
-                    maxCardColumns = dataModel[0].cardItemsData ? dataModel[0].cardItemsData.length : 0;
-                    this.cardHasTitle = dataModel[0].title !== undefined;
-                    this.isSingleRowCard = dataModel.length === 1 ? true : false;
-                }
-                this.calculateCardDimensions(viewport, maxCardColumns, maxCardColumns, dataModel.length);
-                if (this.cardHasTitle) {
-                    var cardHeight = this.cardHeight += settings.title.height + (this.isCardWrapped ? 0 : settings.title.marginBottom);
-                    this.cardHeightTotal = this.getTotalCardHeight(cardHeight);
-                }
-            }
-        }
-
-        private calculateCardDimensions(viewport: IViewport, cardRowColumnCount: number, maxCardColumns: number, maxCards: number): void {
-            var settings = this.settings;
-            var isDashboardVisual = this.isInteractivityOverflowHidden;
-            var cardWidth = viewport.width - settings.scrollbar.padding;
-            var cardRowColumnCountDisplayed = cardRowColumnCount;
-            var cardItemContainerHeight = settings.caption.height + settings.details.height;
-            var isCardWrapped = false;
-
-            if (!isDashboardVisual)
-                cardWidth -= (settings.card.leftBorderWidth + settings.card.leftPadding);
-
-            var columnWidth = cardWidth / cardRowColumnCount;
-
-            if (cardRowColumnCount === maxCardColumns) {
-                columnWidth = Math.max(columnWidth, settings.cardItemContainer.maxWidth);
-
-                columnWidth = Math.min(columnWidth, cardWidth);
-
-                cardRowColumnCountDisplayed = Math.floor(cardWidth / columnWidth);
-            }
-
-            this.isSingleValueCard = cardRowColumnCountDisplayed === 1;
-
-            var totalRowsDisplayed = Math.ceil(maxCardColumns / cardRowColumnCountDisplayed);
-
-            if (totalRowsDisplayed > 1) {
-                cardItemContainerHeight += (isDashboardVisual ? settings.cardItemContainer.topPadding : settings.cardItemContainer.topPaddingCanvas);
-                columnWidth = cardWidth / cardRowColumnCountDisplayed;
-                isCardWrapped = true;
-            }
-
-            var cardHeight = Math.ceil(totalRowsDisplayed * cardItemContainerHeight);
-            if (isDashboardVisual) {
-                cardHeight += settings.card.bottomBorderWidth + settings.card.bottomPadding + settings.card.topPadding;
-            }
-            var cardHeightTotal = cardHeight;
-
-            if (isDashboardVisual) {
-                maxCards = Math.min(Math.floor(viewport.height / cardHeight), maxCards);
-            }
-            else {
-                cardHeightTotal = this.getTotalCardHeight(cardHeight);
-                cardWidth += settings.card.leftBorderWidth + settings.card.leftPadding;
-            }
-
-            this.cardHeight = cardHeight;
-            this.columnWidth = columnWidth;
-            this.cardWidth = cardWidth;
-            this.cardHeightTotal = cardHeightTotal;
-            this.maxCardsDisplayed = maxCards;
-            this.cardItemContainerHeight = cardItemContainerHeight;
-            this.isCardWrapped = isCardWrapped;
-        }
-
-        private getPixelString(value: number): string {
-            return value + "px";
         }
 
         private onLoadMoreData(): void {
@@ -596,9 +580,29 @@ module powerbi.visuals {
                 this.waitingForData = true;
             }
         }
+    }
 
-        private getTotalCardHeight(cardHeight: number): number {
-            return cardHeight + (this.isSingleRowCard ? 0 : this.settings.card.marginBottom);
-        }
+    function appendImage(selection: D3.Selection): void {
+        selection
+            .append('div')
+            .classed('imgCon', true)
+            .append('img');
+    }
+
+    function setImageStyle(selection: D3.Selection, imageStyle: ImageStyle): void {
+        selection
+            .selectAll('.imgCon')
+            .style({
+                'height': getPixelString(imageStyle.maxHeight),
+            })
+            .selectAll('img')
+            .style({
+                'max-height': getPixelString(imageStyle.maxHeight),
+                'max-width': getPixelString(imageStyle.maxWidth),
+            });
+    }
+
+    function getPixelString(value: number): string {
+        return value + "px";
     }
 }

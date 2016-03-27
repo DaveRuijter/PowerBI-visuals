@@ -103,6 +103,15 @@ module powerbitests {
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(nonLatitudeString)).toBe(false);
         });
 
+        it("can detect state field in the middle of a word", () => {
+            var stateInTheMiddle = "UserState";
+            expect(geoTaggingAnalyzerService.getFieldType(stateInTheMiddle)).toBe("StateOrProvince");
+            stateInTheMiddle = "StateForTheUser";
+            expect(geoTaggingAnalyzerService.getFieldType(stateInTheMiddle)).toBe("StateOrProvince");
+            stateInTheMiddle = "xyzstatexyz";
+            expect(geoTaggingAnalyzerService.getFieldType(stateInTheMiddle)).toBe("StateOrProvince");
+        });
+
         it("can detect latitude fields that have more than one word", () => {
             var latitudeString = "Latitude value";
             expect(geoTaggingAnalyzerService.isLongitudeOrLatitude(latitudeString)).toBe(true);

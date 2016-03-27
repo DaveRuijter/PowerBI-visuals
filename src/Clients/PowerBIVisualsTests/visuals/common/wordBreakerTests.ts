@@ -257,6 +257,19 @@ module powerbitests {
                 expect(words[1]).toBe('lmn opqr stu');
                 expect(words[2]).toBe('vwx yz');
             });
+
+            it('has truncator', () => {
+                let truncator = (properties: powerbi.TextProperties, maxWidth: number) => {
+                    return properties.text.slice(0, -1) + '…';
+                };
+
+                words = WordBreaker.splitByWidth('abcd efg hijk lmn opqr stu vwx yz', textProperties, textWidthMeasurer, 75, 0, truncator);
+
+                expect(words.length).toBe(3);
+                expect(words[0]).toBe('abcd efg hij…');
+                expect(words[1]).toBe('lmn opqr st…');
+                expect(words[2]).toBe('vwx y…');
+            });
         });
     });
 }

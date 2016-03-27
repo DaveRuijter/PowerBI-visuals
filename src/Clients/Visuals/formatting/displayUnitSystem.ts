@@ -59,7 +59,7 @@ module powerbi {
 
         public isApplicableTo(value: number): boolean {
             value = Math.abs(value);
-            var precision = Double.getPrecision(value, 3);
+            let precision = Double.getPrecision(value, 3);
             return Double.greaterOrEqualWithPrecision(value, this.applicableRangeMin, precision) && Double.lessWithPrecision(value, this.applicableRangeMax, precision);
         }
 
@@ -99,9 +99,9 @@ module powerbi {
         }
 
         private findApplicableDisplayUnit(value: number): DisplayUnit {
-            var count = this.units.length;
-            for (var i = 0; i < count; i++) {
-                var unit = this.units[i];
+            let count = this.units.length;
+            for (let i = 0; i < count; i++) {
+                let unit = this.units[i];
                 if (unit.isApplicableTo(value)) {
                     return unit;
                 }
@@ -111,10 +111,10 @@ module powerbi {
 
         public format(value: number, format: string, decimals?: number, trailingZeros?: boolean ): string {
 
-            if (!DisplayUnitSystem.UNSUPPORTED_FORMATS.test(format)) {
-                if (this.isScalingUnit()) {
-                    var projectedValue = this.displayUnit.project(value);
-                    var nonScientificFormat = (trailingZeros)
+            if (this.isFormatSupported(format)) {
+                if (this.isScalingUnit() && this.shouldRespectScalingUnit(format)) {
+                    let projectedValue = this.displayUnit.project(value);
+                    let nonScientificFormat = (trailingZeros)
                         ? DisplayUnitSystem.getNonScientificFormatWithPrecision(this.displayUnit.labelFormat, decimals)
                         : this.displayUnit.labelFormat;
                     return this.formatHelper(value, projectedValue, nonScientificFormat, format, decimals, trailingZeros);
@@ -122,11 +122,14 @@ module powerbi {
                 if (decimals != null) {
                     if (trailingZeros && format && DisplayUnitSystem.NUMBER_FORMAT.test(format)) {
                         var formatWithPrecision = DisplayUnitSystem.getFormatWithPrecision(decimals);
-                        format = format.replace(/0\.0*/g, formatWithPrecision);
-                        return this.formatHelper(value, value, '', format, decimals, trailingZeros);
+                        //Using the regex below we can maintain the original format (with/without dot, $ etc.) while forcing precision.
+                        var regex = /^[a-zA-Z0-9- ]*$/.test(format) ?/.0*/g:/0\.0*/g;
+                        format = format.replace(regex, formatWithPrecision);
+                        var decimalsForFormatting = this.getNumberOfDecimalsForFormatting(format, decimals);
+                        return this.formatHelper(value, value, '', format, decimalsForFormatting, trailingZeros);
                     }
                     if (trailingZeros) {
-                        var nonScientificFormat = DisplayUnitSystem.getNonScientificFormatWithPrecision('{0}', decimals);
+                        let nonScientificFormat = DisplayUnitSystem.getNonScientificFormatWithPrecision('{0}', decimals);
                         return this.formatHelper(value, value, nonScientificFormat, format, decimals, trailingZeros);
                     }
                     return this.formatHelper(value, value, '', format, decimals, trailingZeros);
@@ -137,20 +140,32 @@ module powerbi {
             return formattingService.formatValue(value, format);
         }
 
+        public isFormatSupported(format: string): boolean {
+            return !DisplayUnitSystem.UNSUPPORTED_FORMATS.test(format);
+        }
+
+        public getNumberOfDecimalsForFormatting(format: string, decimals?: number) {
+            return decimals;
+        }
+
         public isScalingUnit(): boolean {
             return this.displayUnit && this.displayUnit.isScaling();
         }
 
+        public shouldRespectScalingUnit(format: string): boolean{
+            return true;
+        }
+
         private formatHelper(value: number, projectedValue: number, nonScientificFormat: string, format: string, decimals?: number, trailingZeros?: boolean) {
-            var precision = (decimals != null) ? Double.pow10(decimals) : Double.getPrecision(value);
+            let precision = (decimals != null) ? Double.pow10(decimals) : Double.getPrecision(value);
             
-            var x = Double.roundToPrecision(projectedValue, precision);
+            let x = Double.roundToPrecision(projectedValue, precision);
 
             if (format && !formattingService.isStandardNumberFormat(format))
                 return formattingService.formatNumberWithCustomOverride(x, format, nonScientificFormat);
 
-            var textFormat = trailingZeros ? DisplayUnitSystem.getFormatWithPrecision(decimals) : 'G';
-            var text = formattingService.formatValue(x, textFormat);
+            let textFormat = trailingZeros ? DisplayUnitSystem.getFormatWithPrecision(decimals) : 'G';
+            let text = formattingService.formatValue(x, textFormat);
             return formattingService.format(nonScientificFormat, [text]);
         }
 
@@ -158,7 +173,7 @@ module powerbi {
             if (!decimals || baseFormat === undefined)
                 return baseFormat;
 
-            var newFormat = "{0:" + DisplayUnitSystem.getFormatWithPrecision(decimals) + "}";
+            let newFormat = "{0:" + DisplayUnitSystem.getFormatWithPrecision(decimals) + "}";
 
             return baseFormat.replace("{0}", newFormat);
         }
@@ -181,8 +196,8 @@ module powerbi {
                 return true;
 
             // Check if the value is big enough to have a valid unit by checking against the smallest unit (that it's value bigger than 1).
-            var applicableRangeMin: number = 0;
-            for (var i = 0; i < this.units.length; i++) {
+            let applicableRangeMin: number = 0;
+            for (let i = 0; i < this.units.length; i++) {
                 if (this.units[i].isScaling()) {
                     applicableRangeMin = this.units[i].applicableRangeMin;
                     break;
@@ -260,8 +275,8 @@ module powerbi {
 
                 // Set scientific value boundary
                 DefaultDisplayUnitSystem._scientificBigNumbersBoundary = defaultScientificBigNumbersBoundary;
-                for (var i = 0, len = DefaultDisplayUnitSystem._units.length; i < len; ++i) {
-                    var unit = DefaultDisplayUnitSystem._units[i];
+                for (let i = 0, len = DefaultDisplayUnitSystem._units.length; i < len; ++i) {
+                    let unit = DefaultDisplayUnitSystem._units[i];
                     if (unit.applicableRangeMax > DefaultDisplayUnitSystem._scientificBigNumbersBoundary) {
                         DefaultDisplayUnitSystem._scientificBigNumbersBoundary = unit.applicableRangeMax;
                     }
@@ -295,16 +310,34 @@ module powerbi {
     }
 
     export class DataLabelsDisplayUnitSystem extends DisplayUnitSystem {
+
+        // Constants
+        static UNSUPPORTED_FORMATS = /^(e\d*)$/i;
+        static PERCENTAGE_FORMAT = '%';
+
         private static _units: DisplayUnit[];
 
         constructor(unitLookup: (exponent: number) => DisplayUnitSystemNames) {
             super(DataLabelsDisplayUnitSystem.getUnits(unitLookup));
         }
 
+        public isFormatSupported(format: string): boolean {
+            return !DataLabelsDisplayUnitSystem.UNSUPPORTED_FORMATS.test(format);
+        }
+
+        public getNumberOfDecimalsForFormatting(format: string, decimals?: number) {
+            if (format.indexOf(DataLabelsDisplayUnitSystem.PERCENTAGE_FORMAT) >= 0)
+                return decimals -= 2;
+        }
+
+        public shouldRespectScalingUnit(format: string): boolean {
+            return (!format || format.indexOf(DataLabelsDisplayUnitSystem.PERCENTAGE_FORMAT) < 0);
+        }
+
         private static getUnits(unitLookup: (exponent: number) => DisplayUnitSystemNames): DisplayUnit[] {
             if (!DataLabelsDisplayUnitSystem._units) {
-                var units = [];
-                var adjustMinBasedOnPreviousUnit = (value: number, previousUnitValue: number, min: number): number => {
+                let units = [];
+                let adjustMinBasedOnPreviousUnit = (value: number, previousUnitValue: number, min: number): number => {
                     if (value === -1)
                         if (value - previousUnitValue >= 1000) {
                             return value / 10;
@@ -313,7 +346,7 @@ module powerbi {
                 };
 
                 //Add Auto & None
-                var names = unitLookup(-1);
+                let names = unitLookup(-1);
                 addUnitIfNonEmpty(units, 0, names.title, names.format, adjustMinBasedOnPreviousUnit);
 
                 names = unitLookup(0);
@@ -332,9 +365,9 @@ module powerbi {
     }
 
     function createDisplayUnits(unitLookup: (exponent: number) => DisplayUnitSystemNames, adjustMinBasedOnPreviousUnit?: (value: number, previousUnitValue: number, min: number) => number) {
-        var units = [];
-        for (var i = 3; i < maxExponent; i++) {
-            var names = unitLookup(i);
+        let units = [];
+        for (let i = 3; i < maxExponent; i++) {
+            let names = unitLookup(i);
             if (names)
                 addUnitIfNonEmpty(units, Double.pow10(i), names.title, names.format, adjustMinBasedOnPreviousUnit);
         }
@@ -349,17 +382,17 @@ module powerbi {
         labelFormat: string,
         adjustMinBasedOnPreviousUnit?: (value: number, previousUnitValue: number, min: number) => number): void {
         if (title || labelFormat) {
-            var min = value;
+            let min = value;
 
             if (units.length > 0) {
-                var previousUnit = units[units.length - 1];
+                let previousUnit = units[units.length - 1];
 
                 if (adjustMinBasedOnPreviousUnit)
                     min = adjustMinBasedOnPreviousUnit(value, previousUnit.value, min);
 
                 previousUnit.applicableRangeMax = min;
             }
-            var unit = new DisplayUnit();
+            let unit = new DisplayUnit();
             unit.value = value;
             unit.applicableRangeMin = min;
             unit.applicableRangeMax = min * 1000;

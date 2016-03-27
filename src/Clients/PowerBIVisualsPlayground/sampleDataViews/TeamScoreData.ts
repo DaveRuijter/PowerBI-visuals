@@ -38,7 +38,7 @@ module powerbi.visuals.sampleDataViews {
         ];
 
         public getDataViews(): DataView[] {
-            var fieldExpr = powerbi.data.SQExprBuilder.fieldDef({ schema: 's', entity: "table1", column: "teams" });
+            var fieldExpr = powerbi.data.SQExprBuilder.fieldExpr({ column: { schema: 's', entity: "table1", name: "teams" } });
 
             var categoryValues = ["Seahawks", "49ers"];
             var categoryIdentities = categoryValues.map(function (value) {

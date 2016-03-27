@@ -68,8 +68,8 @@ module powerbi.visuals {
 
         public getMetaDataColumn(dataView: DataView) {
             if (dataView && dataView.metadata && dataView.metadata.columns) {
-                for (var i = 0, ilen = dataView.metadata.columns.length; i < ilen; i++) {
-                    var column = dataView.metadata.columns[i];
+                for (let i = 0, ilen = dataView.metadata.columns.length; i < ilen; i++) {
+                    let column = dataView.metadata.columns[i];
                     if (column.isMeasure) {
                         this.metaDataColumn = column;
                         break;
@@ -84,9 +84,9 @@ module powerbi.visuals {
             seedFontHeight: number): number {
 
             // set up the node so we don't keep appending/removing it during the computation
-            var nodeSelection = this.svg.append('text').text(textToMeasure);
+            let nodeSelection = this.svg.append('text').text(textToMeasure);
 
-            var fontHeight = this.getAdjustedFontHeightCore(
+            let fontHeight = this.getAdjustedFontHeightCore(
                 nodeSelection,
                 availableWidth,
                 seedFontHeight,
@@ -108,7 +108,7 @@ module powerbi.visuals {
                 return seedFontHeight;
 
             nodeToMeasure.attr('font-size', seedFontHeight);
-            var candidateLength = TextMeasurementService.measureSvgTextElementWidth(nodeToMeasure[0][0]);
+            let candidateLength = TextMeasurementService.measureSvgTextElementWidth(nodeToMeasure[0][0]);
             if (candidateLength < availableWidth)
                 return seedFontHeight;
 
@@ -133,7 +133,7 @@ module powerbi.visuals {
             if (!startValue)
                 startValue = 0;
 
-            var svg = this.svg,
+            let svg = this.svg,
                 viewport = this.currentViewport,
                 height = viewport.height,
                 width = viewport.width,
@@ -154,12 +154,12 @@ module powerbi.visuals {
                     columnType: metaDataColumn ? metaDataColumn.type : undefined
                 });
             }
-            var startText = formatter.format(startValue),
+            let startText = formatter.format(startValue),
                 endText = formatter.format(endValue);
 
             svg.attr('class', this.name);
 
-            var textElement = svg
+            let textElement = svg
                 .selectAll('text')
                 .data(endValueArr);
 
@@ -168,10 +168,10 @@ module powerbi.visuals {
                 .append('text')
                 .attr('class', this.mainText.class);
 
-            var fontHeight = this.getAdjustedFontHeight(width, endText, seedFontHeight);
+            let fontHeight = this.getAdjustedFontHeight(width, endText, seedFontHeight);
             translateY = this.getTranslateY(fontHeight + (height - fontHeight) / 2);
 
-            var textElementUpdate = textElement
+            let textElementUpdate = textElement
                 .text(startText)
                 .attr({
                     'text-anchor': this.getTextAnchor(),
@@ -186,14 +186,14 @@ module powerbi.visuals {
                 textElementUpdate.text(endText);
             }
             else {
-                var interpolatedValue = startValue;
+                let interpolatedValue = startValue;
                 textElementUpdate
                     .transition()
                     .duration(duration)
                     .tween('text', function (d) {
-                        var i = d3.interpolate(interpolatedValue, d);
+                        let i = d3.interpolate(interpolatedValue, d);
                         return function (t) {
-                            var num = i(t);
+                            let num = i(t);
                             this.textContent = formatter.format(num);
                         };
                     });
@@ -204,8 +204,8 @@ module powerbi.visuals {
 
         public getSeedFontHeight(boundingWidth: number, boundingHeight: number) {
             // Simply an estimate - it should eventually be modified based on the actual text length
-            var estimatedSize = Math.floor(Math.min(boundingWidth, boundingHeight) * 0.75);
-            var maxFontSize = this.visualConfiguration.maxFontSize;
+            let estimatedSize = Math.floor(Math.min(boundingWidth, boundingHeight) * 0.75);
+            let maxFontSize = this.visualConfiguration.maxFontSize;
 
             if (maxFontSize)
                 return Math.min(maxFontSize, estimatedSize);

@@ -75,10 +75,19 @@ module powerbi.visuals {
                     }
                 }
             },
+            rotation: {
+                displayName: data.createDisplayNameGetter('Visual_BasicShape_Rotate'),
+                properties: {
+                    angle: {
+                        displayName: data.createDisplayNameGetter('Visual_BasicShape_Rotate'),
+                        type: { numeric: true }
+                    }
+                }
+            },
             general: {
                 properties: {
                     shapeType: {
-                        type: { shapeType: true }
+                        type: { text: true }
                     }
                 }
             }

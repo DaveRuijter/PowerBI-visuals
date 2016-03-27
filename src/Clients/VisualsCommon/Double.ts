@@ -217,7 +217,7 @@ module powerbi {
             }
             // JS Math provides only natural log function so we need to calc the 10 base logarithm:
             // logb(x) = logk(x)/logk(b); 
-            var log10 = Math.log(val) / Double.LOG_E_10;
+            let log10 = Math.log(val) / Double.LOG_E_10;
             return Double.floorWithPrecision(log10);
         }
 
@@ -237,12 +237,12 @@ module powerbi {
                 return undefined; 
             }
 
-            var exp = Double.log10(Math.abs(x));
+            let exp = Double.log10(Math.abs(x));
 
             if (exp < Double.MIN_EXP) {
                 return 0;
             }
-            var precisionExp = Math.max(exp - decimalDigits, -Double.NEGATIVE_POWERS.length + 1);
+            let precisionExp = Math.max(exp - decimalDigits, -Double.NEGATIVE_POWERS.length + 1);
             return Double.pow10(precisionExp);
         }
 
@@ -324,7 +324,7 @@ module powerbi {
             precision = applyDefault(precision, Double.DEFAULT_PRECISION);
             debug.assert(precision >= 0, "precision");
             
-            var roundX = Math.round(x);
+            let roundX = Math.round(x);
             if (Math.abs(x - roundX) < precision) {
                 return roundX;
             } else {
@@ -341,7 +341,7 @@ module powerbi {
             precision = applyDefault(precision, Double.DEFAULT_PRECISION);
             debug.assert(precision >= 0, "precision");
             
-            var roundX = Math.round(x);
+            let roundX = Math.round(x);
             if (Math.abs(x - roundX) < precision) {
                 return roundX;
             } else {
@@ -394,8 +394,8 @@ module powerbi {
                 return x;
             } 
             //Precision must be a Power of 10
-            var result = Math.round(x / precision) * precision;
-            var decimalDigits = Math.round(Double.log10(Math.abs(x)) - Double.log10(precision)) + 1;
+            let result = Math.round(x / precision) * precision;
+            let decimalDigits = Math.round(Double.log10(Math.abs(x)) - Double.log10(precision)) + 1;
             if (decimalDigits > 0 && decimalDigits < 16) {
                 result = parseFloat(result.toPrecision(decimalDigits));
             }
@@ -448,8 +448,8 @@ module powerbi {
                     return NaN;
                 }
             }
-            var relativeX = (value - fromMin) / fromSize;
-            var projectedX = toMin + relativeX * toSize;
+            let relativeX = (value - fromMin) / fromSize;
+            let projectedX = toMin + relativeX * toSize;
             return projectedX;
         }
 
@@ -467,6 +467,18 @@ module powerbi {
          */
         export function isInteger(value: number): boolean {
             return value !== null && value % 1 === 0;
+        }
+
+        /**
+         * Dividing by increment will give us count of increments
+         * Round out the rough edges into even integer
+         * Multiply back by increment to get rounded value
+         * e.g. Rounder.toIncrement(0.647291, 0.05) => 0.65
+         * @param value - value to round to nearest increment
+         * @param increment - smallest increment to round toward
+         */
+        export function toIncrement(value: number, increment: number) {
+            return Math.round(value / increment) * increment;
         }
     }
 

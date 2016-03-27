@@ -60,6 +60,13 @@ module powerbi.visuals {
                     columnSubtotals: {
                         type: { bool: true },
                         displayName: data.createDisplayNameGetter('Visual_ColumnTotals')
+                    },
+                    autoSizeColumnWidth: {
+                        type: { bool: true },
+                        displayName: data.createDisplayNameGetter('Visual_Adjust_Column_Width')
+                    },
+                    columnWidth: {
+                        type: { numeric: true }
                     }
                 },
             }

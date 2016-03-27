@@ -28,20 +28,39 @@
 
 module powerbi.visuals {
     export interface LineChartBehaviorOptions {
-        dataPoints: SelectableDataPoint[];
         lines: D3.Selection;
         interactivityLines: D3.Selection;
         dots: D3.Selection;
         areas: D3.Selection;
-        clearCatcher: D3.Selection;
+        isPartOfCombo?: boolean;
     }
 
-    export class LineChartWebBehavior {
-        public select(hasSelection: boolean, lines: D3.Selection, dots: D3.Selection, areas: D3.Selection) {
-            lines.style("stroke-opacity", (d: SelectableDataPoint) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false));
-            dots.style("fill-opacity", (d: SelectableDataPoint) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false));
+    export class LineChartWebBehavior implements IInteractiveBehavior {
+        private lines: D3.Selection;
+        private dots: D3.Selection;
+        private areas: D3.Selection;
+
+        public bindEvents(options: LineChartBehaviorOptions, selectionHandler: ISelectionHandler): void {
+            this.lines = options.lines;
+            let interactivityLines = options.interactivityLines;
+            let dots = this.dots = options.dots;
+            let areas = this.areas = options.areas;
+
+            let clickHandler = (d: SelectableDataPoint) => {
+                selectionHandler.handleSelection(d, d3.event.ctrlKey);
+            };
+
+            interactivityLines.on('click', clickHandler);
+            dots.on('click', clickHandler);
             if (areas)
-                areas.style("fill-opacity", (d: SelectableDataPoint) => (hasSelection && !d.selected) ? LineChart.DimmedAreaFillOpacity : LineChart.AreaFillOpacity);
+                areas.on('click', clickHandler);
+        }
+
+        public renderSelection(hasSelection: boolean) {
+            this.lines.style("stroke-opacity", (d: SelectableDataPoint) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false));
+            this.dots.style("fill-opacity", (d: SelectableDataPoint) => ColumnUtil.getFillOpacity(d.selected, false, hasSelection, false));
+            if (this.areas)
+                this.areas.style("fill-opacity", (d: SelectableDataPoint) => (hasSelection && !d.selected) ? LineChart.DimmedAreaFillOpacity : LineChart.AreaFillOpacity);
         }
     }
 } 

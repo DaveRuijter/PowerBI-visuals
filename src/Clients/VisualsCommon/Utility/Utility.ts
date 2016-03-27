@@ -57,13 +57,13 @@ module jsCommon {
      */
     export module StringExtensions {
         export function format(...args: string[]) {
-            var s = args[0];
+            let s = args[0];
 
             if (isNullOrUndefinedOrWhiteSpaceString(s))
                 return s;
 
-            for (var i = 0; i < args.length - 1; i++) {
-                var reg = new RegExp("\\{" + i + "\\}", "gm");
+            for (let i = 0; i < args.length - 1; i++) {
+                let reg = new RegExp("\\{" + i + "\\}", "gm");
                 s = s.replace(reg, args[i + 1]);
             }
             return s;
@@ -77,7 +77,7 @@ module jsCommon {
         }
 
         export function startsWithIgnoreCase(a: string, b: string): boolean {
-            var normalizedSearchString = StringExtensions.normalizeCase(b);
+            let normalizedSearchString = StringExtensions.normalizeCase(b);
             return StringExtensions.normalizeCase(a).indexOf(normalizedSearchString) === 0;
         }
 
@@ -86,7 +86,7 @@ module jsCommon {
             if (source == null)
                 return false;
 
-            return source.toLowerCase().indexOf(substring.toString()) !== -1;
+            return source.toLowerCase().indexOf(substring.toLowerCase().toString()) !== -1;
         }
 
         /** 
@@ -123,7 +123,7 @@ module jsCommon {
         export function containsWhitespace(str: string): boolean {
             Utility.throwIfNullOrUndefined(str, this, 'containsWhitespace', 'str');
 
-            var expr: RegExp = /\s/;
+            let expr: RegExp = /\s/;
             return expr.test(str);
         }
 
@@ -168,8 +168,8 @@ module jsCommon {
          * @param count How many times to repeat the string.
          */
         export function repeat(char: string, count: number): string {
-            var result = "";
-            for (var i = 0; i < count; i++) {
+            let result = "";
+            for (let i = 0; i < count; i++) {
                 result += char;
             }
             return result;
@@ -185,8 +185,8 @@ module jsCommon {
             if (!textToFind)
                 return text;
 
-            var pattern = textToFind.replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '\\$1');
-            return text.replace(new RegExp(pattern, 'g'), textToReplace);
+            let pattern = escapeStringForRegex(textToFind);
+            return text.replace(new RegExp(pattern, 'gi'), textToReplace);
         }
 
         /**
@@ -199,7 +199,7 @@ module jsCommon {
             debug.assertValue(baseName, 'baseName');
 
             // Find a unique name
-            var i = 0,
+            let i = 0,
                 uniqueName: string = baseName;
             while (usedNames[uniqueName]) {
                 uniqueName = baseName + (++i);
@@ -215,14 +215,14 @@ module jsCommon {
             if (maxValue === null || maxValue === undefined)
                 maxValue = Number.MAX_VALUE;
 
-            var length = Math.min(maxValue, list.length);
+            let length = Math.min(maxValue, list.length);
 
-            var replacedList = [];
+            let replacedList = [];
             // Only need to replace user entries of {0} and {1} since we build the list in pairs.
-            for (var j = 0; j < 2; j++) {
-                var targetValue = '{' + j + '}';
-                var replaceValue = '_|_<' + j + '>_|_';
-                for (var i = 0; i < length; i++) {
+            for (let j = 0; j < 2; j++) {
+                let targetValue = '{' + j + '}';
+                let replaceValue = '_|_<' + j + '>_|_';
+                for (let i = 0; i < length; i++) {
                     if (list[i].indexOf(targetValue) > -1) {
                         list[i] = list[i].replace(targetValue, replaceValue);
                         replacedList.push({ targetValue: targetValue, replaceValue: replaceValue });
@@ -230,19 +230,23 @@ module jsCommon {
                 }
             }
 
-            var commaSeparatedList: string = '';
-            for (var i = 0; i < length; i++) {
+            let commaSeparatedList: string = '';
+            for (let i = 0; i < length; i++) {
                 if (i === 0)
                     commaSeparatedList = list[i];
                 else
                     commaSeparatedList = StringExtensions.format(resourceProvider.get('FilterRestatement_Comma'), commaSeparatedList, list[i]);
             }
 
-            for (var i = 0; i < replacedList.length; i++) {
+            for (let i = 0; i < replacedList.length; i++) {
                 commaSeparatedList = commaSeparatedList.replace(replacedList[i].replaceValue, replacedList[i].targetValue);
             }
 
             return commaSeparatedList;
+        }
+
+        export function escapeStringForRegex(s: string): string {
+            return s.replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '\\$1');
         }
     }
 
@@ -412,7 +416,7 @@ module jsCommon {
                 return path;
             }
 
-            var finalUrl = baseUrl;
+            let finalUrl = baseUrl;
 
             if (finalUrl.charAt(finalUrl.length - 1) === '/') {
                 if (path.charAt(0) === '/')
@@ -428,7 +432,7 @@ module jsCommon {
         public static getAbsoluteUri(path: string): string {
             Utility.throwIfNullOrUndefined(path, null, "getAbsoluteUri", "path");
 
-            var url = path;
+            let url = path;
             // Make absolute
             if (url && url.indexOf('http') === - 1) {
                 url = Utility.urlCombine(clusterUri, url);
@@ -439,7 +443,7 @@ module jsCommon {
         public static getStaticResourceUri(path: string) {
             Utility.throwIfNullOrUndefined(path, null, "getStaticResourceUri", "path");
 
-            var url = path;
+            let url = path;
             // Make absolute
             if (url && url.indexOf('http') === - 1) {
                 url = jsCommon.Utility.urlCombine(Utility.staticContentLocation, url);
@@ -473,11 +477,11 @@ module jsCommon {
          * @returns A string representation of a Guid.
          */
         public static generateGuid(): string {
-            var guid = "",
+            let guid = "",
                 idx = 0;
 
             for (idx = 0; idx < 32; idx += 1) {
-                var guidDigitsItem = Math.random() * 16 | 0;
+                let guidDigitsItem = Math.random() * 16 | 0;
                 switch (idx) {
                     case 8:
                     case 12:
@@ -497,10 +501,10 @@ module jsCommon {
          * @returns A random connection group name.
          */
         public static generateConnectionGroupName(): string {
-            var name = "";
-            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            let name = "";
+            let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-            for (var i = 0; i < 7; i++)
+            for (let i = 0; i < 7; i++)
                 name += possible.charAt(Math.floor(Math.random() * possible.length));
 
             return name;
@@ -512,10 +516,10 @@ module jsCommon {
         public static getCookieValue(key: string): string {
             // the cookie is of the format <key1=value1>; <key2=value2>. Split by ';', then by '=' 
             // to search for the key
-            var keyValuePairs = document.cookie.split(';');
-            for (var i = 0; i < keyValuePairs.length; i++) {
-                var keyValue = keyValuePairs[i];
-                var split = keyValue.split('=');
+            let keyValuePairs = document.cookie.split(';');
+            for (let i = 0; i < keyValuePairs.length; i++) {
+                let keyValue = keyValuePairs[i];
+                let split = keyValue.split('=');
                 if (split.length > 0 && split[0].trim() === key) {
                     return keyValue.substr(keyValue.indexOf('=') + 1);
                 }
@@ -529,7 +533,7 @@ module jsCommon {
          * @returns The protocol://hostname portion of the given URL.
          */
         public static getDomainForUrl(url: string): string {
-            var hrefObject = Utility.getHrefObjectFromUrl(url);
+            let hrefObject = Utility.getHrefObjectFromUrl(url);
             return hrefObject.prop('protocol') + '//' + hrefObject.prop('hostname');
         }
 
@@ -539,7 +543,7 @@ module jsCommon {
          * @returns The hostname and absolute path portion of the given URL.
          */
         public static getHostNameForUrl(url: string): string {
-            var hrefObject = Utility.getHrefObjectFromUrl(url);
+            let hrefObject = Utility.getHrefObjectFromUrl(url);
             return Utility.urlCombine(hrefObject.prop('hostname'), hrefObject.prop('pathname'));
         }
 
@@ -549,7 +553,7 @@ module jsCommon {
          * @returns the original url with query string stripped.
          */
         public static getUrlWithoutQueryString(url: string): string {
-            var hrefObject = Utility.getHrefObjectFromUrl(url);
+            let hrefObject = Utility.getHrefObjectFromUrl(url);
             return hrefObject.prop('protocol') + '//' + Utility.urlCombine(hrefObject.prop('host'), hrefObject.prop('pathname'));
         }
 
@@ -568,7 +572,7 @@ module jsCommon {
          * @returns A jQuery object with the url.
          */
         public static getHrefObjectFromUrl(url: string): JQuery {
-            var aObject = $('<a>');
+            let aObject = $('<a>');
             aObject = aObject.prop('href', url);
             return aObject;
         }
@@ -584,10 +588,10 @@ module jsCommon {
             // WCF representation: [{"Key": Key, "Value": Value}..]
             // JS representation: [Key: Value ..]
 
-            var result: { [index: string]: any; } = {};
+            let result: { [index: string]: any; } = {};
 
-            for (var i = 0; i < wcfDictionary.length; i++) {
-                var keyValuePair = wcfDictionary[i];
+            for (let i = 0; i < wcfDictionary.length; i++) {
+                let keyValuePair = wcfDictionary[i];
                 result[keyValuePair['Key']] = keyValuePair['Value'];
             }
 
@@ -598,16 +602,16 @@ module jsCommon {
             if (StringExtensions.isNullOrEmpty(jsonDate)) {
                 return null;
             }
-            var begIndex = jsonDate.indexOf('(');
-            var endIndex = jsonDate.indexOf(')');
+            let begIndex = jsonDate.indexOf('(');
+            let endIndex = jsonDate.indexOf(')');
             if (begIndex !== -1 && endIndex !== -1) {
-                var milliseconds = parseInt(jsonDate.substring(begIndex + 1, endIndex), 10);
+                let milliseconds = parseInt(jsonDate.substring(begIndex + 1, endIndex), 10);
 
                 if (fromUtcMilliseconds) {
                     return new Date(milliseconds);
                 }
                 else {
-                    var retValue = new Date(0);
+                    let retValue = new Date(0);
                     retValue.setUTCMilliseconds(milliseconds);
                     return retValue;
                 }
@@ -640,10 +644,10 @@ module jsCommon {
          * @returns The index of the smallest value in the array.
          */
         public static getIndexOfMinValue(a: number[]) {
-            var retValue = 0;
-            var currentMinValue = a[0];
+            let retValue = 0;
+            let currentMinValue = a[0];
 
-            for (var i = 0; i < a.length; i++) {
+            for (let i = 0; i < a.length; i++) {
                 if (a[i] < currentMinValue) {
                     currentMinValue = a[i];
                     retValue = i;
@@ -676,7 +680,7 @@ module jsCommon {
          * Verifies image data url of images.
          */
         public static isValidImageDataUrl(url: string): boolean {
-            var regex: RegExp = new RegExp('data:(image\/(png|jpg|jpeg|gif|svg))');
+            let regex: RegExp = new RegExp('data:(image\/(png|jpg|jpeg|gif|svg))');
             return regex.test(url);
         }
         
@@ -686,10 +690,10 @@ module jsCommon {
          * @param fileName File name to use.
          */
         public static saveAsFile(content: any, fileName: string): void {
-            var contentBlob = new Blob([content], { type: HttpConstants.ApplicationOctetStream });
-            var url = window['webkitURL'] || URL;
-            var urlLink = url.createObjectURL(contentBlob);
-            var fileNameLink = fileName || urlLink;
+            let contentBlob = new Blob([content], { type: HttpConstants.ApplicationOctetStream });
+            let url = window['webkitURL'] || URL;
+            let urlLink = url.createObjectURL(contentBlob);
+            let fileNameLink = fileName || urlLink;
 
             // IE support, use msSaveOrOpenBlob API
             if (window.navigator.msSaveOrOpenBlob) {
@@ -700,7 +704,7 @@ module jsCommon {
             // WebKit-based browser support requires generating an anchor tag with
             // download attribute set to blob store and triggering a click event to invoke 
             // a download to file action
-            var hyperlink = document.createElement('a');
+            let hyperlink = document.createElement('a');
             hyperlink.href = urlLink;
             hyperlink.target = '_blank';
             hyperlink['download'] = fileNameLink;
@@ -718,7 +722,7 @@ module jsCommon {
         public static getType(obj: TypedObject) {
             Utility.throwIfNullEmptyOrWhitespaceString(obj.__type, this, 'getType', 'obj');
 
-            var parts = obj.__type.split(":");
+            let parts = obj.__type.split(":");
 
             if (parts.length !== 2) {
                 Errors.argument("obj.__type", "Type String not in expected format [Type]#[Namespace]: " + obj.__type);
@@ -739,7 +743,7 @@ module jsCommon {
          */
         public static isEventSupported(eventName: string, element: Element): boolean {
             eventName = 'on' + eventName;
-            var isSupported = (eventName in element);
+            let isSupported = (eventName in element);
 
             if (!isSupported) {
                 // if we can't use setAttribute try a generic element
@@ -781,7 +785,7 @@ module jsCommon {
          */
         public static getFileExtension(filePath: string): string {
             if (filePath) {
-                var index = filePath.lastIndexOf('.');
+                let index = filePath.lastIndexOf('.');
                 if (index >= 0)
                     return filePath.substr(index + 1);
             }
@@ -819,7 +823,7 @@ module jsCommon {
             if (value === undefined)
                 return defaultValue;
             
-            var result = Number(value);
+            let result = Number(value);
             if (isFinite(result))
                 return result;
             if (isNaN(result) && !(typeof value === "number" || value === "NaN"))
@@ -828,7 +832,7 @@ module jsCommon {
         }
 
         public static getURLParamValue(name:string) {
-            var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+            let results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
             if (results == null) {
                 return null;
             }
@@ -845,11 +849,11 @@ module jsCommon {
          * @return Local timezone string or UTC if timezone cannot be found.
          */
         public static getLocalTimeZoneString(): string {
-            var timeSummer = new Date(Date.UTC(2005, 6, 30, 0, 0, 0, 0));
-            var summerOffset = -1 * timeSummer.getTimezoneOffset();
-            var timeWinter = new Date(Date.UTC(2005, 12, 30, 0, 0, 0, 0));
-            var winterOffset = -1 * timeWinter.getTimezoneOffset();
-            var localTimeZoneString;
+            let timeSummer = new Date(Date.UTC(2005, 6, 30, 0, 0, 0, 0));
+            let summerOffset = -1 * timeSummer.getTimezoneOffset();
+            let timeWinter = new Date(Date.UTC(2005, 12, 30, 0, 0, 0, 0));
+            let winterOffset = -1 * timeWinter.getTimezoneOffset();
+            let localTimeZoneString;
 
             if (-720 === summerOffset && -720 === winterOffset) { localTimeZoneString = 'Dateline Standard Time'; }
             else if (-660 === summerOffset && -660 === winterOffset) { localTimeZoneString = 'UTC-11'; }
@@ -918,14 +922,14 @@ module jsCommon {
          * @returns A result for the comparison.
          */
         static compareVersions(versionA: string, versionB: string): number {
-            var a = versionA.split('.').map(parseFloat);
-            var b = versionB.split('.').map(parseFloat);
+            let a = versionA.split('.').map(parseFloat);
+            let b = versionB.split('.').map(parseFloat);
 
-            var versionParts = Math.max(a.length, b.length);
+            let versionParts = Math.max(a.length, b.length);
 
-            for (var i = 0; i < versionParts; i++) {
-                var partA = a[i] || 0;
-                var partB = b[i] || 0;
+            for (let i = 0; i < versionParts; i++) {
+                let partA = a[i] || 0;
+                let partB = b[i] || 0;
 
                 if (partA > partB)
                     return 1;
@@ -960,8 +964,8 @@ module jsCommon {
 
             public end() {
                 if (window.performance === undefined || performance.mark === undefined || performance.measure === undefined) return;
-                var name = this._name;
-                var end = 'End ' + name;
+                let name = this._name;
+                let end = 'End ' + name;
                 performance.mark(end);
                 performance.measure(name, this._start, end);
                 if (console.timeEnd) {
@@ -983,7 +987,7 @@ module jsCommon {
          * Use this to throttle big UI updates and access to DOM.
          */
         export function deferUntilNextFrame(callback: Function): Function {
-            var isWaiting, args, context;
+            let isWaiting, args, context;
 
             if (!window.requestAnimationFrame) {
                 window.requestAnimationFrame = (func) => setTimeout(func, 1000 / 50);

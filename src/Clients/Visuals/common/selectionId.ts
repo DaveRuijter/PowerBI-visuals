@@ -40,6 +40,7 @@ module powerbi.visuals {
         // This is a new data structure to support drilling -- in the long term it should replace the 'selector' field
         private selectorsByColumn: SelectorsByColumn;
         private key: string;
+        private keyWithoutHighlight: string;
 
         public highlight: boolean;
 
@@ -47,6 +48,7 @@ module powerbi.visuals {
             this.selector = selector;
             this.highlight = highlight;
             this.key = JSON.stringify({ selector: selector ? Selector.getKey(selector) : null, highlight: highlight });
+            this.keyWithoutHighlight = JSON.stringify({ selector: selector ? Selector.getKey(selector) : null });
         }
 
         public equals(other: SelectionId): boolean {
@@ -60,13 +62,13 @@ module powerbi.visuals {
          * Checks equality against other for all identifiers existing in this.
          */
         public includes(other: SelectionId, ignoreHighlight: boolean = false): boolean {
-            var thisSelector = this.selector;
-            var otherSelector = other.selector;
+            let thisSelector = this.selector;
+            let otherSelector = other.selector;
             if (!thisSelector || !otherSelector) {
                 return false;
             }
-            var thisData = thisSelector.data;
-            var otherData = otherSelector.data;
+            let thisData = thisSelector.data;
+            let otherData = otherSelector.data;
             if (!thisData && (thisSelector.metadata && thisSelector.metadata !== otherSelector.metadata))
                 return false;
             if (!ignoreHighlight && this.highlight !== other.highlight)
@@ -75,7 +77,7 @@ module powerbi.visuals {
                 if (!otherData)
                     return false;
                 if (thisData.length > 0) {
-                    for (var i = 0, ilen = thisData.length; i < ilen; i++) {
+                    for (let i = 0, ilen = thisData.length; i < ilen; i++) {
                         var thisValue = <DataViewScopeIdentity>thisData[i];
                         if (!otherData.some((otherValue: DataViewScopeIdentity) => DataViewScopeIdentity.equals(thisValue, otherValue)))
                             return false;
@@ -87,6 +89,10 @@ module powerbi.visuals {
 
         public getKey(): string {
             return this.key;
+        }
+
+        public getKeyWithoutHighlight(): string {
+            return this.keyWithoutHighlight;
         }
         
         /**
@@ -109,7 +115,7 @@ module powerbi.visuals {
         }
 
         public static createWithId(id: DataViewScopeIdentity, highlight: boolean = false): SelectionId {
-            var selector: Selector = null;
+            let selector: Selector = null;
             if (id) {
                 selector = {
                     data: [id]
@@ -121,17 +127,17 @@ module powerbi.visuals {
         public static createWithMeasure(measureId: string, highlight: boolean = false): SelectionId {
             debug.assertValue(measureId, 'measureId');
 
-            var selector: Selector = {
+            let selector: Selector = {
                 metadata: measureId
             };
 
-            var selectionId = new SelectionId(selector, highlight);
+            let selectionId = new SelectionId(selector, highlight);
             selectionId.selectorsByColumn = { metadata: measureId };
             return selectionId;
         }
 
         public static createWithIdAndMeasure(id: DataViewScopeIdentity, measureId: string, highlight: boolean = false): SelectionId {
-            var selector: powerbi.data.Selector = {};
+            let selector: powerbi.data.Selector = {};
             if (id) {
                 selector.data = [id];
             }
@@ -140,13 +146,13 @@ module powerbi.visuals {
             if (!id && !measureId)
                 selector = null;
 
-            var selectionId = new SelectionId(selector, highlight);
+            let selectionId = new SelectionId(selector, highlight);
 
             return selectionId;
         }
 
         public static createWithIdAndMeasureAndCategory(id: DataViewScopeIdentity, measureId: string, queryName: string, highlight: boolean = false): SelectionId {
-            var selectionId = this.createWithIdAndMeasure(id, measureId, highlight);
+            let selectionId = this.createWithIdAndMeasure(id, measureId, highlight);
 
             if (selectionId.selector) {
                 selectionId.selectorsByColumn = {};
@@ -162,8 +168,8 @@ module powerbi.visuals {
         }
 
         public static createWithIds(id1: DataViewScopeIdentity, id2: DataViewScopeIdentity, highlight: boolean = false): SelectionId {
-            var selector: Selector = null;
-            var selectorData = SelectionId.idArray(id1, id2);
+            let selector: Selector = null;
+            let selectorData = SelectionId.idArray(id1, id2);
             if (selectorData)
                 selector = { data: selectorData };
             
@@ -171,8 +177,8 @@ module powerbi.visuals {
         }
 
         public static createWithIdsAndMeasure(id1: DataViewScopeIdentity, id2: DataViewScopeIdentity, measureId: string, highlight: boolean = false): SelectionId {
-            var selector: Selector = {};
-            var selectorData = SelectionId.idArray(id1, id2);
+            let selector: Selector = {};
+            let selectorData = SelectionId.idArray(id1, id2);
             if (selectorData)
                 selector.data = selectorData;
 
@@ -185,8 +191,8 @@ module powerbi.visuals {
 
         public static createWithSelectorForColumnAndMeasure(dataMap: SelectorForColumn, measureId: string, highlight: boolean = false): SelectionId {
 
-            var selectionId: visuals.SelectionId;
-            var keys = Object.keys(dataMap);
+            let selectionId: visuals.SelectionId;
+            let keys = Object.keys(dataMap);
             if (keys.length === 2) {
                 selectionId = this.createWithIdsAndMeasure(<DataViewScopeIdentity>dataMap[keys[0]], <DataViewScopeIdentity>dataMap[keys[1]], measureId, highlight);
             } else if (keys.length === 1) {
@@ -195,7 +201,7 @@ module powerbi.visuals {
                 selectionId = this.createWithIdsAndMeasure(null, null, measureId, highlight);
             }
 
-            var selectorsByColumn: SelectorsByColumn = {};
+            let selectorsByColumn: SelectorsByColumn = {};
             if (!_.isEmpty(dataMap))
                 selectorsByColumn.dataMap = dataMap;
             if (measureId)
@@ -217,7 +223,7 @@ module powerbi.visuals {
 
         private static idArray(id1: DataViewScopeIdentity, id2: DataViewScopeIdentity): DataViewScopeIdentity[] {
             if (id1 || id2) {
-                var data = [];
+                let data = [];
                 if (id1)
                     data.push(id1);
                 if (id2 && id2 !== id1)

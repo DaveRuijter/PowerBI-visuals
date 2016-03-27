@@ -248,30 +248,30 @@ module powerbi {
         public hideCollidedLabels(viewport: IViewport, data: any[], layout: any, addTransform: boolean = false): powerbi.visuals.LabelEnabledDataPoint[] {
 
             // Split size into a grid
-            var arrangeGrid = new DataLabelArrangeGrid(viewport, data, layout);
-            var filteredData = [];
-            var transform: shapes.IVector = { x: 0, y: 0 };
+            let arrangeGrid = new DataLabelArrangeGrid(viewport, data, layout);
+            let filteredData = [];
+            let transform: shapes.IVector = { x: 0, y: 0 };
 
             if (addTransform) {
                 transform.x = viewport.width / 2;
                 transform.y = viewport.height / 2;
             }
 
-            for (var i = 0, len = data.length; i < len; i++) {
+            for (let i = 0, len = data.length; i < len; i++) {
 
                 // Filter unwanted data points
                 if (!layout.filter(data[i]))
                     continue;
 
                 // Set default values where properties values are undefined
-                var info = this.getLabelInfo(data[i]);
+                let info = this.getLabelInfo(data[i]);
 
                 info.anchorPoint = {
                     x: layout.labelLayout.x(data[i]) + transform.x,
                     y: layout.labelLayout.y(data[i]) + transform.y,
                 };
 
-                var position: shapes.IRect = this.calculateContentPosition(info, info.contentPosition, data[i].size, info.anchorMargin);
+                let position: shapes.IRect = this.calculateContentPosition(info, info.contentPosition, data[i].size, info.anchorMargin);
 
                 if (DataLabelManager.isValid(position) && !this.hasCollisions(arrangeGrid, info, position, viewport)) {
                     data[i].labelX = position.left - transform.x;
@@ -294,7 +294,7 @@ module powerbi {
          */
         public getLabelInfo(source: IDataLabelInfo): IDataLabelInfo {
 
-            var settings = this._defaultSettings;
+            let settings = this._defaultSettings;
             source.anchorMargin = source.anchorMargin !== undefined ? source.anchorMargin : settings.anchorMargin;
             source.anchorRectOrientation = source.anchorRectOrientation !== undefined ? source.anchorRectOrientation : settings.anchorRectOrientation;
             source.contentPosition = source.contentPosition !== undefined ? source.contentPosition : settings.contentPosition;
@@ -311,7 +311,7 @@ module powerbi {
         * (Private) Calculates element position using anchor point..
         */
         private calculateContentPositionFromPoint(anchorPoint: shapes.IPoint, contentPosition: ContentPositions, contentSize: shapes.ISize, offset: number): shapes.IRect {
-            var position: shapes.IPoint = { x: 0, y: 0 };
+            let position: shapes.IPoint = { x: 0, y: 0 };
             if (anchorPoint) {
 
                 if (anchorPoint.x !== undefined && isFinite(anchorPoint.x)) {
@@ -512,13 +512,13 @@ module powerbi {
 
         /** (Private) Check for collisions. */
         private hasCollisions(arrangeGrid: DataLabelArrangeGrid, info: IDataLabelInfo, position: shapes.IRect, size: shapes.ISize): boolean {
-            var rect = shapes.Rect;
+            let rect = shapes.Rect;
 
             if (arrangeGrid.hasConflict(position)) {
                 return true;
             }
             // Since we divide the height by 2 we add it back to the top of the view port so labels won't be cut off
-            var intersection = { left: 0, top: position.height / 2, width: size.width, height: size.height };
+            let intersection = { left: 0, top: position.height / 2, width: size.width, height: size.height };
             intersection = rect.inflate(intersection, { left: DataLabelManager.InflateAmount, top: 0, right: DataLabelManager.InflateAmount, bottom: 0 });
 
             intersection = rect.intersect(intersection, position);
@@ -527,7 +527,7 @@ module powerbi {
                 // Empty rectangle means there is a collision
                 return true;
 
-            var lessWithPrecision = powerbi.Double.lessWithPrecision;
+            let lessWithPrecision = powerbi.Double.lessWithPrecision;
 
             switch (info.outsidePlacement) {
                 // D3 positions the label in the middle by default.
@@ -572,23 +572,23 @@ module powerbi {
                 this._rowCount = this._colCount = 0;
             }
 
-            var baseProperties: TextProperties = {
+            let baseProperties: TextProperties = {
                 fontFamily: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontFamily,
                 fontSize: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontSize,
                 fontWeight: powerbi.visuals.dataLabelUtils.LabelTextProperties.fontWeight,
             };
 
-            var textHeight = TextMeasurementService.estimateSvgTextHeight(baseProperties);
+            let textHeight = TextMeasurementService.estimateSvgTextHeight(baseProperties);
 
             //sets the _cell size to be twice of the Max with and Max height of the elements 
             this._cellSize = { width: 0, height: 0 };
-            for (var i = 0, len = elements.length; i < len; i++) {
-                var child = elements[i];
+            for (let i = 0, len = elements.length; i < len; i++) {
+                let child = elements[i];
 
                 // Fill label field
                 child.labeltext = layout.labelText(child);
 
-                var properties: TextProperties = Prototype.inherit(baseProperties);
+                let properties: TextProperties = Prototype.inherit(baseProperties);
                 properties.text = child.labeltext;
 
                 child.size = {
@@ -596,8 +596,8 @@ module powerbi {
                     height: textHeight,
                 };
 
-                var w = child.size.width * 2;
-                var h = child.size.height * 2;
+                let w = child.size.width * 2;
+                let h = child.size.height * 2;
                 if (w > this._cellSize.width)
                     this._cellSize.width = w;
                 if (h > this._cellSize.height)
@@ -614,10 +614,10 @@ module powerbi {
             this._cellSize.width = size.width / this._colCount;
             this._cellSize.height = size.height / this._rowCount;
 
-            var grid = this._grid;
-            for (var x = 0; x < this._colCount; x++) {
+            let grid = this._grid;
+            for (let x = 0; x < this._colCount; x++) {
                 grid[x] = [];
-                for (var y = 0; y < this._rowCount; y++) {
+                for (let y = 0; y < this._rowCount; y++) {
                     grid[x][y] = [];
                 }
             }
@@ -629,10 +629,10 @@ module powerbi {
          * @param rect The label element position rectangle.
          */
         public add(element: IDataLabelInfo, rect: shapes.IRect) {
-            var indexRect = this.getGridIndexRect(rect);
-            var grid = this._grid;
-            for (var x = indexRect.left; x < indexRect.right; x++) {
-                for (var y = indexRect.top; y < indexRect.bottom; y++) {
+            let indexRect = this.getGridIndexRect(rect);
+            let grid = this._grid;
+            for (let x = indexRect.left; x < indexRect.right; x++) {
+                for (let y = indexRect.top; y < indexRect.bottom; y++) {
                     grid[x][y].push({ element: element, rect: rect });
                 }
             }
@@ -644,14 +644,14 @@ module powerbi {
          * @return True if conflict is detected.
          */
         public hasConflict(rect: shapes.IRect): boolean {
-            var indexRect = this.getGridIndexRect(rect);
-            var grid = this._grid;
-            var isIntersecting = shapes.Rect.isIntersecting;
+            let indexRect = this.getGridIndexRect(rect);
+            let grid = this._grid;
+            let isIntersecting = shapes.Rect.isIntersecting;
 
-            for (var x = indexRect.left; x < indexRect.right; x++) {
-                for (var y = indexRect.top; y < indexRect.bottom; y++) {
-                    for (var z = 0; z < grid[x][y].length; z++) {
-                        var item = grid[x][y][z];
+            for (let x = indexRect.left; x < indexRect.right; x++) {
+                for (let y = indexRect.top; y < indexRect.bottom; y++) {
+                    for (let z = 0; z < grid[x][y].length; z++) {
+                        let item = grid[x][y][z];
                         if (isIntersecting(item.rect, rect)) {
                             return true;
                         }
@@ -679,7 +679,7 @@ module powerbi {
          * @return grid index as a thickness object.
          */
         private getGridIndexRect(rect: shapes.IRect): shapes.IThickness {
-            var restrict = (n, min, max) => Math.min(Math.max(n, min), max);
+            let restrict = (n, min, max) => Math.min(Math.max(n, min), max);
             return {
                 left: restrict(Math.floor(rect.left / this._cellSize.width), 0, this._colCount),
                 top: restrict(Math.floor(rect.top / this._cellSize.height), 0, this._rowCount),

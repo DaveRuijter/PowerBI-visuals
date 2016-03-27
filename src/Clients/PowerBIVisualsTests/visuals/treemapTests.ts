@@ -41,6 +41,7 @@ module powerbitests {
     import SelectionId = powerbi.visuals.SelectionId;
     import ValueType = powerbi.ValueType;
     import PrimitiveType = powerbi.PrimitiveType;
+    import VisualObjectInstanceEnumerationObject = powerbi.VisualObjectInstanceEnumerationObject;
 
     var dataTypeNumber = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Double);
     var dataTypeString = ValueType.fromPrimitiveTypeAndCategory(PrimitiveType.Text);
@@ -619,6 +620,45 @@ module powerbitests {
 
             dataViewMetadataCategorySeriesColumns.objects = {
                 labels: { show: true, labelPrecision: 0 },
+                categoryLabels: { show: true } // in progress
+            };
+
+            var dataChangedOptions = {
+                dataViews: [{
+                    metadata: dataViewMetadataCategorySeriesColumns,
+                    categorical: {
+                        categories: [{
+                            source: dataViewMetadataCategorySeriesColumns.columns[0],
+                            values: ['The Nuthatches', 'Skylarks'],
+                            identity: [
+                                mocks.dataViewScopeIdentity('The Nuthatches'),
+                                mocks.dataViewScopeIdentity('Skylarks'),
+                            ],
+                            identityFields: [categoryColumnRef],
+                        }],
+                        values: DataViewTransform.createValueColumns([
+                            {
+                                source: dataViewMetadataCategoryColumn.columns[1],
+                                values: [110, 120],
+                                identity: data.createDataViewScopeIdentity(SQExprBuilder.text('201501')),
+                            }])
+                    }
+                }]
+            };
+            v.onDataChanged(dataChangedOptions);
+
+            setTimeout(() => {
+                expect($('.treemap .labels .majorLabel').length).toEqual(2);
+                expect($('.treemap .labels .minorLabel').first().text()).toBe('110');
+                expect($('.treemap .labels .minorLabel').last().text()).toBe('120');
+                done();
+            }, DefaultWaitForRender);
+        });
+
+        it('Verify values when labels are on and categoryLabels are on with slices', (done) => {
+
+            dataViewMetadataCategorySeriesColumns.objects = {
+                labels: { show: true, labelPrecision: 0 },
                 categoryLabels: { show: true }
             };
 
@@ -706,7 +746,7 @@ module powerbitests {
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
-                expect($('.treemap .labels .majorLabel').length).toEqual(2);
+                expect($('.treemap .labels .majorLabel').length).toEqual(0);
                 expect($('.treemap .labels .minorLabel').first().text()).toBe('110');
                 expect($('.treemap .labels .minorLabel').last().text()).toBe('320');
                 done();
@@ -1110,12 +1150,12 @@ module powerbitests {
             v.onDataChanged(dataChangedOptions);
 
             setTimeout(() => {
-                var points = v.enumerateObjectInstances({ objectName: 'dataPoint' });                
-                expect(points.length).toBe(2);
-                expect(points[0].displayName).toEqual('The Nuthatches');
-                expect(points[0].properties['fill']).toBeDefined();
-                expect(points[1].displayName).toEqual('Skylarks');
-                expect(points[1].properties['fill']).toBeDefined();
+                var points = <VisualObjectInstanceEnumerationObject>v.enumerateObjectInstances({ objectName: 'dataPoint' });
+                expect(points.instances.length).toBe(2);
+                expect(points.instances[0].displayName).toEqual('The Nuthatches');
+                expect(points.instances[0].properties['fill']).toBeDefined();
+                expect(points.instances[1].displayName).toEqual('Skylarks');
+                expect(points.instances[1].properties['fill']).toBeDefined();
                 done();
             }, DefaultWaitForRender);
         });
@@ -2146,7 +2186,7 @@ module powerbitests {
         beforeEach(() => {
             element = powerbitests.helpers.testDom('500', '500');
             hostServices = mocks.createVisualHostServices();
-            v = powerbi.visuals.visualPluginFactory.create().getPlugin('treemap').create();
+            v = powerbi.visuals.visualPluginFactory.createMinerva({ dataDotChartEnabled: false, heatMap: false,}).getPlugin('treemap').create();
             v.init({
                 element: element,
                 host: hostServices,

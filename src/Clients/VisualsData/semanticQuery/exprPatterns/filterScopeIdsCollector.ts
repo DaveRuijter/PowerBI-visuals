@@ -39,11 +39,11 @@ module powerbi.data {
             debug.assertValue(fieldSQExprs, 'fieldSQExprs');
             debug.assert(fieldSQExprs.length === 1, 'There should be exactly 1 field expression.');
 
-            var filterItems = filter.conditions();
+            let filterItems = filter.conditions();
             debug.assert(filterItems.length === 1, 'There should be exactly 1 filter expression.');
-            var filterItem = filterItems[0];
+            let filterItem = filterItems[0];
             if (filterItem) {
-                var visitor = new FilterScopeIdsCollectorVisitor(fieldSQExprs[0]);
+                let visitor = new FilterScopeIdsCollectorVisitor(fieldSQExprs[0]);
                 if (filterItem.accept(visitor))
                     return visitor.getResult();
             }
@@ -53,7 +53,7 @@ module powerbi.data {
         export function getFirstComparandValue(identity: DataViewScopeIdentity): any {
             debug.assertValue(identity, 'identity');
 
-            var comparandExpr = identity.expr.accept(new FindComparandVisitor());
+            let comparandExpr = identity.expr.accept(new FindComparandVisitor());
             if (comparandExpr)
                 return comparandExpr.value;
         }
@@ -71,7 +71,7 @@ module powerbi.data {
             this.isRoot = true;
             this.isNot = false;
             this.valueExprs = [];
-            // Need to drop the entityVar before create the scopeIdentity. The ScopeIdentity created on the client is used to
+            // Need to drop the entitylet before create the scopeIdentity. The ScopeIdentity created on the client is used to
             // compare the ScopeIdentity came from the server. But server doesn't have the entity variable concept, so we will
             // need to drop it in order to use JsonComparer.
             this.fieldExpr = SQExprBuilder.removeEntityVariables(fieldSQExpr);
@@ -80,9 +80,9 @@ module powerbi.data {
         public getResult(): FilterValueScopeIdsContainer {
             debug.assertValue(this.fieldExpr, 'fieldExpr');            
 
-            var valueExprs = this.valueExprs,
+            let valueExprs = this.valueExprs,
                 scopeIds: DataViewScopeIdentity[] = [];
-            for (var i = 0, len = valueExprs.length; i < len; i++) {
+            for (let i = 0, len = valueExprs.length; i < len; i++) {
                 scopeIds.push(FilterScopeIdsCollectorVisitor.getScopeIdentity(this.fieldExpr, valueExprs[i]));
             }
 
@@ -132,8 +132,24 @@ module powerbi.data {
         public visitColumnRef(expr: SQColumnRefExpr): boolean {
             if (this.isRoot)
                 return this.unsupportedSQExpr();
-            var fixedExpr = SQExprBuilder.removeEntityVariables(expr);
+            let fixedExpr = SQExprBuilder.removeEntityVariables(expr);
             return SQExpr.equals(this.fieldExpr, fixedExpr);
+        }
+
+        public visitDefaultValue(expr: SQDefaultValueExpr): boolean {
+            if (this.isRoot)
+                return this.unsupportedSQExpr();
+
+            this.valueExprs.push(expr);
+            return true;
+        }
+
+        public visitAnyValue(expr: SQAnyValueExpr): boolean {
+            if (this.isRoot)
+                return this.unsupportedSQExpr();
+
+            this.valueExprs.push(expr);
+            return true;
         }
 
         public visitDefault(expr: SQExpr): boolean {

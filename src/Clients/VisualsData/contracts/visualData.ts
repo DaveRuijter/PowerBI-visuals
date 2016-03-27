@@ -41,6 +41,7 @@ module powerbi {
     export interface DataRole {
         Name: string;
         Projection: number;
+        isActive?: boolean;
     }
 
     /** The system used to determine display units used during formatting */

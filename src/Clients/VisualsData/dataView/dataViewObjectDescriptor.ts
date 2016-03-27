@@ -76,7 +76,7 @@ module powerbi.data {
             return findProperty(
                 descriptors,
                 (propDesc: DataViewObjectPropertyDescriptor) => {
-                    var formattingTypeDesc = ValueType.fromDescriptor(propDesc.type).formatting;
+                    let formattingTypeDesc = ValueType.fromDescriptor(propDesc.type).formatting;
                     return formattingTypeDesc && formattingTypeDesc.formatString;
                 });
         }
@@ -86,7 +86,7 @@ module powerbi.data {
             return findProperty(
                 descriptors,
                 (propDesc: DataViewObjectPropertyDescriptor) => {
-                    var propType: StructuralTypeDescriptor = propDesc.type;
+                    let propType: StructuralTypeDescriptor = propDesc.type;
                     return propType && !!propType.filter;
                 });
         }
@@ -98,10 +98,10 @@ module powerbi.data {
             if (!descriptors)
                 return;
 
-            for (var objectName in descriptors) {
-                var objPropDescs = descriptors[objectName].properties;
+            for (let objectName in descriptors) {
+                let objPropDescs = descriptors[objectName].properties;
 
-                for (var propertyName in objPropDescs) {
+                for (let propertyName in objPropDescs) {
                     if (propPredicate(objPropDescs[propertyName])) {
                         return {
                             objectName: objectName,

@@ -37,42 +37,12 @@
 @import (optional) "sunburstChart.less";
 
 .slicerContainer {
-    label.slicerCheckbox {
-        input {
-            display: none;
-        }
 
-        span::before {
-            content: '';
-            display: inline-block;
-            cursor: pointer;
-            .sprite(@slicer-checkbox);
-            opacity: 0.5;
-            margin-right: 5px;
-            vertical-align: middle;
-        }
-
-        &:hover span::before {
-            opacity: 1;
-        }
-
-        input:checked + span::before {
-            .sprite(@slicer-checkbox-selected);
-            opacity: 1;
-        }
-
-        input.partiallySelected + span::before {
-            .sprite(@slicer-partially-selected);
-            opacity: 1;
-        }
-    }
     .slicerHeader {
-        border-bottom-color: @neutralLightColor;
-        border-bottom-width: 1px;
-        border-bottom-style: solid;
-        padding-bottom: 3px;
-        box-sizing: border-box; 
+        margin: 0 0 0 8px;
+        box-sizing: border-box;
     }
+
     .headerText {
         color: @neutralPrimaryColor;
         font-size: 14px;
@@ -83,32 +53,122 @@
         width: auto;
         float: none;
     }
+
     .slicerItemContainer {
-        // This is referred in slicer.ts to calculate total item height. Any changes to these values should also be updated in the ts file
-        padding-top: 5px;
+        margin: 2px 0 0 8px;
         box-sizing: border-box;
-    }
-    .slicerText {
-        font-size: 14px;
-        text-overflow: ellipsis;
-        display: inline-block;
-        overflow: hidden;
         white-space: nowrap;
-        line-height: 1.2;
         cursor: pointer;
+
+        * {
+            display: table-cell;
+            vertical-align: bottom;
+        }
+
+        &:hover {
+            .slicerText {
+                color: @neutralDarkColor !important;
+            }
+
+            .slicerCheckbox {
+                span.checkbox {
+                    border-color: @neutralSecondaryColor;
+                }
+
+                &.selected span.checkbox {
+                    border-color: @neutralDarkColor;
+                }
+
+                &.partiallySelected span.checkbox::before {
+                    background-color: @neutralSecondaryColor;
+                }
+            }
+        }
     }
+
+    .slicerCheckbox {
+        cursor: pointer;
+        vertical-align: middle;
+
+        input {
+            display: none;
+        }
+
+        span {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border: 2px solid @neutralTertiaryAltColor;
+            box-shadow: inset 0px 0px 1px @neutralTertiaryAltColor;
+        }
+
+        &.selected {
+            border: none !important;
+
+            & + .slicerText {
+                color: @neutralDarkColor !important;
+            }
+
+            span.checkbox {
+                border-color: @neutralDarkColor;
+                background-color: @neutralDarkColor;
+                box-shadow: none;
+            }
+
+            span.checkbox::before {
+                content: '';
+
+                height: 8px;
+                width: 3px;
+                position: absolute;
+                display: inline-block;
+                margin: -2px 0 0px 3px;
+
+                border-right: 2px solid @whiteColor;
+                border-bottom: 2px solid @whiteColor;
+                transform: rotate(45deg);
+            }
+        }
+
+        &.partiallySelected {
+            span.checkbox {
+                background-color: transparent;
+                border-color: @neutralTertiaryAltColor;
+            }
+
+            span.checkbox::before {
+                content: '';
+
+                height: 3px;
+                width: 3px;
+                position: absolute;
+                display: inline-block;
+                margin: 3px 0 0px 3px;
+
+                background-color: @neutralTertiaryAltColor;
+                box-shadow: 0px 0px 2px @neutralTertiaryAltColor;
+                border: none;
+            }
+        }
+    }
+
+    .slicerText {
+        cursor: pointer;
+        font-size: 14px;
+    }
+
     .clear {
         .sprite(@slicer-reset);
         // The total margin is referred in the slicer.ts file. Any changes to these values should also be updated in the ts file
         margin: 4px 2px;
         float: right;
         cursor: pointer;
-    } 
+    }
 }
 
 .visual svg {
-        &.legend {
-        .navArrow{
+    &.legend {
+        .navArrow {
             fill: @neutralPrimaryColor;
             cursor: pointer;
             /* stroke enabled for a bigger click target, but smaller visible arrow size */
@@ -208,7 +268,7 @@
         .dot:hover {
             fill: @chartTemplateColorDarker;
         }
-       
+
         .dot.null-value {
             display: none;
         }
@@ -240,7 +300,7 @@
             stroke: @neutralSecondaryAltColor;
             shape-rendering: crispEdges;
         }
-    }   
+    }
 }
 
 .waterfallChart {
@@ -467,6 +527,92 @@
     }
 }
 
+.playChart {
+    .traceLine {
+        fill: none;
+        stroke-width: 2px;
+        stroke-linecap: round;
+    }
+
+    .mainGraphicsContext {
+        .notSelected {
+            opacity: 0.6;
+        }
+
+        .selected {
+            opacity: 1;
+        }
+    }
+
+    .axisGraphicsContext {
+        font-family: @regularFontFamily;
+        font-size: 11px;
+
+        text {
+            fill: @neutralSecondaryAltColor;
+        }
+
+        .axis path, .axis line {
+            fill: none;
+            stroke: @neutralSecondaryAltColor;
+            shape-rendering: crispEdges;
+        }
+    }
+
+    .button-container {
+        height: 24px;
+        width: 24px;
+        overflow: hidden;
+        -moz-border-radius: 13px;
+        -webkit-border-radius: 13px;
+        border-radius: 13px;
+        border: 1px solid @neutralSecondaryColor;
+        margin: 10px;
+        display: inline-block;
+        cursor: pointer;
+    }
+
+    .play {
+        width: 0;
+        height: 0;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 11px solid @neutralSecondaryAltColor3;
+        border-right: 1px solid transparent;
+        padding: 0;
+        margin: 6px 8px;
+        background: transparent;
+        display: block;
+    }
+
+    .pause {
+        width: 4px;
+        height: 12px;
+        border-top: 0px;
+        border-bottom: 0px;
+        border-left: 4px solid #999;
+        border-right: 4px solid #999;
+        padding: 0;
+        margin: 6px 6px;
+        background-color: transparent;
+        display: block;
+    }
+
+    .sliders {
+        display: inline-block;
+        vertical-align: top;
+        margin-top: 18px;
+    }
+
+    .callout {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        color: @neutralSecondaryAltColor2;
+        opacity: 0.5;
+    }
+}
+
 .tableContainer {
     overflow: auto;
     /* table */
@@ -533,10 +679,6 @@
     .bi-tablix {
         position: relative;
         text-align: left;
-        -webkit-font-feature-settings: "tnum";
-        -moz-font-feature-settings: "tnum";
-        -ms-font-feature-settings: "tnum"; 
-        font-feature-settings: "tnum";
 
         .unselectable {
             -webkit-user-select: none;
@@ -695,10 +837,6 @@
     .bi-dashboard-tablix {
         position: relative;
         text-align: left;
-        -webkit-font-feature-settings: "tnum";
-        -moz-font-feature-settings: "tnum";
-        -ms-font-feature-settings: "tnum"; 
-        font-feature-settings: "tnum";
 
         .unselectable {
             -webkit-user-select: none;
@@ -893,11 +1031,6 @@
     }
 
     .imageBackground {
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        bottom: 0px;
-        right: 0px;
         background-size: contain;
         background-position: center;
         background-repeat: no-repeat;
@@ -934,6 +1067,296 @@
             .minorLabel {
                 font-size: 10px;
             }
+        }
+    }
+
+    div {
+        &.kpiTrafficLightSingle0 {
+            .sprite(@kpi-traffic-light-single0)
+        }
+
+        &.kpiTrafficLightSingle1 {
+            .sprite(@kpi-traffic-light-single1)
+        }
+
+        &.kpiTrafficLightSingle2 {
+            .sprite(@kpi-traffic-light-single2)
+        }
+
+        &.kpiThreeFlagsColored0 {
+            .sprite(@kpi-three-flags-colored0)
+        }
+
+        &.kpiThreeFlagsColored1 {
+            .sprite(@kpi-three-flags-colored1)
+        }
+
+        &.kpiThreeFlagsColored2 {
+            .sprite(@kpi-three-flags-colored2)
+        }
+
+        &.kpiThreeStarsColored0 {
+            .sprite(@kpi-three-stars-colored0)
+        }
+
+        &.kpiThreeStarsColored1 {
+            .sprite(@kpi-three-stars-colored1)
+        }
+
+        &.kpiThreeStarsColored2 {
+            .sprite(@kpi-three-stars-colored2)
+        }
+
+        &.kpiThreeSymbolsUnCircledColored0 {
+            .sprite(@kpi-three-symbols-un-circled-colored0)
+        }
+
+        &.kpiThreeSymbolsUnCircledColored1 {
+            .sprite(@kpi-three-symbols-un-circled-colored1)
+        }
+
+        &.kpiThreeSymbolsUnCircledColored2 {
+            .sprite(@kpi-three-symbols-un-circled-colored2)
+        }
+
+        &.kpiRoadSigns0 {
+            .sprite(@kpi-road-signs0);
+        }
+
+        &.kpiRoadSigns1 {
+            .sprite(@kpi-road-signs1);
+        }
+
+        &.kpiRoadSigns2 {
+            .sprite(@kpi-road-signs2);
+        }
+
+        &.kpiTrafficLight0 {
+            .sprite(@kpi-traffic-light0);
+        }
+
+        &.kpiTrafficLight1 {
+            .sprite(@kpi-traffic-light1);
+        }
+
+        &.kpiTrafficLight2 {
+            .sprite(@kpi-traffic-light2);
+        }
+
+        &.kpiShapes0 {
+            .sprite(@kpi-shapes0);
+        }
+
+        &.kpiShapes1 {
+            .sprite(@kpi-shapes1);
+        }
+
+        &.kpiShapes2 {
+            .sprite(@kpi-shapes2);
+        }
+
+        &.kpiFiveBars0 {
+            .sprite(@kpi-five-bars-colored0);
+        }
+
+        &.kpiFiveBars1 {
+            .sprite(@kpi-five-bars-colored1);
+        }
+
+        &.kpiFiveBars2 {
+            .sprite(@kpi-five-bars-colored2);
+        }
+
+        &.kpiFiveBars3 {
+            .sprite(@kpi-five-bars-colored3);
+        }
+
+        &.kpiFiveBars4 {
+            .sprite(@kpi-five-bars-colored4);
+        }
+
+        &.kpiFiveBoxes0 {
+            .sprite(@kpi-five-boxes-colored0);
+        }
+
+        &.kpiFiveBoxes1 {
+            .sprite(@kpi-five-boxes-colored1);
+        }
+
+        &.kpiFiveBoxes2 {
+            .sprite(@kpi-five-boxes-colored2);
+        }
+
+        &.kpiFiveBoxes3 {
+            .sprite(@kpi-five-boxes-colored3);
+        }
+
+        &.kpiFiveBoxes4 {
+            .sprite(@kpi-five-boxes-colored4);
+        }
+
+        &.kpiGauge0 {
+            .sprite(@kpi-gauge-ascending0);
+        }
+
+        &.kpiGauge1 {
+            .sprite(@kpi-gauge-ascending1);
+        }
+
+        &.kpiGauge2 {
+            .sprite(@kpi-gauge-ascending2);
+        }
+
+        &.kpiGauge3 {
+            .sprite(@kpi-gauge-ascending3);
+        }
+
+        &.kpiGauge4 {
+            .sprite(@kpi-gauge-ascending4);
+        }
+
+        &.kpiTrafficLightSingleBig0 {
+            .sprite(@kpi-traffic-light-single0)
+        }
+
+        &.kpiTrafficLightSingleBig1 {
+            .sprite(@kpi-traffic-light-single1)
+        }
+
+        &.kpiTrafficLightSingleBig2 {
+            .sprite(@kpi-traffic-light-single2)
+        }
+
+        &.kpiThreeFlagsBigColored0 {
+            .sprite(@kpi-three-flags-colored0)
+        }
+
+        &.kpiThreeFlagsBigColored1 {
+            .sprite(@kpi-three-flags-colored1)
+        }
+
+        &.kpiThreeFlagsBigColored2 {
+            .sprite(@kpi-three-flags-colored2)
+        }
+
+        &.kpiThreeStarsBigColored0 {
+            .sprite(@kpi-three-stars-colored0)
+        }
+
+        &.kpiThreeStarsBigColored1 {
+            .sprite(@kpi-three-stars-colored1)
+        }
+
+        &.kpiThreeStarsBigColored2 {
+            .sprite(@kpi-three-stars-colored2)
+        }
+
+        &.kpiThreeSymbolsUnCircledBigColored0 {
+            .sprite(@kpi-three-symbols-un-circled-colored0)
+        }
+
+        &.kpiThreeSymbolsUnCircledBigColored1 {
+            .sprite(@kpi-three-symbols-un-circled-colored1)
+        }
+
+        &.kpiThreeSymbolsUnCircledBigColored2 {
+            .sprite(@kpi-three-symbols-un-circled-colored2)
+        }
+
+        &.kpiRoadSignsBig0 {
+            .sprite(@kpi-road-signs0);
+        }
+
+        &.kpiRoadSignsBig1 {
+            .sprite(@kpi-road-signs1);
+        }
+
+        &.kpiRoadSignsBig2 {
+            .sprite(@kpi-road-signs2);
+        }
+
+        &.kpiTrafficLightBig0 {
+            .sprite(@kpi-traffic-light0);
+        }
+
+        &.kpiTrafficLightBig1 {
+            .sprite(@kpi-traffic-light1);
+        }
+
+        &.kpiTrafficLightBig2 {
+            .sprite(@kpi-traffic-light2);
+        }
+
+        &.kpiShapesBig0 {
+            .sprite(@kpi-shapes0);
+        }
+
+        &.kpiShapesBig1 {
+            .sprite(@kpi-shapes1);
+        }
+
+        &.kpiShapesBig2 {
+            .sprite(@kpi-shapes2);
+        }
+
+        &.kpiFiveBarsBig0 {
+            .sprite(@kpi-five-bars-colored0);
+        }
+
+        &.kpiFiveBarsBig1 {
+            .sprite(@kpi-five-bars-colored1);
+        }
+
+        &.kpiFiveBarsBig2 {
+            .sprite(@kpi-five-bars-colored2);
+        }
+
+        &.kpiFiveBarsBig4 {
+            .sprite(@kpi-five-bars-colored3);
+        }
+
+        &.kpiFiveBarsBig5 {
+            .sprite(@kpi-five-bars-colored4);
+        }
+
+        &.kpiFiveBoxesBig0 {
+            .sprite(@kpi-five-boxes-colored0);
+        }
+
+        &.kpiFiveBoxesBig1 {
+            .sprite(@kpi-five-boxes-colored1);
+        }
+
+        &.kpiFiveBoxesBig2 {
+            .sprite(@kpi-five-boxes-colored2);
+        }
+
+        &.kpiFiveBoxesBig3 {
+            .sprite(@kpi-five-boxes-colored3);
+        }
+
+        &.kpiFiveBoxesBig4 {
+            .sprite(@kpi-five-boxes-colored4);
+        }
+
+        &.kpiGaugeBig0 {
+            .sprite(@kpi-gauge-ascending0);
+        }
+
+        &.kpiGaugeBig1 {
+            .sprite(@kpi-gauge-ascending1);
+        }
+
+        &.kpiGaugeBig2 {
+            .sprite(@kpi-gauge-ascending2);
+        }
+
+        &.kpiGaugeBig3 {
+            .sprite(@kpi-gauge-ascending3);
+        }
+
+        &.kpiGaugeBig4 {
+            .sprite(@kpi-gauge-ascending4);
         }
     }
 }
@@ -1002,32 +1425,46 @@
         letter-spacing: 1px;
     }
 
-    .arrow{
+    .arrow {
         position: absolute;
-        width: 0; 
-	    height: 0; 
+        width: 0;
+        height: 0;
 
         &.top {
             top: 7px;
         }
+
         &.bottom {
             bottom: 7px;
         }
+
         &.left {
             left: -7px;
             border-top: 7px solid transparent;
-	        border-bottom: 7px solid transparent; 
-	        border-right: 7px solid @neutralPrimaryColor; 
+            border-bottom: 7px solid transparent;
+            border-right: 7px solid @neutralPrimaryColor;
         }
+
         &.right {
             right: -7px;
-	        border-top: 7px solid transparent;
-	        border-bottom: 7px solid transparent;
-	        border-left: 7px solid @neutralPrimaryColor;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-left: 7px solid @neutralPrimaryColor;
         }
     }
 }
 
+.labelGraphicsContext {
+    .label {
+        font-size: 12px;
+        text-anchor: middle;
+        font-family: @regularSecondaryFontFamily;
+        /* Enables tooltip when hovering on data label inside visual */
+        pointer-events: none;
+    }
+}
+
+/* Kept around for funnel labels; can be removed once it's moved to the new system */
 .data-labels {
     font-size: 12px;
     text-anchor: middle;
@@ -1038,6 +1475,11 @@
 
 .richtextbox {
     color: @neutralPrimaryColor;
+    pointer-events: all;
+
+    a {
+        color: @defaultLinkColor;
+    }
 
     .ql-container {
         padding: 0px;
@@ -1046,6 +1488,7 @@
 
     .ql-editor {
         line-height: normal;
+        word-wrap: break-word;
     }
 }
 
@@ -1056,14 +1499,12 @@ div.ql-toolbar {
     white-space: nowrap;
     overflow-x: hidden;
     font-size: 14px;
-
     // TODO: fix SELECT dropdown arrow in IE
     /*
     select::-ms-expand {
         display: none;
     }
     */
-
     .ql-format-group {
         display: inline-block;
         vertical-align: middle;
@@ -1101,7 +1542,6 @@ div.ql-toolbar {
 
         .ql-link-tooltip {
             display: none;
-
             top: 0 !important;
             left: 0 !important;
             position: relative;
@@ -1119,6 +1559,7 @@ div.ql-toolbar {
             a {
                 margin: 0 3px;
                 color: @secondaryChromeFontColor;
+                background: inherit;
 
                 &:hover {
                     color: @highlightColor;
@@ -1244,14 +1685,75 @@ div.ql-toolbar {
 
 .multiRowCard {
     .card {
+        box-sizing: border-box;
+        border-left: 3px solid;
+        border-left-color: @neutralTertiaryColor;
+        color: #767676;
+        padding-left: 10px;
+        position: relative;
+        width: 100%;
+
+        &.mrtile {
+            border-bottom: 1px solid @neutralTertiaryAltColor;
+            border-left: 0px;
+            padding-bottom: 5px;
+            padding-left: 0px;
+            padding-top: 5px;
+
+            .cardItemContainer {
+                padding-top: 5px;
+            }
+        }
+
+        .cardItemContainer {
+            box-sizing: border-box;
+            padding-top: 7px;
+            position: relative;
+            vertical-align: top;
+
+            .caption {
+                color: @neutralPrimaryColor;
+                font-size: 14px;
+                line-height: 20px;
+                overflow: hidden;
+                text-align: left;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .details {
+                color: @neutralTertiaryColor;
+                font-size: 12px;
+                overflow: hidden;
+                text-align: left;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .imgCon img {
+                display: inline-block;
+                vertical-align: sub;
+            }
+        }
+
         .title {
-            // Update the title height in multiRowCard.ts when the font size is updated
             font-size: 18px;
-            font-family: @semiboldFontFamily;   
-            white-space: nowrap;    
-            text-overflow: ellipsis;   
-            overflow: hidden;  
-        }        
+            font-family: @semiboldFontFamily;
+            line-height: 24px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .row:last-child {
+        .card {
+            &.mrtile {
+                border-bottom: 0px;
+                padding-bottom: 0px;
+            }
+        }
     }
 }
 
@@ -1350,6 +1852,80 @@ div.ql-toolbar {
         text {
             font-family: sans-serif;
             font-size: 11px;
+        }
+    }
+}
+
+.radarChart {
+    .axis {
+        path, line {
+            fill: none;
+            stroke: grey;
+            stroke-width: 1px;
+        }
+
+        text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+    }
+    .segments {
+        path, line {
+            fill: none;
+            stroke: grey;
+            stroke-opacity: 0.75;
+            stroke-width: 0.3px;
+        }
+    }
+}
+
+.dotPlot {
+    .axis{
+        path, line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        text {
+            font-family: sans-serif;
+            font-size: 11px;
+        }
+    }
+}
+.sunBurstPercentage{
+    font-weight:bold;
+    opacity:0;
+}
+.sunBurstPercentageFixed{
+    font-weight:bold;
+    opacity:0;
+}
+
+.histogram {
+    @histogramAxesColor: @neutralSecondaryAltColor;
+    @histogramLegendTextColor: @blackColor;
+
+    font-family: @regularFontFamily;
+
+    .axis, .legends {
+        path, line {
+            fill: none;
+            stroke: @histogramAxesColor;
+            shape-rendering: crispEdges;
+        }
+
+        text {
+            fill: @histogramAxesColor;
+            font-size: 11px;
+        }
+    }
+
+    .legends {
+        text {
+            font-size: 12px;
+            fill: @histogramLegendTextColor;
+            text-anchor: middle;
         }
     }
 }

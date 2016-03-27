@@ -31,8 +31,10 @@ module powerbitests {
     import InternalControls = powerbi.visuals.controls.internal;
     import TablixLayoutManager = powerbi.visuals.controls.internal.TablixLayoutManager;
 
-    describe("TablixGrid", () => {
+    let colWidthChangedCallback = false;
+    let colWidthCallback = [50];
 
+    describe("TablixGrid", () => {        
         it("onStartRenderingSession clear", () => {
             var control = createTablixControl();
             var grid = control.layoutManager.grid;
@@ -54,12 +56,43 @@ module powerbitests {
             expect(grid["_columns"]).toBe(null);
             expect(grid["_footerRow"]).toBe(null);
         });
+
+        it("tablixGrid column resize", function () {
+            var control = createTablixControl();
+            var grid = control.layoutManager.grid;
+            grid.onStartRenderingIteration();
+            var col0 = grid.getOrCreateColumn(0);
+            expect(col0.getContextualWidth()).toBe(50);
+            col0.resize(35);
+            expect(colWidthCallback[0]).toBe(35);
+        });
+
+        it("CalculateWidth AutoSize property off ", function () {
+            var control = createTablixControl();
+            var grid = control.layoutManager.grid;
+            var gridPresenter = grid._presenter;
+            gridPresenter["_owner"] = grid;
+            grid["_owner"] = control;
+            var layoutManager = control.layoutManager;
+            // Mock setting of property to false
+            var columnLayoutManager = layoutManager.columnLayoutManager;
+            layoutManager.onStartRenderingIteration(false);
+            var col0 = grid.getOrCreateColumn(0);
+            spyOn(col0, "calculateSize").and.returnValue(35);
+            var col1 = grid.getOrCreateColumn(1);
+            spyOn(col1, "calculateSize").and.returnValue(50);
+            columnLayoutManager.calculateContextualWidths();
+            expect(layoutManager.columnWidthsToPersist.length).toBe(2);
+            expect(layoutManager.columnWidthsToPersist[0]).toBe(35);
+            expect(layoutManager.columnWidthsToPersist[1]).toBe(50);
+        });
     });
 
     describe("TablixLayoutManager", () => {
 
         it("onStartRenderingSession clear", () => {
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(createMockBinder());
+            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(createMockBinder(), undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
+
             var grid = layoutManager.grid;
             var gridSpy = spyOn(grid, "onStartRenderingSession");
             layoutManager.rowLayoutManager["onStartRenderingSession"] = () => { };
@@ -70,7 +103,7 @@ module powerbitests {
 
         it('RowLayoutManager getRealizedItemsCount noItems',() => {
             var tableBinder = createMockBinder();
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder);
+            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
             var rowLayoutManager = layoutManager.rowLayoutManager;
             rowLayoutManager["_realizedRows"] = null;
             var count = rowLayoutManager.getRealizedItemsCount();
@@ -79,7 +112,7 @@ module powerbitests {
 
         it('ColumnLayoutManager getRealizedItemsCount noItems',() => {
             var tableBinder = createMockBinder();
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder);
+            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
             var columnLayoutManager = layoutManager.columnLayoutManager;
             columnLayoutManager["_realizedColumns"] = null;
             var count = columnLayoutManager.getRealizedItemsCount();
@@ -88,7 +121,7 @@ module powerbitests {
 
         it('DimensionLayoutManager getRealizedItemsCount',() => {
             var tableBinder = createMockBinder();
-            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder);
+            var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, undefined /* columnWidthsCallback */, undefined /* columnWidthChangedCallback */);
             var rowLayoutManager = layoutManager.rowLayoutManager;
             spyOn(rowLayoutManager, "_getRealizedItems").and.returnValue([1, 2, 3]);
             var count = rowLayoutManager.getRealizedItemsCount();
@@ -186,7 +219,7 @@ module powerbitests {
 
     function createTablixControl(): Controls.TablixControl {
         var tableBinder = createMockBinder();
-        var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder);
+        var layoutManager = InternalControls.CanvasTablixLayoutManager.createLayoutManager(tableBinder, mockColumnWidthsCallback, mockColumnWidthChangedCallback);
 
         var tablixOptions: Controls.TablixOptions = {
             interactive: true,
@@ -264,5 +297,15 @@ module powerbitests {
         mouseEvt.wheelDelta = delta;
 
         return mouseEvt;
+    }
+
+    function mockColumnWidthsCallback(): number[] {
+        return colWidthCallback;
+    }
+
+    function mockColumnWidthChangedCallback(): void {
+        colWidthChangedCallback = true;
+        colWidthCallback[0] = 35;
+        
     }
 } 

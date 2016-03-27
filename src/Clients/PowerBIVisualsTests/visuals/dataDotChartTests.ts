@@ -831,7 +831,7 @@ module powerbitests {
 
         constructor(width: string = "500", height: string = "500") {
             this.element = powerbitests.helpers.testDom(height, width);
-            this._visual = powerbi.visuals.visualPluginFactory.create().getPlugin("dataDotChart").create();
+            this._visual = new powerbi.visuals.CartesianChart({ chartType: powerbi.visuals.CartesianChartType.DataDot, behavior: new powerbi.visuals.CartesianChartBehavior([new powerbi.visuals.DataDotChartWebBehavior()]) });
             this._hostServices = mocks.createVisualHostServices();
             this._warningSpy = jasmine.createSpy("warning");
             this._hostServices.setWarnings = this.warningSpy;
